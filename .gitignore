@@ -1,2 +1,6 @@
+# Data
 /data/mu
 /data/um
+
+# Binary files
+bin/*

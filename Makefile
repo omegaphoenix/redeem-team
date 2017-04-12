@@ -3,7 +3,10 @@ CXXFLAGS = -std=c++11 -Wall -g
 PROG = naive_svd
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd.cpp model.cpp)
 
-all: naive_svd
+all: init naive_svd
+
+init:
+	mkdir -p bin
 
 naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
@@ -11,4 +14,4 @@ naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 clean:
 	rm src/*.o
 
-.PHONY: all clean
+.PHONY: all clean init
