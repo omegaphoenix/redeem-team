@@ -4,7 +4,7 @@
 
 class NaiveSVD : public Model {
     public:
-        NaiveSVD() {};
+        NaiveSVD() : Model() {};
         ~NaiveSVD();
         void train();
     private:

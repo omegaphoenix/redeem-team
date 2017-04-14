@@ -1,20 +1,21 @@
 #ifndef MODEL_HPP
 #define MODEL_HPP
 #include <string>
+#include <vector>
 
 #define N_MOVIES 17770
-#define N_USERS 480189
+#define N_USERS 458293
 
 class Model {
     public:
-        Model() {};
+        Model();
+        std::vector<std::vector<char>> ratings;
         virtual ~Model();
         void loadFresh(std::string fname);
         void loadSaved(std::string fname);
         virtual void train() = 0;
     private:
         virtual void generateMissing();
-        float **ratings;
 };
 
 #endif // MODEL_HPP

@@ -2,7 +2,11 @@
 #include <fstream>
 #include "model.hpp"
 
-// Clean up ratings array.
+// Initialize ratings.
+Model::Model() : ratings(N_USERS, std::vector<char>(N_MOVIES, 0)) {
+}
+
+// Clean up ratings.
 Model::~Model() {
 }
 
@@ -16,9 +20,12 @@ void Model::loadFresh(std::string fname) {
 
     int user, movie, date;
     float rating;
-    data >> user >> movie >> date >> rating;
-    std::cout << user << ' ' << movie << ' ' <<
-              date << ' ' << rating << std::endl;
+    while (data.good()) {
+      data >> user >> movie >> date >> rating;
+      ratings[user - 1][movie - 1] = rating;
+      std::cout << user << ' ' << movie << ' ' <<
+                   date << ' ' << rating << std::endl;
+    }
     data.close();
 }
 

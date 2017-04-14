@@ -13,7 +13,7 @@ void NaiveSVD::update() {
 }
 
 int main(int argc, char **argv) {
-    NaiveSVD* nsvd = new NaiveSVD;
+    NaiveSVD* nsvd = new NaiveSVD();
     nsvd->loadFresh("data/um/all.dta");
     return 0;
 }
