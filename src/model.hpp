@@ -1,6 +1,7 @@
 #ifndef MODEL_HPP
 #define MODEL_HPP
 #include <string>
+#include <time.h>
 #include <vector>
 
 #define N_MOVIES 17770
@@ -9,7 +10,7 @@
 class Model {
     public:
         Model();
-        std::vector<std::vector<char>> ratings;
+        std::vector<std::vector<char> > ratings;
         virtual ~Model();
         void loadFresh(std::string fname);
         void loadSaved(std::string fname);

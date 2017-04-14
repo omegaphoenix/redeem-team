@@ -1,6 +1,6 @@
-#include <iostream>
-#include <fstream>
 #include "model.hpp"
+#include <fstream>
+#include <iostream>
 
 // Initialize ratings.
 Model::Model() : ratings(N_USERS, std::vector<char>(N_MOVIES, 0)) {
@@ -23,8 +23,6 @@ void Model::loadFresh(std::string fname) {
     while (data.good()) {
       data >> user >> movie >> date >> rating;
       ratings[user - 1][movie - 1] = rating;
-      std::cout << user << ' ' << movie << ' ' <<
-                   date << ' ' << rating << std::endl;
     }
     data.close();
 }
