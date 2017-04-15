@@ -3,7 +3,7 @@
 #include <iostream>
 
 // Initialize ratings.
-Model::Model() : ratings(N_USERS, std::vector<float>(N_MOVIES, 0)) {
+Model::Model() {
 }
 
 // Clean up ratings.
@@ -21,8 +21,13 @@ void Model::loadFresh(std::string fname) {
     int user, movie, date;
     float rating;
     while (data.good()) {
-      data >> user >> movie >> date >> rating;
-      ratings[user - 1][movie - 1] = rating;
+        data >> user >> movie >> date >> rating;
+        std::vector<int> data_point(4, 0);
+        data_point[0] = user;
+        data_point[1] = movie;
+        data_point[2] = date;
+        data_point[3] = rating;
+        ratings.push_back(data_point);
     }
     data.close();
 }
