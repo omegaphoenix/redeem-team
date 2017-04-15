@@ -14,9 +14,11 @@ class Model {
         // std::vector<std::vector<float> > ratings;
         virtual ~Model();
         void loadFresh(std::string fname);
+        void loadCSR(std::string fname);
         void loadSaved(std::string fname);
         virtual void train() = 0;
-        void outputRatings(std::string fname);
+        void outputRatingsCSR(std::string fname);
+        void outputRatingsRLE(std::string fname);
     private:
         virtual void generateMissing();
         std::vector<char> values;

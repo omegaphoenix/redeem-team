@@ -36,34 +36,39 @@ void Model::loadFresh(std::string fname) {
     data.close();
 }
 
+// Load ratings array in CSR format
+void Model::loadCSR(std::string fname) {
+    // TODO
+}
+
 // Output integer ratings to file.
-void Model::outputRatings(std::string fname) {
-		std::ofstream out(fname);
+void Model::outputRatingsCSR(std::string fname) {
+    FILE *out = fopen(fname.c_str(), "w");
     int i;
 
     for (i = 0; i < values.size(); i++) {
         if (i % 10000000 == 0) {
             std::cout << i << std::endl;
         }
-        char str[sizeof(char)];
-        sprintf(str, "%c", (char) values[i]);
-        out << str;
+        fprintf(out, "%c", (char) values[i]);
     }
-    out << '\n';
+    fprintf(out, "\n");
 
     for (i = 0; i < columns.size(); i++) {
-        char str[sizeof(char)];
-        sprintf(str, "%c ", (char) columns[i]);
-        out << str;
+        fprintf(out, "%c", (char) values[i]);
     }
-    out << '\n';
+    fprintf(out, "\n");
 
     for (i = 0; i < rowIndex.size(); i++) {
-        char str[sizeof(char)];
-        sprintf(str, "%c ", (char) rowIndex[i]);
-        out << str;
+        fprintf(out, "%c", (char) values[i]);
     }
-    out << '\n';
+    fprintf(out, "\n");
+    fclose(out);
+}
+
+// Output integer ratings to file.
+void Model::outputRatingsRLE(std::string fname) {
+    // TODO
 }
 
 // Add in missing values.

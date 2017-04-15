@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 
     // Output ratings in new format.
     std::cout << "Outputing ratings" << std::endl;
-    nsvd->outputRatings("data/um/1_ratings.dta");
+    nsvd->outputRatingsCSR("data/um/test_csr.dta");
     clock_t time3 = clock();
 
     // Output times.
