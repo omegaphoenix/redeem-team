@@ -22,15 +22,15 @@ void Model::loadFresh(std::string fname) {
     int prevUser = 0;
     float rating;
     while (data.good()) {
-      data >> user >> movie >> date >> rating;
-      // Data is one indexed for users and movies
-      // ratings[user - 1][movie - 1] = rating;
-      while (prevUser != user) {
-        rowIndex.push_back(columns.size());
-        prevUser++;
-      }
-      values.push_back(rating);
-      columns.push_back(movie);
+        data >> user >> movie >> date >> rating;
+        // Data is one indexed for users and movies
+        // ratings[user - 1][movie - 1] = rating;
+        while (prevUser != user) {
+            rowIndex.push_back(columns.size());
+            prevUser++;
+        }
+        values.push_back(rating);
+        columns.push_back(movie);
     }
     rowIndex.push_back(columns.size());
     data.close();
@@ -42,6 +42,9 @@ void Model::outputRatings(std::string fname) {
     int i;
 
     for (i = 0; i < values.size(); i++) {
+        if (i % 10000000 == 0) {
+            std::cout << i << std::endl;
+        }
         char str[sizeof(char)];
         sprintf(str, "%c", (char) values[i]);
         out << str;
