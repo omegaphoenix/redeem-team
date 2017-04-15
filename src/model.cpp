@@ -3,7 +3,7 @@
 #include <iostream>
 
 // Initialize ratings.
-Model::Model() : ratings(N_USERS, std::vector<float>(N_MOVIES, 0)) {
+Model::Model() { // : ratings(N_USERS, std::vector<float>(N_MOVIES, 0)) {
 }
 
 // Clean up ratings.
@@ -19,28 +19,48 @@ void Model::loadFresh(std::string fname) {
     }
 
     int user, movie, date;
+    int prevUser = 0;
     float rating;
     while (data.good()) {
       data >> user >> movie >> date >> rating;
       // Data is one indexed for users and movies
-      ratings[user - 1][movie - 1] = rating;
+      // ratings[user - 1][movie - 1] = rating;
+      while (prevUser != user) {
+        rowIndex.push_back(columns.size());
+        prevUser++;
+      }
+      values.push_back(rating);
+      columns.push_back(movie);
     }
+    rowIndex.push_back(columns.size());
     data.close();
 }
 
 // Output integer ratings to file.
 void Model::outputRatings(std::string fname) {
 		std::ofstream out(fname);
-    int i, j;
+    int i;
 
-    for (i = 0; i < N_USERS; i++) {
-        for (j = 0; j < N_MOVIES; j++) {
-            char str[sizeof(int)];
-            sprintf(str, "%d", (int) ratings[i][j]);
-            out << str;
-        }
-        out << '\n';
+    for (i = 0; i < values.size(); i++) {
+        char str[sizeof(char)];
+        sprintf(str, "%c", (char) values[i]);
+        out << str;
     }
+    out << '\n';
+
+    for (i = 0; i < columns.size(); i++) {
+        char str[sizeof(char)];
+        sprintf(str, "%c ", (char) columns[i]);
+        out << str;
+    }
+    out << '\n';
+
+    for (i = 0; i < rowIndex.size(); i++) {
+        char str[sizeof(char)];
+        sprintf(str, "%c ", (char) rowIndex[i]);
+        out << str;
+    }
+    out << '\n';
 }
 
 // Add in missing values.
