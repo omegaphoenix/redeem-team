@@ -22,8 +22,8 @@ class Model {
     private:
         virtual void generateMissing();
         std::vector<char> values;
-        std::vector<char> columns;
-        std::vector<char> rowIndex;
+        std::vector<int> columns;
+        std::vector<int> rowIndex;
 };
 
 #endif // MODEL_HPP

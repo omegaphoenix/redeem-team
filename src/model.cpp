@@ -18,13 +18,13 @@ Model::Model() { // : ratings(N_USERS, std::vector<float>(N_MOVIES, 0)) {
 Model::~Model() {
 }
 
-// Load new ratings array.
+// Load new ratings array into CSR format.
 void Model::loadFresh(std::string fname) {
     std::cout << "Opening " << fname << std::endl;
+
     FILE *f = std::fopen(fname.c_str(), "r");
     if (f == NULL) {
-        printf("Failed to open\n");
-        return;
+        throw std::runtime_error("Failed to open " + fname);
     }
 
     int user, movie, date, rating;
@@ -55,21 +55,25 @@ void Model::outputRatingsCSR(std::string fname) {
     FILE *out = fopen(fname.c_str(), "w");
     int i;
 
+    fprintf(out, "%lu\n", values.size());
+    fprintf(out, "%lu\n", columns.size());
+    fprintf(out, "%lu\n", rowIndex.size());
+
     for (i = 0; i < values.size(); i++) {
         if (i % 10000000 == 0) {
             std::cout << i << std::endl;
         }
-        fprintf(out, "%c", (char) values[i]);
+        fprintf(out, "%c", values[i]);
     }
     fprintf(out, "\n");
 
     for (i = 0; i < columns.size(); i++) {
-        fprintf(out, "%c ", (char) values[i]);
+        fprintf(out, "%d ", columns[i]);
     }
     fprintf(out, "\n");
 
     for (i = 0; i < rowIndex.size(); i++) {
-        fprintf(out, "%c ", (char) values[i]);
+        fprintf(out, "%d ", rowIndex[i]);
     }
     fprintf(out, "\n");
     fclose(out);

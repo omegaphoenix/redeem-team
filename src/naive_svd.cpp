@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
     clock_t time1 = clock();
 
     // Load data from file.
-    nsvd->loadFresh("data/um/1.dta");
+    nsvd->loadFresh("data/um/all.dta");
     clock_t time2 = clock();
 
     // Output ratings in new format.
@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
     double ms2 = diffclock(time2, time1);
     std::cout << "Loading took " << ms2 << " ms" << std::endl;
     double ms3 = diffclock(time3, time2);
-    std::cout << "Converting data took " << ms3 << " ms" << std::endl;
+    std::cout << "Outputing data took " << ms3 << " ms" << std::endl;
     double total_ms = diffclock(time3, time0);
     std::cout << "Total took " << total_ms << " ms" << std::endl;
     return 0;
