@@ -6,6 +6,7 @@
 
 #define N_MOVIES 17770
 #define N_USERS 458293
+#define N_DAYS 2243
 #define N_TRAINING 99666409
 
 class Model {

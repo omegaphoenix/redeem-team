@@ -1,4 +1,5 @@
 #include "model.hpp"
+#include <assert.h>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -36,6 +37,10 @@ void Model::loadFresh(std::string fname) {
     }
 
     while (itemsRead  == 4) {
+        assert (user > 0 && user <= N_USERS);
+        assert (movie > 0 && movie <= N_MOVIES);
+        assert (date > 0 && date <= N_DAYS);
+        assert (rating >= 0 && rating <= 5);
         while (prevUser != user) {
             rowIndex.push_back(columns.size());
             prevUser++;
@@ -101,15 +106,19 @@ void Model::outputRatingsRLE(std::string fname) {
             std::cout << i << std::endl;
         }
 
+        // Handle case where there are no ratings for this user
         if (idx >= next) {
-            throw std::runtime_error("User does not have any ratings");
+            fprintf(out, "%hu%c", (unsigned short) N_MOVIES, 0);
         }
 
         // Output RLE sequence for i'th user
         while (idx < next) {
             if (columns[idx] != colIdx) {
                 // Print out previous character
-                fprintf(out, "%hu%c", curCount, prev);
+                if (curCount > 0) {
+                    assert(prev > 0 && prev <= 5);
+                    fprintf(out, "%hu%c", curCount, prev);
+                }
                 prev = 0; // Skipped columns so we need to print zeroes
                 curCount = columns[idx] - colIdx;
 
@@ -122,7 +131,10 @@ void Model::outputRatingsRLE(std::string fname) {
             }
             else {
                 // Print out previous character
-                fprintf(out, "%hu%c", curCount, prev);
+                if (curCount > 0) {
+                    assert(prev > 0 && prev <= 5);
+                    fprintf(out, "%hu%c", curCount, prev);
+                }
 
                 // Keep track of current value because it hasn't been output
                 curCount = 1;
@@ -136,6 +148,7 @@ void Model::outputRatingsRLE(std::string fname) {
 
         // Print out last value in line and omit zeroes after
         if (curCount > 0) {
+            assert(prev > 0 && prev <= 5);
             fprintf(out, "%hu%c", curCount, prev);
         }
         curCount = 0;
