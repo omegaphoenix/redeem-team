@@ -22,9 +22,25 @@ void Model::loadFresh(std::string fname) {
     float rating;
     while (data.good()) {
       data >> user >> movie >> date >> rating;
+      // Data is one indexed for users and movies
       ratings[user - 1][movie - 1] = rating;
     }
     data.close();
+}
+
+// Output integer ratings to file.
+void Model::outputRatings(std::string fname) {
+		std::ofstream out(fname);
+    int i, j;
+
+    for (i = 0; i < N_USERS; i++) {
+        for (j = 0; j < N_MOVIES; j++) {
+            char str[sizeof(int)];
+            sprintf(str, "%d", (int) ratings[i][j]);
+            out << str;
+        }
+        out << '\n';
+    }
 }
 
 // Add in missing values.

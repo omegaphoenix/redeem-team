@@ -15,6 +15,7 @@ class Model {
         void loadFresh(std::string fname);
         void loadSaved(std::string fname);
         virtual void train() = 0;
+        void outputRatings(std::string fname);
     private:
         virtual void generateMissing();
 };
