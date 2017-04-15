@@ -3,7 +3,7 @@
 #include <iostream>
 
 // Initialize ratings.
-Model::Model() : ratings(N_USERS, std::vector<char>(N_MOVIES, 0)) {
+Model::Model() : ratings(N_USERS, std::vector<float>(N_MOVIES, 0)) {
 }
 
 // Clean up ratings.
