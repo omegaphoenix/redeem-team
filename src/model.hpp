@@ -10,7 +10,7 @@
 class Model {
     public:
         Model();
-        std::vector<std::vector<char> > ratings;
+        std::vector<std::vector<float> > ratings;
         virtual ~Model();
         void loadFresh(std::string fname);
         void loadSaved(std::string fname);
