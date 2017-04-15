@@ -22,6 +22,7 @@ static double diffclock(clock_t clock1, clock_t clock2) {
 }
 
 int main(int argc, char **argv) {
+    std::ios_base::sync_with_stdio(false);
     clock_t time0 = clock();
 
     // Initialize ratings data structure.

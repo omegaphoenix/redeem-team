@@ -1,6 +1,14 @@
 #include "model.hpp"
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <fcntl.h>
 #include <fstream>
 #include <iostream>
+#include <sys/mman.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 // Initialize ratings.
 Model::Model() { // : ratings(N_USERS, std::vector<float>(N_MOVIES, 0)) {
@@ -13,27 +21,28 @@ Model::~Model() {
 // Load new ratings array.
 void Model::loadFresh(std::string fname) {
     std::cout << "Opening " << fname << std::endl;
-    std::ifstream data(fname);
-    if (!data.is_open()) {
-        throw std::runtime_error("Failed to open " + fname);
+    FILE *f = std::fopen(fname.c_str(), "r");
+    if (f == NULL) {
+        printf("Failed to open\n");
+        return;
     }
 
-    int user, movie, date;
+    int user, movie, date, rating;
     int prevUser = 0;
-    float rating;
-    while (data.good()) {
-        data >> user >> movie >> date >> rating;
-        // Data is one indexed for users and movies
-        // ratings[user - 1][movie - 1] = rating;
+    int itemsRead = fscanf(f,"%d %d %d %d\n", &user, &movie, &date, &rating);
+    if (itemsRead != 4) {
+        printf("Wrong format \n");
+        return;
+    }
+    while (itemsRead  == 4) {
         while (prevUser != user) {
             rowIndex.push_back(columns.size());
             prevUser++;
         }
         values.push_back(rating);
         columns.push_back(movie);
+        itemsRead = fscanf(f,"%d %d %d %d\n", &user, &movie, &date, &rating);
     }
-    rowIndex.push_back(columns.size());
-    data.close();
 }
 
 // Load ratings array in CSR format
@@ -55,12 +64,12 @@ void Model::outputRatingsCSR(std::string fname) {
     fprintf(out, "\n");
 
     for (i = 0; i < columns.size(); i++) {
-        fprintf(out, "%c", (char) values[i]);
+        fprintf(out, "%c ", (char) values[i]);
     }
     fprintf(out, "\n");
 
     for (i = 0; i < rowIndex.size(); i++) {
-        fprintf(out, "%c", (char) values[i]);
+        fprintf(out, "%c ", (char) values[i]);
     }
     fprintf(out, "\n");
     fclose(out);
