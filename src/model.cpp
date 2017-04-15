@@ -34,54 +34,117 @@ void Model::loadFresh(std::string fname) {
         printf("Wrong format \n");
         return;
     }
+
     while (itemsRead  == 4) {
         while (prevUser != user) {
             rowIndex.push_back(columns.size());
             prevUser++;
         }
-        values.push_back(rating);
-        columns.push_back(movie);
+        if (rating != 0) {
+            values.push_back(rating);
+            columns.push_back(movie - 1);
+        }
         itemsRead = fscanf(f,"%d %d %d %d\n", &user, &movie, &date, &rating);
     }
+
+    rowIndex.push_back(columns.size());
 }
 
-// Load ratings array in CSR format
+// Load ratings array from CSR format
 void Model::loadCSR(std::string fname) {
     // TODO
 }
 
 // Output integer ratings to file.
 void Model::outputRatingsCSR(std::string fname) {
-    FILE *out = fopen(fname.c_str(), "w");
     int i;
 
+    FILE *out = fopen((fname + "_CSR_values.dta").c_str(), "w");
     fprintf(out, "%lu\n", values.size());
-    fprintf(out, "%lu\n", columns.size());
-    fprintf(out, "%lu\n", rowIndex.size());
-
     for (i = 0; i < values.size(); i++) {
-        if (i % 10000000 == 0) {
-            std::cout << i << std::endl;
-        }
         fprintf(out, "%c", values[i]);
     }
-    fprintf(out, "\n");
+    fclose(out);
 
+    out = fopen((fname + "_CSR_columns.dta").c_str(), "w");
+    fprintf(out, "%lu\n", columns.size());
     for (i = 0; i < columns.size(); i++) {
         fprintf(out, "%d ", columns[i]);
     }
-    fprintf(out, "\n");
+    fclose(out);
 
+    out = fopen((fname + "_CSR_rowIndex.dta").c_str(), "w");
+    fprintf(out, "%lu\n", rowIndex.size());
     for (i = 0; i < rowIndex.size(); i++) {
         fprintf(out, "%d ", rowIndex[i]);
     }
-    fprintf(out, "\n");
     fclose(out);
 }
 
-// Output integer ratings to file.
+// Output integer ratings to file. Assume every user has at least one rating.
 void Model::outputRatingsRLE(std::string fname) {
-    // TODO
+    int i;
+
+    FILE *out = fopen((fname + "_RLE.dta").c_str(), "w");
+    // Index in values and columns vector
+    int idx = 0;
+    // \n is 10 in ASCII so it won't get confused with 0-5
+    char prev = '\n';
+    // Maximum repeated characters is N_MOVIES
+    unsigned short curCount = 0;
+    unsigned short colIdx = 0;
+
+    for (i = 0; i + 1 < rowIndex.size(); i++) {
+        // Index of next row/user in values and columns vectors
+        int next = rowIndex[i + 1];
+        if (i % 100000 == 0) {
+            std::cout << i << std::endl;
+        }
+
+        if (idx >= next) {
+            throw std::runtime_error("User does not have any ratings");
+        }
+
+        // Output RLE sequence for i'th user
+        while (idx < next) {
+            if (columns[idx] != colIdx) {
+                // Print out previous character
+                fprintf(out, "%hu%c", curCount, prev);
+                prev = 0; // Skipped columns so we need to print zeroes
+                curCount = columns[idx] - colIdx;
+
+                fprintf(out, "%hu%c", curCount, prev);
+                prev = values[idx];
+            }
+            else if (values[idx] == prev) {
+                // Increment count if the next rating is the same
+                curCount++;
+            }
+            else {
+                // Print out previous character
+                fprintf(out, "%hu%c", curCount, prev);
+
+                // Keep track of current value because it hasn't been output
+                curCount = 1;
+                prev = values[idx];
+            }
+
+            // Next column to expect
+            colIdx = columns[idx] + 1;
+            idx++;
+        }
+
+        // Print out last value in line and omit zeroes after
+        if (curCount > 0) {
+            fprintf(out, "%hu%c", curCount, prev);
+        }
+        curCount = 0;
+        colIdx = 0;
+        prev = '\n';
+        // End line
+        fprintf(out, "\n");
+    }
+    fclose(out);
 }
 
 // Add in missing values.
