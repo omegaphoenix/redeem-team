@@ -35,8 +35,3 @@ void Model::loadFresh(std::string fname) {
 // Add in missing values.
 void Model::generateMissing() {
 }
-
-
-// Load ratings array for a model in progress.
-void Model::loadSaved(std::string fname) {
-}
