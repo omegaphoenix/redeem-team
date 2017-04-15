@@ -13,7 +13,7 @@ class Model {
         std::vector<std::vector<int> > ratings;
         virtual ~Model();
         void loadFresh(std::string fname);
-        void loadSaved(std::string fname);
+        virtual void loadSaved(std::string fname) = 0;
         virtual void train() = 0;
     private:
         virtual void generateMissing();
