@@ -18,16 +18,18 @@ void kNN::train() {
 
 // Calculates Pearson correlation for each item
 // Optimized to not go through entire data set twice
-float kNN::pearson(std::vector<float> x_i, std::vector<float> x_j) {
+float kNN::pearson(std::vector<float> x_i, std::vector<float> x_j, std::vector<int> nonzero) {
     float x_i_ave = 0;
     float x_j_ave = 0;
     int L = 0;
     std::vector<int> index;
 
-    for (int i = 0; i < x_i.size(); i++) {
-        if (x_i[i] != 0 && x_j[i] != 0) {
-            x_i_ave = x_i_ave + x_i[i];
-            x_j_ave = x_j_ave + x_j[i];
+    for (int i = 0; i < nonzero.size(); i++) {
+        int k = nonzero[i];
+
+        if (x_j[k] != 0) {
+            x_i_ave = x_i_ave + x_i[k];
+            x_j_ave = x_j_ave + x_j[k];
             L++;
             // Storing index.  Don't want to go through entire matrix twice
             index.push_back(i);
@@ -94,10 +96,18 @@ void kNN::buildMatrix(std::vector<std::vector<float>> &train) {
 
     std::cout << "matrix initialized\n";
     for (int i = 0; i < N - 1; i++) {
+        std::vector<int> nonzero;
+
+        for (int j = 0; j < train[i].size(); j++) {
+            if (train[i][j] != 0) {
+                nonzero.push_back(j);
+            }
+        }
+
         for (int j = 0; j < N; j++) {
             //std::cout << "Running pearson on " << i << ", " << j << std::endl;
             //corrMatrix[i][j] = pearson(train[i], train[j]);
-            float corr = pearson(train[i], train[j]);
+            float corr = pearson(train[i], train[j], nonzero);
             if (corr != 0) {
                 corrMatrix[0].push_back(corr);
                 corrMatrix[1].push_back(i);

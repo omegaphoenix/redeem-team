@@ -10,7 +10,7 @@ class kNN : public Model {
         void train();
         void predict(int user, int movie);
     private:
-        float pearson(std::vector<float> x_i, std::vector<float> x_j);
+        float pearson(std::vector<float> x_i, std::vector<float> x_j, std::vector<int> nonzero);
         void buildMatrix(std::vector<std::vector<float>> &train);
         std::vector<std::vector<float>> corrMatrix;
 };
