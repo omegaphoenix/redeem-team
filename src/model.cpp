@@ -93,10 +93,8 @@ void Model::outputRatingsRLE(std::string fname) {
     FILE *out = fopen((fname + "_RLE.dta").c_str(), "w");
     // Index in values and columns vector
     int idx = 0;
-    // \n is 10 in ASCII so it won't get confused with 0-5
-    char prev = '\n';
     // Maximum repeated characters is N_MOVIES
-    unsigned short curCount = 0;
+    unsigned short numZeroes = 0;
     unsigned short colIdx = 0;
 
     for (i = 0; i + 1 < rowIndex.size(); i++) {
@@ -106,54 +104,20 @@ void Model::outputRatingsRLE(std::string fname) {
             std::cout << i << std::endl;
         }
 
-        // Handle case where there are no ratings for this user
-        if (idx >= next) {
-            fprintf(out, "%hu%c", (unsigned short) N_MOVIES, 0);
-        }
-
         // Output RLE sequence for i'th user
         while (idx < next) {
-            if (columns[idx] != colIdx) {
-                // Print out previous character
-                if (curCount > 0) {
-                    assert(prev > 0 && prev <= 5);
-                    fprintf(out, "%hu%c", curCount, prev);
-                }
-                prev = 0; // Skipped columns so we need to print zeroes
-                curCount = columns[idx] - colIdx;
-
-                fprintf(out, "%hu%c", curCount, prev);
-                prev = values[idx];
-            }
-            else if (values[idx] == prev) {
-                // Increment count if the next rating is the same
-                curCount++;
-            }
-            else {
-                // Print out previous character
-                if (curCount > 0) {
-                    assert(prev > 0 && prev <= 5);
-                    fprintf(out, "%hu%c", curCount, prev);
-                }
-
-                // Keep track of current value because it hasn't been output
-                curCount = 1;
-                prev = values[idx];
-            }
+            // Check for zeroes in between
+            assert (columns[idx] - colIdx < USHRT_MAX);
+            numZeroes = columns[idx] - colIdx;
+            fprintf(out, "%hu", numZeroes);
 
             // Next column to expect
+            fprintf(out, "%c", values[idx]);
             colIdx = columns[idx] + 1;
             idx++;
         }
 
-        // Print out last value in line and omit zeroes after
-        if (curCount > 0) {
-            assert(prev > 0 && prev <= 5);
-            fprintf(out, "%hu%c", curCount, prev);
-        }
-        curCount = 0;
         colIdx = 0;
-        prev = '\n';
         // End line
         fprintf(out, "\n");
     }
