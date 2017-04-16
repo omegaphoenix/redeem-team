@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 // Initialize ratings.
-Model::Model() { // : ratings(N_USERS, std::vector<float>(N_MOVIES, 0)) {
+Model::Model() {
 }
 
 // Clean up ratings.
@@ -55,9 +55,46 @@ void Model::loadFresh(std::string fname) {
     rowIndex.push_back(columns.size());
 }
 
-// Load ratings array from CSR format
+// Load ratings array from CSR format.
 void Model::loadCSR(std::string fname) {
     // TODO
+}
+
+// Load ratings array from RLE format to COO.
+void Model::loadRLE(std::string fname) {
+    int f = open(fname.c_str(), O_RDONLY);
+    unsigned short numZeroes;
+    char rating;
+    int user = 0;
+    int movie = 0;
+
+    off_t size = lseek(f, 0, SEEK_END);
+    char *buffer = (char *) mmap(NULL, size, PROT_READ, MAP_PRIVATE, f, 0);
+
+    int bytes = size;
+    char *p = buffer;
+    while (bytes > 0) {
+        // Reached end of line/user
+        if (*p == '\n') {
+            p++;
+            bytes--;
+            user++;
+            movie = 0;
+        }
+        // We have number of zeroes and a rating
+        else {
+            numZeroes = *p;
+            p = p + sizeof(numZeroes);
+            bytes = bytes - sizeof(numZeroes);
+            movie += numZeroes;
+            rating = *p;
+            std::vector<int> data_point = {user, movie, 0, rating};
+            p++;
+            bytes--;
+        }
+    }
+    close(f);
+    munmap(buffer, size);
 }
 
 // Output integer ratings to file.
@@ -90,7 +127,7 @@ void Model::outputRatingsCSR(std::string fname) {
 void Model::outputRatingsRLE(std::string fname) {
     int i;
 
-    FILE *out = fopen((fname + "_RLE.dta").c_str(), "w");
+    FILE *out = fopen((fname).c_str(), "w");
     // Index in values and columns vector
     int idx = 0;
     // Maximum repeated characters is N_MOVIES
@@ -132,3 +169,46 @@ void Model::generateMissing() {
 // Load ratings array for a model in progress.
 void Model::loadSaved(std::string fname) {
 }
+
+// Run this function once first to preprocess data.
+void Model::initLoad(std::string fname) {
+    std::cout << "Preloading..." << std::endl;
+    clock_t time0 = clock();
+
+    // Load data from file.
+    loadFresh("data/um/all.dta");
+    clock_t time1 = clock();
+
+    // Output ratings in new format.
+    std::cout << "Outputing ratings" << std::endl;
+    outputRatingsRLE(fname);
+    clock_t time2 = clock();
+
+    // Output times.
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Preloading took " << ms1 << " ms" << std::endl;
+    double ms2 = diffclock(time2, time1);
+    std::cout << "Outputing data took " << ms2 << " ms" << std::endl;
+    double total_ms = diffclock(time2, time0);
+    std::cout << "Total preprocessing took " << total_ms << " ms" << std::endl;
+}
+
+// Load the data.
+void Model::load(void) {
+    std::string fname = "data/um/test_RLE.data";
+    std::ifstream f(fname.c_str());
+    if (!f.good()) {
+        initLoad(fname);
+    }
+
+    std::cout << "Loading..." << std::endl;
+    clock_t time0 = clock();
+    // Load data from file.
+    loadRLE(fname);
+    clock_t time1 = clock();
+
+    // Output times.
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Loading took " << ms1 << " ms" << std::endl;
+}
+
