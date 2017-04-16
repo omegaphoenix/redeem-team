@@ -5,6 +5,7 @@
 #include "knn.hpp"
 #include <iostream>
 #include <time.h>
+#include <math.h>
 
 kNN::~kNN() {
 }
@@ -15,20 +16,39 @@ void kNN::train() {
 }
 
 void kNN::pearson(std::vector<float> x_i, std::vector<float> x_j) {
-    x_i_ave = 0;
-    x_j_ave = 0;
+    float x_i_ave = 0;
+    float x_j_ave = 0;
+    int L = 0;
+    std::vector<int> index;
 
     for (int i = 0; i < x_i.size(); i++) {
-        if (x_i[i] != NULL) {
+        if (x_i[i] != NULL && x_j[i] != NULL) {
             x_i_ave = x_i_ave + x_i[i];
-        }
-
-        if (x_j[i] != NULL) {
             x_j_ave = x_j_ave + x_j[i];
+            L++;
+            index.push_back(i);
         }
     }
+    x_i_ave = x_i_ave/L;
+    x_j_ave = x_j_ave/L;
+
+    float nominator = 0;
+
+    float denom1 = 0;
+    float denom2 = 0;
+
+    for (int i = 0; i < index.size(); i++) {
+        ith_part = x_i[index[i]] - x_i_ave;
+        jth_part = x_j[index[i]] - x_j_ave;
+
+        nominator = nominator + (ith_part * jth_part);
+
+        denom1 = denom1 + (ith_part * ith_part);
+        denom2 = denom2 + (jth_part * jth_part);
+    }
+    corr = nominator/sqrt(denom1 * denom2);
     
-    
+    return corr;
 }
 
 void kNN::buildMatrix(std::vector<std::vector<float>> train, bool movie) {
