@@ -15,6 +15,8 @@ void kNN::train() {
     return;
 }
 
+// Calculates Pearson correlation for each item
+// Optimized to not go through entire data set twice
 void kNN::pearson(std::vector<float> x_i, std::vector<float> x_j) {
     float x_i_ave = 0;
     float x_j_ave = 0;
@@ -26,6 +28,7 @@ void kNN::pearson(std::vector<float> x_i, std::vector<float> x_j) {
             x_i_ave = x_i_ave + x_i[i];
             x_j_ave = x_j_ave + x_j[i];
             L++;
+            // Storing index.  Don't want to go through entire matrix twice
             index.push_back(i);
         }
     }
@@ -47,12 +50,15 @@ void kNN::pearson(std::vector<float> x_i, std::vector<float> x_j) {
         denom2 = denom2 + (jth_part * jth_part);
     }
     corr = nominator/sqrt(denom1 * denom2);
-    
+
     return corr;
 }
 
 void kNN::buildMatrix(std::vector<std::vector<float>> train, bool movie) {
     int N = N_MOVIES;
+    
+    // NEED TO INIT corrMatrix
+
     if (!movie) {
         N = N_USERS;
     }
