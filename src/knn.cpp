@@ -14,29 +14,42 @@ void kNN::train() {
     return;
 }
 
-void kNN::pearson(float *x_i, float *x_j) {
+void kNN::pearson(std::vector<float> x_i, std::vector<float> x_j) {
+    x_i_ave = 0;
+    x_j_ave = 0;
 
+    for (int i = 0; i < x_i.size(); i++) {
+        if (x_i[i] != NULL) {
+            x_i_ave = x_i_ave + x_i[i];
+        }
+
+        if (x_j[i] != NULL) {
+            x_j_ave = x_j_ave + x_j[i];
+        }
+    }
+    
+    
 }
 
 void kNN::buildMatrix(std::vector<std::vector<float>> train, bool movie) {
-    // int N = N_MOVIES;
-    // if (!movie) {
-    //     N = N_USERS;
-    // }
+    int N = N_MOVIES;
+    if (!movie) {
+        N = N_USERS;
+    }
 
-    // for (int i = 0; i < N - 1; i++) {
-    //     for (int j = 0; j < N; j++) {
-    //         if (!movie) {
-    //             corrMatrix[i][j] = pearson(train[i], train[j]);
-    //         }
-    //         else {
-    //             // shouldn't get here; figure out how to optimize
-    //             std::cout << "cannot build matrix based on movies\n";
-    //         }
-    //     }
-    // }
+    for (int i = 0; i < N - 1; i++) {
+        for (int j = 0; j < N; j++) {
+            if (!movie) {
+                corrMatrix[i][j] = pearson(train[i], train[j]);
+            }
+            else {
+                // shouldn't get here; figure out how to optimize
+                std::cout << "cannot build matrix based on movies\n";
+            }
+        }
+    }
 
-    // return;
+    return;
 }
 
 // Find "closest" movies and average user's ratings for them
