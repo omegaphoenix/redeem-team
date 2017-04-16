@@ -21,8 +21,9 @@ void Model::loadFresh(std::string fname) {
     int user, movie, date;
     float rating;
     while (data.good()) {
-      data >> user >> movie >> date >> rating;
-      ratings[user - 1][movie - 1] = rating;
+        if (user > 10) { break; }
+        data >> user >> movie >> date >> rating;
+        ratings[user - 1][movie - 1] = rating;
     }
     data.close();
 }
