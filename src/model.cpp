@@ -119,6 +119,7 @@ void Model::loadCSR(std::string fname) {
             idx += DATA_POINT_SIZE;
         }
     }
+    ratings_size = idx / DATA_POINT_SIZE;
     close(f);
     munmap(buffer, size);
 }
@@ -126,7 +127,6 @@ void Model::loadCSR(std::string fname) {
 // Add in missing values.
 void Model::generateMissing(void) {
 }
-
 
 // Load ratings array for a model in progress.
 void Model::loadSaved(std::string fname) {
@@ -164,4 +164,3 @@ void Model::load(void) {
     double ms1 = diffclock(time1, time0);
     std::cout << "Loading took " << ms1 << " ms" << std::endl;
 }
-
