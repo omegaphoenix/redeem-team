@@ -12,11 +12,13 @@
 #include <unistd.h>
 
 // Initialize ratings.
-Model::Model() : ratings(N_TRAINING, std::array<int, 4>()) {
+Model::Model() {
+    ratings = new int[N_TRAINING * 4];
 }
 
 // Clean up ratings.
 Model::~Model() {
+    free(ratings);
 }
 
 // Load new ratings array into CSR format.
@@ -99,40 +101,14 @@ void Model::loadRLE(std::string fname) {
             bytes--;
             assert (movie >= 0 && movie < N_MOVIES);
             assert (rating >= 0 && rating <= 5);
-            ratings[i][0] = user;
-            ratings[i][1] = movie;
-            ratings[i][3] = rating;
+            ratings[4 * i] = user;
+            ratings[4 * i + 1] = movie;
+            ratings[4 * i + 3] = rating;
             i++;
         }
     }
     close(f);
     munmap(buffer, size);
-}
-
-// Output integer ratings to file.
-void Model::outputRatingsCSR(std::string fname) {
-    int i;
-
-    FILE *out = fopen((fname + "_CSR_values.dta").c_str(), "w");
-    fprintf(out, "%lu\n", values.size());
-    for (i = 0; i < values.size(); i++) {
-        fprintf(out, "%c", values[i]);
-    }
-    fclose(out);
-
-    out = fopen((fname + "_CSR_columns.dta").c_str(), "w");
-    fprintf(out, "%lu\n", columns.size());
-    for (i = 0; i < columns.size(); i++) {
-        fprintf(out, "%hu ", columns[i]);
-    }
-    fclose(out);
-
-    out = fopen((fname + "_CSR_rowIndex.dta").c_str(), "w");
-    fprintf(out, "%lu\n", rowIndex.size());
-    for (i = 0; i < rowIndex.size(); i++) {
-        fprintf(out, "%d ", rowIndex[i]);
-    }
-    fclose(out);
 }
 
 // Output integer ratings to file. Assume every user has at least one rating.

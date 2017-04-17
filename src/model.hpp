@@ -23,14 +23,13 @@ static double diffclock(clock_t clock1, clock_t clock2) {
 class Model {
     public:
         Model();
-        std::vector<std::array<int, 4> > ratings;
+        int* ratings;
         virtual ~Model();
         void loadFresh(std::string fname);
         void loadCSR(std::string fname);
         void loadRLE(std::string fname);
         void loadSaved(std::string fname);
         virtual void train() = 0;
-        void outputRatingsCSR(std::string fname);
         void outputRatingsRLE(std::string fname);
         void initLoad(std::string fname);
         void load(void);
