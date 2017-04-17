@@ -119,7 +119,7 @@ void Model::loadCSR(std::string fname) {
             idx += DATA_POINT_SIZE;
         }
     }
-    ratings_size = idx / DATA_POINT_SIZE;
+    numRatings = idx / DATA_POINT_SIZE;
     close(f);
     munmap(buffer, size);
 }
