@@ -1,5 +1,6 @@
 #include "model.hpp"
 #include <assert.h>
+#include <climits>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
