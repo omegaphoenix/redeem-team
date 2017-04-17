@@ -1,5 +1,6 @@
 #ifndef MODEL_HPP
 #define MODEL_HPP
+#include <array>
 #include <string>
 #include <time.h>
 #include <vector>
@@ -22,7 +23,7 @@ static double diffclock(clock_t clock1, clock_t clock2) {
 class Model {
     public:
         Model();
-        std::vector<std::vector<int> > ratings;
+        std::vector<std::array<int, 4> > ratings;
         virtual ~Model();
         void loadFresh(std::string fname);
         void loadCSR(std::string fname);

@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 // Initialize ratings.
-Model::Model() : ratings(N_TRAINING, std::vector<int>(4, 0)) {
+Model::Model() : ratings(N_TRAINING, std::array<int, 4>()) {
 }
 
 // Clean up ratings.
