@@ -31,7 +31,6 @@ class Model {
         int* ratings;
         virtual ~Model();
         void loadFresh(std::string inFname, std::string outFname);
-        void outputRatingsCSR(std::string fname);
         void loadCSR(std::string fname);
         void loadSaved(std::string fname);
         virtual void train() = 0;

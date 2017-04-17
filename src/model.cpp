@@ -72,45 +72,6 @@ void Model::loadFresh(std::string inFname, std::string outFname) {
     fclose(out);
 }
 
-// Output integer ratings to file. Assume every user has at least one rating.
-void Model::outputRatingsCSR(std::string fname) {
-    int i;
-
-    FILE* out = fopen((fname).c_str(), "wb");
-    // Index in values and columns vector
-    int idx = 0;
-    unsigned char high, low;
-    unsigned char newuser = 0xff;
-
-    for (i = 0; i + 1 < rowIndex.size(); i++) {
-        // Index of next row/user in values and columns vectors
-        int next = rowIndex[i + 1];
-        if (i % 100000 == 0) {
-            std::cout << i << std::endl;
-        }
-
-        // Output CSR sequence for i'th user
-        while (idx < next) {
-            // Check for zeroes in between
-            assert (columns[idx] >= 0 && columns[idx] < N_MOVIES);
-            high = (columns[idx] >> 8) & 0xff;
-            low = columns[idx] & 0xff;
-            // fwrite(&(columns[idx]), sizeof(unsigned short), 1, out);
-            fwrite(&high, sizeof(unsigned char), 1, out);
-            fwrite(&low, sizeof(unsigned char), 1, out);
-            assert (values[idx] >= 0 && values[idx] <= 5);
-            fwrite(&(values[idx]), sizeof(unsigned char), 1, out);
-            idx++;
-        }
-
-        // Two 0xff's indicate a new user
-        // This is greater than N_MOVIES
-        fwrite(&newuser, sizeof(unsigned char), 1, out);
-        fwrite(&newuser, sizeof(unsigned char), 1, out);
-    }
-    fclose(out);
-}
-
 // Load ratings array from CSR format to COO.
 void Model::loadCSR(std::string fname) {
     int f = open(fname.c_str(), O_RDONLY);
