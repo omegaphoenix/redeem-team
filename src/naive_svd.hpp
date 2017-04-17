@@ -15,14 +15,17 @@ class NaiveSVD : public Model {
         void printOutput(std::string fname);
     private:
         float runEpoch();
-        virtual std::pair<float, float> update(int user, int movie, float rating);
+        virtual void update(int user, int movie, float rating);
         float computeError();
+        float dotProduct(int user, int movie);
 
-        float **U;
-        float **V;
+        float *U;
+        float *V;
         float eta;
         float lambda;
         int K;
+        int MAX_EPOCHS;
+        float EPSILON;
         
 };
 
