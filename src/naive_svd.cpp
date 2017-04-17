@@ -5,8 +5,9 @@
 #include <time.h>
 #include <random> // For assigning random values
 #include <algorithm> // For shuffling
+#include <stdlib.h> // For abs()
 
-bool DEBUG = false;
+bool DEBUG = true;
 
 // Clean up U, V.
 NaiveSVD::~NaiveSVD() {
@@ -19,8 +20,8 @@ void NaiveSVD::setParams(int K, float eta, float lambda) {
     this->eta = eta;
     this->lambda = lambda;
 
-    this->MAX_EPOCHS = 2;
-    this->EPSILON = 0.01;
+    this->MAX_EPOCHS = 30;
+    this->EPSILON = 0.0001;
 }
 
 // Generic SGD training algorithm.
@@ -51,14 +52,14 @@ void NaiveSVD::train() {
         num_epochs++;
             
         // If the difference in error is less than epsilon, break
-        if (delta / delta0 < this->EPSILON) {
+        float delta_error = delta / delta0;
+        if (DEBUG) {
+            std::cout << "ratio of curr_error / init_error is " << delta_error << std::endl;
+        }
+        if (delta_error < this->EPSILON) {
             break;
         }
     }
-
-    // I guess now that it's been trained, save it to file?
-    // std::string filename ('naiveSVD_test');
-    // save(filename);
 
 }
 
@@ -87,9 +88,10 @@ float NaiveSVD::runEpoch() {
         update(user, movie, rating);
     }
     // Compute the new error.
-    float delta_error = computeError() - init_error;
+    float new_error = computeError();
+    float delta_error = std::abs(new_error - init_error);
     if (DEBUG) {
-        std::cout << "delta_error was " << delta_error << std::endl;
+        std::cout << "error was " << new_error << std::endl;
     } 
 
     // Return the error
@@ -125,7 +127,7 @@ void NaiveSVD::update(int user, int movie, float rating) {
         this->U[user * this->K + i] -= this->eta * du;
 
         // Set v_i = v_i - (ETA * dv)
-        this->V[user * this->K + i] -= this->eta * dv;
+        this->V[movie * this->K + i] -= this->eta * dv;
     }
 
 }
