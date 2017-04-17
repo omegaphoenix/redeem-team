@@ -25,7 +25,7 @@ Model::~Model() {
 void Model::loadFresh(std::string fname) {
     std::cout << "Opening " << fname << std::endl;
 
-    FILE *f = std::fopen(fname.c_str(), "r");
+    FILE* f = std::fopen(fname.c_str(), "r");
     if (f == NULL) {
         throw std::runtime_error("Failed to open " + fname);
     }
@@ -57,26 +57,60 @@ void Model::loadFresh(std::string fname) {
     rowIndex.push_back(columns.size());
 }
 
-// Load ratings array from CSR format.
-void Model::loadCSR(std::string fname) {
-    // TODO
+// Output integer ratings to file. Assume every user has at least one rating.
+void Model::outputRatingsCSR(std::string fname) {
+    int i;
+
+    FILE* out = fopen((fname).c_str(), "wb");
+    // Index in values and columns vector
+    int idx = 0;
+    unsigned char high, low;
+    unsigned char newuser = 0xff;
+
+    for (i = 0; i + 1 < rowIndex.size(); i++) {
+        // Index of next row/user in values and columns vectors
+        int next = rowIndex[i + 1];
+        if (i % 100000 == 0) {
+            std::cout << i << std::endl;
+        }
+
+        // Output CSR sequence for i'th user
+        while (idx < next) {
+            // Check for zeroes in between
+            assert (columns[idx] >= 0 && columns[idx] < N_MOVIES);
+            high = (columns[idx] >> 8) & 0xff;
+            low = columns[idx] & 0xff;
+            // fwrite(&(columns[idx]), sizeof(unsigned short), 1, out);
+            fwrite(&high, sizeof(unsigned char), 1, out);
+            fwrite(&low, sizeof(unsigned char), 1, out);
+            assert (values[idx] >= 0 && values[idx] <= 5);
+            fwrite(&(values[idx]), sizeof(unsigned char), 1, out);
+            idx++;
+        }
+
+        // Two 0xff's indicate a new user
+        // This is greater than N_MOVIES
+        fwrite(&newuser, sizeof(unsigned char), 1, out);
+        fwrite(&newuser, sizeof(unsigned char), 1, out);
+    }
+    fclose(out);
 }
 
-// Load ratings array from RLE format to COO.
-void Model::loadRLE(std::string fname) {
+// Load ratings array from CSR format to COO.
+void Model::loadCSR(std::string fname) {
     int f = open(fname.c_str(), O_RDONLY);
     unsigned char rating, high, low;
     int user = 0;
     unsigned short movie = 0;
 
     off_t size = lseek(f, 0, SEEK_END);
-    unsigned char *buffer = (unsigned char *) mmap(NULL, size, PROT_READ, MAP_PRIVATE, f, 0);
+    unsigned char* buffer = (unsigned char*) mmap(NULL, size, PROT_READ, MAP_PRIVATE, f, 0);
 
     int bytes = size;
     int i = 0;
     int numPoints = (bytes - N_USERS * 2) / 3;
     assert (numPoints <= N_TRAINING);
-    unsigned char *p = buffer;
+    unsigned char* p = buffer;
     while (bytes > 0) {
         // Reached end of line/user
         if (*p == 0xff && *(p + 1) == 0xff) {
@@ -111,47 +145,8 @@ void Model::loadRLE(std::string fname) {
     munmap(buffer, size);
 }
 
-// Output integer ratings to file. Assume every user has at least one rating.
-void Model::outputRatingsRLE(std::string fname) {
-    int i;
-
-    FILE *out = fopen((fname).c_str(), "wb");
-    // Index in values and columns vector
-    int idx = 0;
-    unsigned char high, low;
-    unsigned char newuser = 0xff;
-
-    for (i = 0; i + 1 < rowIndex.size(); i++) {
-        // Index of next row/user in values and columns vectors
-        int next = rowIndex[i + 1];
-        if (i % 100000 == 0) {
-            std::cout << i << std::endl;
-        }
-
-        // Output RLE sequence for i'th user
-        while (idx < next) {
-            // Check for zeroes in between
-            assert (columns[idx] >= 0 && columns[idx] < N_MOVIES);
-            high = (columns[idx] >> 8) & 0xff;
-            low = columns[idx] & 0xff;
-            // fwrite(&(columns[idx]), sizeof(unsigned short), 1, out);
-            fwrite(&high, sizeof(unsigned char), 1, out);
-            fwrite(&low, sizeof(unsigned char), 1, out);
-            assert (values[idx] >= 0 && values[idx] <= 5);
-            fwrite(&(values[idx]), sizeof(unsigned char), 1, out);
-            idx++;
-        }
-
-        // Two 0xff's indicate a new user
-        // This is greater than N_MOVIES
-        fwrite(&newuser, sizeof(unsigned char), 1, out);
-        fwrite(&newuser, sizeof(unsigned char), 1, out);
-    }
-    fclose(out);
-}
-
 // Add in missing values.
-void Model::generateMissing() {
+void Model::generateMissing(void) {
 }
 
 
@@ -170,7 +165,7 @@ void Model::initLoad(std::string fname) {
 
     // Output ratings in new format.
     std::cout << "Outputing ratings" << std::endl;
-    outputRatingsRLE(fname);
+    outputRatingsCSR(fname);
     clock_t time2 = clock();
 
     // Output times.
@@ -184,7 +179,7 @@ void Model::initLoad(std::string fname) {
 
 // Load the data.
 void Model::load(void) {
-    std::string fname = "data/um/test_RLE.dta";
+    std::string fname = "data/um/test_CSR.dta";
     std::ifstream f(fname.c_str());
     if (!f.good()) {
         initLoad(fname);
@@ -193,7 +188,7 @@ void Model::load(void) {
     std::cout << "Loading..." << std::endl;
     clock_t time0 = clock();
     // Load data from file.
-    loadRLE(fname);
+    loadCSR(fname);
     clock_t time1 = clock();
 
     // Output times.

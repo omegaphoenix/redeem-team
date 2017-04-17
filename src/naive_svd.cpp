@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     std::ios_base::sync_with_stdio(false);
 
     clock_t time0 = clock();
-    NaiveSVD *nsvd = new NaiveSVD();
+    NaiveSVD* nsvd = new NaiveSVD();
     clock_t time1 = clock();
 
     // Load in COO format into ratings vector

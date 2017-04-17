@@ -26,15 +26,14 @@ class Model {
         int* ratings;
         virtual ~Model();
         void loadFresh(std::string fname);
+        void outputRatingsCSR(std::string fname);
         void loadCSR(std::string fname);
-        void loadRLE(std::string fname);
         void loadSaved(std::string fname);
         virtual void train() = 0;
-        void outputRatingsRLE(std::string fname);
         void initLoad(std::string fname);
         void load(void);
     private:
-        virtual void generateMissing();
+        virtual void generateMissing(void);
         std::vector<unsigned char> values;
         std::vector<unsigned short> columns;
         std::vector<int> rowIndex;
