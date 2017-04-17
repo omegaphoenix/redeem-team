@@ -66,14 +66,14 @@ float NaiveSVD::runEpoch() {
     float init_error = computeError();
 
     std::vector<int> shuffler;
-    for (int i = 0; i < this->ratings_size; i++) {
+    for (int i = 0; i < this->numRatings; i++) {
         shuffler.push_back(i);
     }
     std::shuffle(shuffler.begin(), shuffler.end(), 
         std::default_random_engine(0));
 
     // For each data point in the set
-    for (int i = 0; i < this->ratings_size; i++) {
+    for (int i = 0; i < this->numRatings; i++) {
         int idx = shuffler[i];
 
         // Get the user, movie, rating
@@ -133,7 +133,7 @@ float NaiveSVD::computeError() {
     float error = 0.0;
 
     // For all data points,
-    for (int i = 0; i < this->ratings_size; i++) {
+    for (int i = 0; i < this->numRatings; i++) {
         int user = this->ratings[i * DATA_POINT_SIZE + USER_IDX];
         int movie = this->ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
         float rating = (float) this->ratings[i * DATA_POINT_SIZE + RATING_IDX];

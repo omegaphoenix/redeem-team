@@ -30,7 +30,7 @@ class Model {
     public:
         Model();
         int* ratings;
-        int ratings_size;
+        int numRatings;
         virtual ~Model();
         void loadFresh(std::string inFname, std::string outFname);
         void loadCSR(std::string fname);
