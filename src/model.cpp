@@ -107,7 +107,7 @@ void Model::loadCSR(std::string fname) {
     unsigned char* buffer = (unsigned char*) mmap(NULL, size, PROT_READ, MAP_PRIVATE, f, 0);
 
     int bytes = size;
-    int i = 0;
+    int idx = 0;
     int numPoints = (bytes - N_USERS * 2) / 3;
     assert (numPoints <= N_TRAINING);
     unsigned char* p = buffer;
@@ -135,10 +135,10 @@ void Model::loadCSR(std::string fname) {
             bytes--;
             assert (movie >= 0 && movie < N_MOVIES);
             assert (rating >= 0 && rating <= 5);
-            ratings[4 * i] = user;
-            ratings[4 * i + 1] = movie;
-            ratings[4 * i + 3] = rating;
-            i++;
+            ratings[idx] = user;
+            ratings[idx + 1] = movie;
+            ratings[idx + 3] = rating;
+            idx += 4;
         }
     }
     close(f);
