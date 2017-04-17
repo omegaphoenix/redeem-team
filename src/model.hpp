@@ -32,8 +32,8 @@ class Model {
         void load(void);
     private:
         virtual void generateMissing();
-        std::vector<char> values;
-        std::vector<int> columns;
+        std::vector<unsigned char> values;
+        std::vector<unsigned short> columns;
         std::vector<int> rowIndex;
 };
 
