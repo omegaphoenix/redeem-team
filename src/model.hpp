@@ -12,6 +12,11 @@
 #define N_USERS 458293
 #define N_DAYS 2243
 #define N_TRAINING 99666408
+#define USER_IDX 0
+#define MOVIE_IDX 1
+#define TIME_IDX 2
+#define RATING_IDX 3
+#define DATA_POINT_SIZE 4
 
 // Returns the differences in ms.
 static double diffclock(clock_t clock1, clock_t clock2) {
@@ -25,7 +30,7 @@ class Model {
         Model();
         int* ratings;
         virtual ~Model();
-        void loadFresh(std::string fname);
+        void loadFresh(std::string inFname, std::string outFname);
         void outputRatingsCSR(std::string fname);
         void loadCSR(std::string fname);
         void loadSaved(std::string fname);

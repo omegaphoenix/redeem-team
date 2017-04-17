@@ -13,7 +13,7 @@
 
 // Initialize ratings.
 Model::Model() {
-    ratings = new int[N_TRAINING * 4];
+    ratings = new int[N_TRAINING * DATA_POINT_SIZE];
 }
 
 // Clean up ratings.
@@ -22,17 +22,21 @@ Model::~Model() {
 }
 
 // Load new ratings array into CSR format.
-void Model::loadFresh(std::string fname) {
-    std::cout << "Opening " << fname << std::endl;
+void Model::loadFresh(std::string inFname, std::string outFname) {
+    std::cout << "Opening " << inFname << std::endl;
 
-    FILE* f = std::fopen(fname.c_str(), "r");
-    if (f == NULL) {
-        throw std::runtime_error("Failed to open " + fname);
+    FILE* in = fopen(inFname.c_str(), "r");
+    FILE* out = fopen((outFname).c_str(), "wb");
+    unsigned char high, low, val;
+    unsigned short movieNo;
+    unsigned char newuser = 0xff;
+    if (in == NULL) {
+        throw std::runtime_error("Failed to open " + inFname);
     }
 
     int user, movie, date, rating;
-    int prevUser = 0;
-    int itemsRead = fscanf(f,"%d %d %d %d\n", &user, &movie, &date, &rating);
+    int prevUser = 1;
+    int itemsRead = fscanf(in,"%d %d %d %d\n", &user, &movie, &date, &rating);
     if (itemsRead != 4) {
         printf("Wrong format \n");
         return;
@@ -44,17 +48,28 @@ void Model::loadFresh(std::string fname) {
         assert (date > 0 && date <= N_DAYS);
         assert (rating >= 0 && rating <= 5);
         while (prevUser != user) {
-            rowIndex.push_back(columns.size());
             prevUser++;
+            fwrite(&newuser, sizeof(unsigned char), 1, out);
+            fwrite(&newuser, sizeof(unsigned char), 1, out);
         }
         if (rating != 0) {
-            values.push_back((unsigned char) rating);
-            columns.push_back((unsigned short) (movie - 1));
+            movie--;
+            movieNo = (unsigned short) movie;
+            assert (movieNo >= 0 && movieNo < N_MOVIES);
+            high = (movieNo >> 8) & 0xff;
+            low = movieNo & 0xff;
+            fwrite(&high, sizeof(unsigned char), 1, out);
+            fwrite(&low, sizeof(unsigned char), 1, out);
+            val = (unsigned char) rating;
+            assert (val > 0 && val <= 5);
+            fwrite(&val, sizeof(unsigned char), 1, out);
         }
-        itemsRead = fscanf(f,"%d %d %d %d\n", &user, &movie, &date, &rating);
+        itemsRead = fscanf(in,"%d %d %d %d\n", &user, &movie, &date, &rating);
     }
-
-    rowIndex.push_back(columns.size());
+    fwrite(&newuser, sizeof(unsigned char), 1, out);
+    fwrite(&newuser, sizeof(unsigned char), 1, out);
+    fclose(in);
+    fclose(out);
 }
 
 // Output integer ratings to file. Assume every user has at least one rating.
@@ -118,6 +133,7 @@ void Model::loadCSR(std::string fname) {
             p += sizeof(short);
             bytes -= sizeof(short);
             user++;
+            assert(user <= N_USERS);
         }
         // We have number of zeroes and a rating
         else {
@@ -135,10 +151,10 @@ void Model::loadCSR(std::string fname) {
             bytes--;
             assert (movie >= 0 && movie < N_MOVIES);
             assert (rating >= 0 && rating <= 5);
-            ratings[idx] = user;
-            ratings[idx + 1] = movie;
-            ratings[idx + 3] = rating;
-            idx += 4;
+            ratings[idx + USER_IDX] = user;
+            ratings[idx + MOVIE_IDX] = movie;
+            ratings[idx + RATING_IDX] = rating;
+            idx += DATA_POINT_SIZE;
         }
     }
     close(f);
@@ -156,25 +172,16 @@ void Model::loadSaved(std::string fname) {
 
 // Run this function once first to preprocess data.
 void Model::initLoad(std::string fname) {
-    std::cout << "Preloading..." << std::endl;
+    std::cout << "Preprocessing..." << std::endl;
     clock_t time0 = clock();
 
     // Load data from file.
-    loadFresh("data/um/all.dta");
+    loadFresh("data/um/all.dta", fname);
     clock_t time1 = clock();
-
-    // Output ratings in new format.
-    std::cout << "Outputing ratings" << std::endl;
-    outputRatingsCSR(fname);
-    clock_t time2 = clock();
 
     // Output times.
     double ms1 = diffclock(time1, time0);
-    std::cout << "Preloading took " << ms1 << " ms" << std::endl;
-    double ms2 = diffclock(time2, time1);
-    std::cout << "Outputing data took " << ms2 << " ms" << std::endl;
-    double total_ms = diffclock(time2, time0);
-    std::cout << "Total preprocessing took " << total_ms << " ms" << std::endl;
+    std::cout << "Preprocessing took " << ms1 << " ms" << std::endl;
 }
 
 // Load the data.
