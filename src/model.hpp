@@ -36,8 +36,8 @@ class Model {
         void loadCSR(std::string fname);
         virtual void loadSaved(std::string fname) = 0;
         virtual void train() = 0;
-        void initLoad(std::string fname);
-        void load(void);
+        void initLoad(std::string fname, std::string dataFile);
+        void load(std::string dataFile);
     private:
         virtual void generateMissing(void);
         std::vector<unsigned char> values;

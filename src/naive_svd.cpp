@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
     clock_t time1 = clock();
 
     // Load in COO format into ratings vector
-    nsvd->load();
+    nsvd->load("1.dta");
     clock_t time2 = clock();
 
     std::cout << "Setting parameters" << std::endl;

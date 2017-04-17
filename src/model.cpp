@@ -133,12 +133,12 @@ void Model::loadSaved(std::string fname) {
 }
 
 // Run this function once first to preprocess data.
-void Model::initLoad(std::string fname) {
+void Model::initLoad(std::string fname, std::string dataFile) {
     std::cout << "Preprocessing..." << std::endl;
     clock_t time0 = clock();
 
     // Load data from file.
-    loadFresh("data/um/1.dta", fname);
+    loadFresh("data/um/" + dataFile, fname);
     clock_t time1 = clock();
 
     // Output times.
@@ -147,11 +147,11 @@ void Model::initLoad(std::string fname) {
 }
 
 // Load the data.
-void Model::load(void) {
-    std::string fname = "data/um/test_CSR.dta";
+void Model::load(std::string dataFile) {
+    std::string fname = "data/um/" + dataFile + ".csr";
     std::ifstream f(fname.c_str());
     if (!f.good()) {
-        initLoad(fname);
+        initLoad(fname, dataFile);
     }
 
     std::cout << "Loading..." << std::endl;
