@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 // Initialize ratings.
-Model::Model() {
+Model::Model() : ratings(N_TRAINING, std::vector<int>(4, 0)) {
 }
 
 // Clean up ratings.
@@ -71,14 +71,16 @@ void Model::loadRLE(std::string fname) {
     unsigned char *buffer = (unsigned char *) mmap(NULL, size, PROT_READ, MAP_PRIVATE, f, 0);
 
     int bytes = size;
+    int i = 0;
+    int numPoints = (bytes - N_USERS * 2) / 3;
+    assert (numPoints <= N_TRAINING);
     unsigned char *p = buffer;
     while (bytes > 0) {
         // Reached end of line/user
         if (*p == 0xff && *(p + 1) == 0xff) {
-            p++;
-            bytes--;
-            p++;
-            bytes--;
+            // Move 2 bytes for end of user marker
+            p += sizeof(short);
+            bytes -= sizeof(short);
             user++;
         }
         // We have number of zeroes and a rating
@@ -97,8 +99,10 @@ void Model::loadRLE(std::string fname) {
             bytes--;
             assert (movie >= 0 && movie < N_MOVIES);
             assert (rating >= 0 && rating <= 5);
-            std::vector<int> data_point = {user, movie, 0, rating};
-            ratings.push_back(data_point);
+            ratings[i][0] = user;
+            ratings[i][1] = movie;
+            ratings[i][3] = rating;
+            i++;
         }
     }
     close(f);

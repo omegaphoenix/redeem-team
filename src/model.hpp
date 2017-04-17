@@ -4,10 +4,13 @@
 #include <time.h>
 #include <vector>
 
+// Disable assertions
+// #define NDEBUG
+
 #define N_MOVIES 17770
 #define N_USERS 458293
 #define N_DAYS 2243
-#define N_TRAINING 99666409
+#define N_TRAINING 99666408
 
 // Returns the differences in ms.
 static double diffclock(clock_t clock1, clock_t clock2) {
