@@ -29,7 +29,7 @@ void Model::loadFresh(std::string inFname, std::string outFname) {
     FILE* out = fopen((outFname).c_str(), "wb");
     unsigned char high, low, val;
     unsigned short movieNo;
-    unsigned char newuser = 0xff;
+    unsigned char newuser = UCHAR_MAX;
     if (in == NULL) {
         throw std::runtime_error("Failed to open " + inFname);
     }
@@ -37,16 +37,15 @@ void Model::loadFresh(std::string inFname, std::string outFname) {
     int user, movie, date, rating;
     int prevUser = 1;
     int itemsRead = fscanf(in,"%d %d %d %d\n", &user, &movie, &date, &rating);
-    if (itemsRead != 4) {
-        printf("Wrong format \n");
-        return;
+    if (itemsRead != DATA_POINT_SIZE) {
+        throw std::runtime_error("Wrong format");
     }
 
-    while (itemsRead  == 4) {
+    while (itemsRead  == DATA_POINT_SIZE) {
         assert (user > 0 && user <= N_USERS);
         assert (movie > 0 && movie <= N_MOVIES);
         assert (date > 0 && date <= N_DAYS);
-        assert (rating >= 0 && rating <= 5);
+        assert (rating >= 0 && rating <= MAX_RATING);
         while (prevUser != user) {
             prevUser++;
             fwrite(&newuser, sizeof(unsigned char), 1, out);
@@ -56,12 +55,12 @@ void Model::loadFresh(std::string inFname, std::string outFname) {
             movie--;
             movieNo = (unsigned short) movie;
             assert (movieNo >= 0 && movieNo < N_MOVIES);
-            high = (movieNo >> 8) & 0xff;
-            low = movieNo & 0xff;
+            high = (movieNo >> CHAR_BIT) & UCHAR_MAX;
+            low = movieNo & UCHAR_MAX;
             fwrite(&high, sizeof(unsigned char), 1, out);
             fwrite(&low, sizeof(unsigned char), 1, out);
             val = (unsigned char) rating;
-            assert (val > 0 && val <= 5);
+            assert (val > 0 && val <= MAX_RATING);
             fwrite(&val, sizeof(unsigned char), 1, out);
         }
         itemsRead = fscanf(in,"%d %d %d %d\n", &user, &movie, &date, &rating);
@@ -84,12 +83,14 @@ void Model::loadCSR(std::string fname) {
 
     int bytes = size;
     int idx = 0;
-    int numPoints = (bytes - N_USERS * 2) / 3;
+    // short for end of user marker, short + char per data point
+    int numPoints = (bytes - N_USERS * sizeof(short))
+                    / (sizeof(short) + sizeof(char));
     assert (numPoints <= N_TRAINING);
     unsigned char* p = buffer;
     while (bytes > 0) {
         // Reached end of line/user
-        if (*p == 0xff && *(p + 1) == 0xff) {
+        if (*p == UCHAR_MAX && *(p + 1) == UCHAR_MAX) {
             // Move 2 bytes for end of user marker
             p += sizeof(short);
             bytes -= sizeof(short);
@@ -102,7 +103,7 @@ void Model::loadCSR(std::string fname) {
             p++;
             bytes--;
             movie = high;
-            movie = movie << 8;
+            movie = movie << CHAR_BIT;
             low = *p;
             p++;
             bytes--;
@@ -111,7 +112,7 @@ void Model::loadCSR(std::string fname) {
             p++;
             bytes--;
             assert (movie >= 0 && movie < N_MOVIES);
-            assert (rating >= 0 && rating <= 5);
+            assert (rating >= 0 && rating <= MAX_RATING);
             ratings[idx + USER_IDX] = user;
             ratings[idx + MOVIE_IDX] = movie;
             ratings[idx + RATING_IDX] = rating;
@@ -137,7 +138,7 @@ void Model::initLoad(std::string fname) {
     clock_t time0 = clock();
 
     // Load data from file.
-    loadFresh("data/um/all.dta", fname);
+    loadFresh("data/um/1.dta", fname);
     clock_t time1 = clock();
 
     // Output times.
