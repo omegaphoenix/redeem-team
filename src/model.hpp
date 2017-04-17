@@ -35,7 +35,7 @@ class Model {
         void loadFresh(std::string inFname, std::string outFname);
         void loadCSR(std::string fname);
         virtual void loadSaved(std::string fname) = 0;
-        virtual void train() = 0;
+        virtual void train(std::string saveFile) = 0;
         void initLoad(std::string fname, std::string dataFile);
         void load(std::string dataFile);
     private:

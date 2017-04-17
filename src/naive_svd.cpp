@@ -2,12 +2,13 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <stdio.h>
 #include <time.h>
 #include <random> // For assigning random values
 #include <algorithm> // For shuffling
 #include <stdlib.h> // For abs()
 
-bool DEBUG = true;
+#define DEBUG true
 
 // Clean up U, V.
 NaiveSVD::~NaiveSVD() {
@@ -25,37 +26,46 @@ void NaiveSVD::setParams(int K, float eta, float lambda) {
 }
 
 // Generic SGD training algorithm.
-void NaiveSVD::train() {
+void NaiveSVD::train(std::string saveFile) {
     // Initialize U, V
-    this->U = new float[N_USERS * this->K];
-    this->V = new float[N_MOVIES * this->K];
+    if (saveFile == "") {
+        this->U = new float[N_USERS * this->K];
+        this->V = new float[N_MOVIES * this->K];
 
-    // Initialize values to be between -0.5, 0.5
-    std::default_random_engine generator;
-    std::uniform_real_distribution<float> distribution(-0.5, 0.5);
-    for (int i = 0; i < N_USERS * this->K; i++) {
-        *(this->U + i) = distribution(generator);
+        // Initialize values to be between -0.5, 0.5
+        std::default_random_engine generator;
+        std::uniform_real_distribution<float> distribution(-0.5, 0.5);
+        for (int i = 0; i < N_USERS * this->K; i++) {
+            *(this->U + i) = distribution(generator);
 
+        }
+        for (int i = 0; i < N_MOVIES * this->K; i++) {
+            *(this->V + i) = distribution(generator);
+        }
+        numEpochs = 1;
     }
-    for (int i = 0; i < N_MOVIES * this->K; i++) {
-        *(this->V + i) = distribution(generator);
+    else {
+        loadSaved(saveFile);
     }
 
     // Get initial error calculation (by calling runEpoch)
     float delta0 = runEpoch();
-    int num_epochs = 1;
 
     // If num epochs left < max_epochs
-    while (num_epochs < this->MAX_EPOCHS) {
+    while (numEpochs < this->MAX_EPOCHS) {
+        #ifdef DEBUG
+            std::cout << "Finished epoch " << numEpochs << std::endl;
+        #endif
+
         // Run an epoch and get the error back
         float delta = runEpoch();
-        num_epochs++;
+        numEpochs++;
             
         // If the difference in error is less than epsilon, break
         float delta_error = delta / delta0;
-        if (DEBUG) {
+        #ifdef DEBUG
             std::cout << "ratio of curr_error / init_error is " << delta_error << std::endl;
-        }
+        #endif
         if (delta_error < this->EPSILON) {
             break;
         }
@@ -90,9 +100,9 @@ float NaiveSVD::runEpoch() {
     // Compute the new error.
     float new_error = computeError();
     float delta_error = std::abs(new_error - init_error);
-    if (DEBUG) {
+    #ifdef DEBUG
         std::cout << "error was " << new_error << std::endl;
-    } 
+    #endif
 
     // Return the error
     return delta_error;
@@ -170,10 +180,28 @@ float NaiveSVD::dotProduct(int user, int movie) {
 }
 
 
+// Use <stdio.h> for binary writing.
 void NaiveSVD::save(std::string fname) {
+    FILE *out = fopen(fname.c_str(), "wb");
+    fprintf(out, "%d", numEpochs);
+    fwrite(U, sizeof(float), N_USERS * K, out);
+    fwrite(V, sizeof(float), N_MOVIES * K, out);
+    fclose(out);
 }
 
 void NaiveSVD::loadSaved(std::string fname) {
+    FILE *in = fopen(fname.c_str(), "r");
+    // Buffer to hold numEpochs
+    int buf[1];
+    fread(buf, sizeof(int), 1, in);
+    numEpochs = buf[0];
+
+    // Initialize U, V
+    this->U = new float[N_USERS * K];
+    this->V = new float[N_MOVIES * K];
+    fread(U, sizeof(float), N_USERS * K, in);
+    fread(V, sizeof(float), N_MOVIES * K, in);
+    fclose(in);
 }
 
 void NaiveSVD::printOutput(std::string fname) {
@@ -217,10 +245,11 @@ int main(int argc, char **argv) {
 
     std::cout << "Begin training" << std::endl;
     clock_t time5 = clock();
-    nsvd->train();
+    nsvd->train("");
     clock_t time6 = clock();
 
     std::cout << "Printing output" << std::endl;
+    nsvd->save("model/naive_svd.save");
     nsvd->printOutput("out/naive_svd.dta");
     clock_t time7 = clock();
 
@@ -234,7 +263,7 @@ int main(int argc, char **argv) {
     std::cout << "Training took " << ms4 << std::endl;
     double ms5 = diffclock(time7, time6);
     std::cout << "Printing took " << ms5 << std::endl;
-    double total_ms = diffclock(time6, time0);
+    double total_ms = diffclock(time7, time0);
     std::cout << "Total running time was " << total_ms << " ms" << std::endl;
     return 0;
 }
