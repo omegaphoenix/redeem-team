@@ -12,6 +12,6 @@ naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 clean:
-	rm src/*.o
+	rm -f bin/* src/*.o
 
 .PHONY: all clean init
