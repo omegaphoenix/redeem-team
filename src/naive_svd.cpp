@@ -66,20 +66,20 @@ float NaiveSVD::runEpoch() {
     float init_error = computeError();
 
     std::vector<int> shuffler;
-    for (int i = 0; i < this->ratings.size(); i++) {
+    for (int i = 0; i < this->ratings_size; i++) {
         shuffler.push_back(i);
     }
     std::shuffle(shuffler.begin(), shuffler.end(), 
         std::default_random_engine(0));
 
     // For each data point in the set
-    for (int i = 0; i < this->ratings.size(); i++) {
+    for (int i = 0; i < this->ratings_size; i++) {
         int idx = shuffler[i];
 
         // Get the user, movie, rating
-        int user = this->ratings[idx][0];
-        int movie = this->ratings[idx][1];
-        float rating = (float) this->ratings[idx][3];
+        int user = this->ratings[idx * DATA_POINT_SIZE + USER_IDX];
+        int movie = this->ratings[idx * DATA_POINT_SIZE + MOVIE_IDX];
+        float rating = (float) this->ratings[idx * DATA_POINT_SIZE + RATING_IDX];
 
         // Update the corresponding rows in the U, V matrix
         update(user, movie, rating);
@@ -133,10 +133,10 @@ float NaiveSVD::computeError() {
     float error = 0.0;
 
     // For all data points,
-    for (int i = 0; i < this->ratings.size(); i++) {
-        int user = this->ratings[i][0];
-        int movie = this->ratings[i][1];
-        float rating = (float) this->ratings[i][3];
+    for (int i = 0; i < this->ratings_size; i++) {
+        int user = this->ratings[i * DATA_POINT_SIZE + USER_IDX];
+        int movie = this->ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        float rating = (float) this->ratings[i * DATA_POINT_SIZE + RATING_IDX];
 
         // Calculate the dot product
         // of U[i] and V[i]
@@ -175,39 +175,37 @@ void NaiveSVD::loadSaved(std::string fname) {
 void NaiveSVD::printOutput(std::string fname) {
 }
 
-// Returns the differences in ms.
-static double diffclock(clock_t clock1, clock_t clock2) {
-   double diffticks = clock1 - clock2;
-   double diffms = (diffticks) / (CLOCKS_PER_SEC / 1000);
-   return diffms;
-}
-
 int main(int argc, char **argv) {
+    // Speed up stdio operations
+    std::ios_base::sync_with_stdio(false);
+
     clock_t time0 = clock();
     NaiveSVD* nsvd = new NaiveSVD();
     clock_t time1 = clock();
-    // Load data from file.
-    nsvd->loadFresh("data/um/all.dta");
-    clock_t time2 = clock();
 
-    // Output times.
-    double ms1 = diffclock(time1, time0);
-    std::cout << "Initialization took " << ms1 << " ms" << std::endl;
-    double ms2 = diffclock(time2, time1);
-    std::cout << "Loading took " << ms2 << " ms" << std::endl;
-    double total_ms = diffclock(time2, time0);
-    std::cout << "Total took " << total_ms << " ms" << std::endl;
+    // Load in COO format into ratings vector
+    nsvd->load();
+    clock_t time2 = clock();
 
     std::cout << "Setting parameters" << std::endl;
     clock_t time3 = clock();
     nsvd->setParams(10, 0.001, 0.0);
     clock_t time4 = clock();
-    std::cout << "Setting params took " << diffclock(time4, time3) << std::endl;;
 
     std::cout << "Begin training" << std::endl;
-    time3 = clock();
+    clock_t time5 = clock();
     nsvd->train();
-    time4 = clock();
-    std::cout << "Training took " << diffclock(time4, time3) << std::endl;;
+    clock_t time6 = clock();
+
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Initializing took " << ms1 << " ms" << std::endl;
+    double ms2 = diffclock(time2, time1);
+    std::cout << "Total loading took " << ms2 << " ms" << std::endl;
+    double ms3 = diffclock(time4, time3);
+    std::cout << "Setting params took " << ms3 << std::endl;;
+    double ms4 = diffclock(time6, time5);
+    std::cout << "Training took " << ms4 << std::endl;;
+    double total_ms = diffclock(time6, time0);
+    std::cout << "Total running time was " << total_ms << " ms" << std::endl;
     return 0;
 }
