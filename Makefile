@@ -6,9 +6,7 @@ NAIVE_SVD_FILES = $(addprefix src/, naive_svd.cpp model.cpp)
 all: init naive_svd
 
 init:
-	mkdir -p bin
-	mkdir -p out
-	mkdir -p model
+	mkdir -p bin out model
 	if [ ! -f "data/um/5-1.dta" ]; \
 	then \
 		sed 's/0$$/1/' data/um/5.dta > data/um/5-1.dta; \
