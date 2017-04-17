@@ -7,6 +7,7 @@ all: init naive_svd
 
 init:
 	mkdir -p bin
+	mkdir -p out
 
 naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^

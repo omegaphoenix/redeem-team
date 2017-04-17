@@ -1,4 +1,6 @@
 #include "naive_svd.hpp"
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <time.h>
 #include <random> // For assigning random values
@@ -173,6 +175,25 @@ void NaiveSVD::loadSaved(std::string fname) {
 }
 
 void NaiveSVD::printOutput(std::string fname) {
+    std::ofstream outputFile;
+    outputFile << std::setprecision(3);
+    outputFile.open(fname);
+    NaiveSVD* qual = new NaiveSVD();
+    qual->load("5-1.dta");
+    for (int i = 0; i < qual->numRatings; i++) {
+        int user = qual->ratings[i * DATA_POINT_SIZE + USER_IDX];
+        int movie = qual->ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        float rating = dotProduct(user, movie);
+        if (rating < 1) {
+            rating = 1;
+        }
+        else if (rating > 5) {
+            rating = 5;
+        }
+        // Use \n for efficiency.
+        outputFile << rating << "\n";
+    }
+    outputFile.close();
 }
 
 int main(int argc, char **argv) {
@@ -197,6 +218,10 @@ int main(int argc, char **argv) {
     nsvd->train();
     clock_t time6 = clock();
 
+    std::cout << "Printing output" << std::endl;
+    nsvd->printOutput("out/naive_svd.dta");
+    clock_t time7 = clock();
+
     double ms1 = diffclock(time1, time0);
     std::cout << "Initializing took " << ms1 << " ms" << std::endl;
     double ms2 = diffclock(time2, time1);
@@ -204,7 +229,9 @@ int main(int argc, char **argv) {
     double ms3 = diffclock(time4, time3);
     std::cout << "Setting params took " << ms3 << std::endl;;
     double ms4 = diffclock(time6, time5);
-    std::cout << "Training took " << ms4 << std::endl;;
+    std::cout << "Training took " << ms4 << std::endl;
+    double ms5 = diffclock(time7, time6);
+    std::cout << "Printing took " << ms5 << std::endl;
     double total_ms = diffclock(time6, time0);
     std::cout << "Total running time was " << total_ms << " ms" << std::endl;
     return 0;
