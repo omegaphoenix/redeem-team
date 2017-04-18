@@ -42,7 +42,7 @@ void NaiveSVD::train(std::string saveFile) {
         std::cout << "Finished epoch " << numEpochs << std::endl;
     #endif
     // If num epochs left < max_epochs
-    while (numEpochs < this->MAX_EPOCHS) {
+    while (numEpochs <= this->MAX_EPOCHS) {
         // Run an epoch and get the error back
         float delta = runEpoch();
         numEpochs++;
