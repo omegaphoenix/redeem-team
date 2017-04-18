@@ -255,11 +255,11 @@ int main(int argc, char **argv) {
 
     std::cout << "Begin training" << std::endl;
     clock_t time5 = clock();
-    nsvd->train("model/naive_svd.save");
+    nsvd->train("model/naive_svd/naive_svd.save");
     clock_t time6 = clock();
 
     std::cout << "Printing output" << std::endl;
-    nsvd->save("model/naive_svd.save");
+    nsvd->save("model/naive_svd/naive_svd.save");
     nsvd->printOutput("out/naive_svd.dta");
     clock_t time7 = clock();
 
