@@ -28,7 +28,8 @@ class NaiveSVD : public Model {
         int K;
         int MAX_EPOCHS;
         float EPSILON;
-        
+
+        bool validationLoaded;
 };
 
 #endif // NAIVE_SVD_HPP

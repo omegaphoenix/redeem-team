@@ -10,6 +10,10 @@
 
 #define DEBUG true
 
+NaiveSVD::NaiveSVD() : Model() {
+    validationLoaded = false;
+}
+
 // Clean up U, V.
 NaiveSVD::~NaiveSVD() {
     delete this->U;
@@ -58,7 +62,7 @@ void NaiveSVD::train(std::string saveFile) {
                  std::to_string(lambda) + "_epoch=" +
                  std::to_string(numEpochs) + ".save");
         }
-    
+
         // If the difference in error is less than epsilon, break
         float delta_error = delta / delta0;
         #ifdef DEBUG
@@ -80,7 +84,7 @@ float NaiveSVD::runEpoch() {
     for (int i = 0; i < this->numRatings; i++) {
         shuffler.push_back(i);
     }
-    std::shuffle(shuffler.begin(), shuffler.end(), 
+    std::shuffle(shuffler.begin(), shuffler.end(),
         std::default_random_engine(0));
 
     // For each data point in the set
@@ -121,12 +125,12 @@ void NaiveSVD::update(int user, int movie, float rating) {
     float dv;
 
     for (int i = 0; i < this->K; i++) {
-        // Multiply (Y - (U dot V)) with v_i 
+        // Multiply (Y - (U dot V)) with v_i
         // and subtract from (lambda * u_i) = du
         du = (this->lambda * this->U[user * this->K + i])
             - (this->V[movie * this->K + i] * intermediate);
 
-        // Multiply (Y - (U dot V)) with u_i 
+        // Multiply (Y - (U dot V)) with u_i
         // and subtract from (lambda * v_i) = dv
         dv = (this->lambda * this->V[movie * this->K + i])
             - (this->U[user * this->K + i] * intermediate);
@@ -154,7 +158,7 @@ float NaiveSVD::computeError() {
         // of U[i] and V[i]
         float u_dot_v = dotProduct(user, movie);
 
-        // Subtract from Y[i] **2        
+        // Subtract from Y[i] **2
         // Add result to error.
         error += (rating - u_dot_v) * (rating - u_dot_v);
 
@@ -179,7 +183,10 @@ float NaiveSVD::dotProduct(int user, int movie) {
 
 float NaiveSVD::validate(std::string valFile, std::string saveFile) {
     // Load ratings
-    load(valFile);
+    if (!validationLoaded) {
+        load(valFile);
+        validationLoaded = true;
+    }
     // Load U, V
     loadSaved(saveFile);
 

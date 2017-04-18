@@ -6,6 +6,7 @@
 // Indicates whether to train
 #define TRAIN true
 #define INIT_ERROR 10
+#define ETA 0.001
 
 int main(int argc, char** argv) {
 
@@ -18,6 +19,8 @@ int main(int argc, char** argv) {
     std::string best_model;
     int best_k;
     float best_lambda;
+
+    NaiveSVD* validator = new NaiveSVD();
     for (int i = 0; i < ks.size(); i++) {
         for (int j = 0; j < lambdas.size(); j++) {
             int k = ks[i];
@@ -25,18 +28,17 @@ int main(int argc, char** argv) {
 
             std::string fname = "model/naive_svd/k=" + std::to_string(k) +
                                 "_lamb=" + std::to_string(lamb) + "_epoch=" +
-                                std::to_string(nsvd->numEpochs) + ".save";
-            nsvd->setParams(k, 0.001, lamb);
+                                std::to_string(nsvd->MAX_EPOCHS) + ".save";
+            nsvd->setParams(k, ETA, lamb);
             #ifdef TRAIN
                 nsvd->train(fname);
-            #else
-                nsvd->loadSaved(fname);
             #endif
 
-            for (int epoch = 10; epoch <= nsvd->numEpochs; epoch += 10) {
+            for (int epoch = 10; epoch <= nsvd->MAX_EPOCHS; epoch += 10) {
                 fname = "model/naive_svd/k=" + std::to_string(k) + "_lamb=" +
                         std::to_string(lamb) + "_epoch=" + std::to_string(epoch) + ".save";
-                float cur_error = nsvd->validate("2.dta", fname);
+                validator->setParams(k, ETA, lamb)
+                float cur_error = validator->validate("2.dta", fname);
                 std::cerr << "Error for " << fname << std::endl <<
                           cur_error << std::endl;
                 if (cur_error < error) {
@@ -48,6 +50,7 @@ int main(int argc, char** argv) {
             }
         }
     }
+    std::cerr << "Best model: " << best_model << std::endl;
     nsvd->setParams(best_k, 0.001, best_lambda);
     nsvd->loadSaved(best_model);
     nsvd->printOutput("out/naive_svd_validation.dta");
