@@ -86,23 +86,24 @@ void Model::loadCSR(std::string fname) {
     unsigned char* buffer = (unsigned char*) mmap(NULL, size, PROT_READ, MAP_PRIVATE, f, 0);
 
     int bytes = size;
-    int i = 0;
+    int ratings_idx = 0;
     int idx = 0;
-    rowIndex[user] = i;
+    rowIndex[user] = idx;
     // short for end of user marker, short + char per data point
     int numPoints = (bytes - N_USERS * sizeof(short))
                     / (sizeof(short) + sizeof(char));
     assert (numPoints <= N_TRAINING);
     unsigned char* p = buffer;
     while (bytes > 0) {
-        // Reached end of line/user
+        // Reached end of line/user if two bytes are 0xff and 0xff
+        // This was chosen because no movie can go up to USHRT_MAX
         if (*p == UCHAR_MAX && *(p + 1) == UCHAR_MAX) {
             // Move 2 bytes for end of user marker
             p += sizeof(short);
             bytes -= sizeof(short);
             user++;
             assert(user <= N_USERS);
-            rowIndex[user] = i;
+            rowIndex[user] = idx;
         }
         // We have number of zeroes and a rating
         else {
@@ -120,16 +121,16 @@ void Model::loadCSR(std::string fname) {
             bytes--;
             assert (movie >= 0 && movie < N_MOVIES);
             assert (rating >= 0 && rating <= MAX_RATING);
-            ratings[idx + USER_IDX] = user;
-            ratings[idx + MOVIE_IDX] = movie;
-            ratings[idx + RATING_IDX] = rating;
-            values[i] = rating;
-            columns[i] = movie - 1;
-            i++;
-            idx += DATA_POINT_SIZE;
+            ratings[ratings_idx + USER_IDX] = user;
+            ratings[ratings_idx + MOVIE_IDX] = movie;
+            ratings[ratings_idx + RATING_IDX] = rating;
+            values[idx] = rating;
+            columns[idx] = movie - 1;
+            idx++;
+            ratings_idx += DATA_POINT_SIZE;
         }
     }
-    numRatings = i;
+    numRatings = idx;
     assert (numRatings == rowIndex[user]);
     close(f);
     munmap(buffer, size);
