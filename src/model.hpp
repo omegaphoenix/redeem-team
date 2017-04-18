@@ -34,10 +34,10 @@ class Model {
         virtual ~Model();
         void loadFresh(std::string inFname, std::string outFname);
         void loadCSR(std::string fname);
-        void loadSaved(std::string fname);
-        virtual void train() = 0;
-        void initLoad(std::string fname);
-        void load(void);
+        virtual void loadSaved(std::string fname) = 0;
+        virtual void train(std::string saveFile) = 0;
+        void initLoad(std::string fname, std::string dataFile);
+        void load(std::string dataFile);
     private:
         virtual void generateMissing(void);
         std::vector<unsigned char> values;
