@@ -21,7 +21,7 @@ void NaiveSVD::setParams(int K, float eta, float lambda) {
     this->eta = eta;
     this->lambda = lambda;
 
-    this->MAX_EPOCHS = 30;
+    this->MAX_EPOCHS = 60;
     this->EPSILON = 0.0001;
 }
 
@@ -36,10 +36,13 @@ void NaiveSVD::train(std::string saveFile) {
     #endif
 
     // Get initial error calculation (by calling runEpoch)
+    clock_t time0 = clock();
     float delta0 = runEpoch();
+    clock_t time1 = clock();
     numEpochs++;
     #ifdef DEBUG
         std::cout << "Finished epoch " << numEpochs << std::endl;
+        std::cout << "This took: " << diffclock(time1, time0) << " ms.\n";
     #endif
     // If num epochs left < max_epochs
     while (numEpochs < this->MAX_EPOCHS) {
@@ -49,6 +52,12 @@ void NaiveSVD::train(std::string saveFile) {
         #ifdef DEBUG
             std::cout << "Finished epoch " << numEpochs << std::endl;
         #endif
+
+        if (numEpochs % 10 == 0 || numEpochs == MAX_EPOCHS) {
+            save("model/naive_svd/k=" + std::to_string(K) + "_lamb=" +
+                 std::to_string(lambda) + "_epoch=" +
+                 std::to_string(numEpochs) + ".save");
+        }
     
         // If the difference in error is less than epsilon, break
         float delta_error = delta / delta0;
@@ -151,7 +160,7 @@ float NaiveSVD::computeError() {
 
     }
 
-    return error;
+    return error / numRatings;
 }
 
 float NaiveSVD::dotProduct(int user, int movie) {
@@ -168,6 +177,14 @@ float NaiveSVD::dotProduct(int user, int movie) {
     return result;
 }
 
+float NaiveSVD::validate(std::string valFile, std::string saveFile) {
+    // Load ratings
+    load(valFile);
+    // Load U, V
+    loadSaved(saveFile);
+
+    return computeError();
+}
 
 // Use <stdio.h> for binary writing.
 void NaiveSVD::save(std::string fname) {
@@ -239,46 +256,4 @@ void NaiveSVD::printOutput(std::string fname) {
         outputFile << rating << "\n";
     }
     outputFile.close();
-}
-
-int main(int argc, char **argv) {
-    // Speed up stdio operations
-    std::ios_base::sync_with_stdio(false);
-
-    clock_t time0 = clock();
-    NaiveSVD* nsvd = new NaiveSVD();
-    clock_t time1 = clock();
-
-    // Load in COO format into ratings vector
-    nsvd->load("1.dta");
-    clock_t time2 = clock();
-
-    std::cout << "Setting parameters" << std::endl;
-    clock_t time3 = clock();
-    nsvd->setParams(10, 0.001, 0.0);
-    clock_t time4 = clock();
-
-    std::cout << "Begin training" << std::endl;
-    clock_t time5 = clock();
-    nsvd->train("model/naive_svd/naive_svd.save");
-    clock_t time6 = clock();
-
-    std::cout << "Printing output" << std::endl;
-    nsvd->save("model/naive_svd/naive_svd.save");
-    nsvd->printOutput("out/naive_svd.dta");
-    clock_t time7 = clock();
-
-    double ms1 = diffclock(time1, time0);
-    std::cout << "Initializing took " << ms1 << " ms" << std::endl;
-    double ms2 = diffclock(time2, time1);
-    std::cout << "Total loading took " << ms2 << " ms" << std::endl;
-    double ms3 = diffclock(time4, time3);
-    std::cout << "Setting params took " << ms3 << std::endl;;
-    double ms4 = diffclock(time6, time5);
-    std::cout << "Training took " << ms4 << std::endl;
-    double ms5 = diffclock(time7, time6);
-    std::cout << "Printing took " << ms5 << std::endl;
-    double total_ms = diffclock(time7, time0);
-    std::cout << "Total running time was " << total_ms << " ms" << std::endl;
-    return 0;
 }
