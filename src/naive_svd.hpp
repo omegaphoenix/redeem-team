@@ -6,7 +6,7 @@
 
 class NaiveSVD : public Model {
     public:
-        NaiveSVD() : Model() {};
+        NaiveSVD();
         ~NaiveSVD();
         void setParams(int K, float eta, float lambda);
         void train(std::string saveFile);
@@ -15,6 +15,7 @@ class NaiveSVD : public Model {
         void loadSaved(std::string fname);
         void printOutput(std::string fname);
         int numEpochs;
+        int MAX_EPOCHS;
     private:
         float runEpoch();
         virtual void update(int user, int movie, float rating);
@@ -26,7 +27,6 @@ class NaiveSVD : public Model {
         float eta;
         float lambda;
         int K;
-        int MAX_EPOCHS;
         float EPSILON;
 
         bool validationLoaded;

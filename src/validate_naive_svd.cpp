@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
             for (int epoch = 10; epoch <= nsvd->MAX_EPOCHS; epoch += 10) {
                 fname = "model/naive_svd/k=" + std::to_string(k) + "_lamb=" +
                         std::to_string(lamb) + "_epoch=" + std::to_string(epoch) + ".save";
-                validator->setParams(k, ETA, lamb)
+                validator->setParams(k, ETA, lamb);
                 float cur_error = validator->validate("2.dta", fname);
                 std::cerr << "Error for " << fname << std::endl <<
                           cur_error << std::endl;
