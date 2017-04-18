@@ -29,7 +29,7 @@ class NaiveSVD : public Model {
         int K;
         float EPSILON;
 
-        bool validationLoaded;
+        bool validation_loaded;
 };
 
 #endif // NAIVE_SVD_HPP

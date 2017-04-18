@@ -11,7 +11,7 @@
 #define DEBUG true
 
 NaiveSVD::NaiveSVD() : Model() {
-    validationLoaded = false;
+    validation_loaded = false;
 }
 
 // Clean up U, V.
@@ -183,9 +183,9 @@ float NaiveSVD::dotProduct(int user, int movie) {
 
 float NaiveSVD::validate(std::string valFile, std::string saveFile) {
     // Load ratings
-    if (!validationLoaded) {
+    if (!validation_loaded) {
         load(valFile);
-        validationLoaded = true;
+        validation_loaded = true;
     }
     // Load U, V
     loadSaved(saveFile);
