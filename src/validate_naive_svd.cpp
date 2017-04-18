@@ -25,12 +25,12 @@ int main(int argc, char** argv) {
         for (int j = 0; j < lambdas.size(); j++) {
             int k = ks[i];
             float lamb = lambdas[j];
-
+            nsvd->setParams(k, ETA, lamb);
             std::string fname = "model/naive_svd/k=" + std::to_string(k) +
                                 "_lamb=" + std::to_string(lamb) + "_epoch=" +
                                 std::to_string(nsvd->MAX_EPOCHS) + ".save";
-            nsvd->setParams(k, ETA, lamb);
             #ifdef TRAIN
+                std::cout << "Training: " << fname << std::endl;
                 nsvd->train(fname);
             #endif
 
