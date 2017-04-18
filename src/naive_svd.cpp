@@ -30,6 +30,11 @@ void NaiveSVD::train(std::string saveFile) {
     // Initialize U, V
     loadSaved(saveFile);
 
+    #ifdef DEBUG
+        std::cout << "Starting with " << numEpochs <<
+                  " epochs completed" << std::endl;
+    #endif
+
     // Get initial error calculation (by calling runEpoch)
     float delta0 = runEpoch();
     numEpochs++;
