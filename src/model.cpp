@@ -15,6 +15,9 @@
 // Initialize ratings.
 Model::Model() {
     ratings = new int[N_TRAINING * DATA_POINT_SIZE];
+    values = new unsigned char[N_TRAINING];
+    columns = new unsigned short[N_TRAINING];
+    rowIndex = new int[N_USERS + 1];
 }
 
 // Clean up ratings.
@@ -72,7 +75,7 @@ void Model::loadFresh(std::string inFname, std::string outFname) {
     fclose(out);
 }
 
-// Load ratings array from CSR format to COO.
+// Load ratings array from CSR format to COO and CSR.
 void Model::loadCSR(std::string fname) {
     int f = open(fname.c_str(), O_RDONLY);
     unsigned char rating, high, low;
@@ -83,7 +86,9 @@ void Model::loadCSR(std::string fname) {
     unsigned char* buffer = (unsigned char*) mmap(NULL, size, PROT_READ, MAP_PRIVATE, f, 0);
 
     int bytes = size;
+    int i = 0;
     int idx = 0;
+    rowIndex[user] = i;
     // short for end of user marker, short + char per data point
     int numPoints = (bytes - N_USERS * sizeof(short))
                     / (sizeof(short) + sizeof(char));
@@ -97,6 +102,7 @@ void Model::loadCSR(std::string fname) {
             bytes -= sizeof(short);
             user++;
             assert(user <= N_USERS);
+            rowIndex[user] = i;
         }
         // We have number of zeroes and a rating
         else {
@@ -117,10 +123,14 @@ void Model::loadCSR(std::string fname) {
             ratings[idx + USER_IDX] = user;
             ratings[idx + MOVIE_IDX] = movie;
             ratings[idx + RATING_IDX] = rating;
+            values[i] = rating;
+            columns[i] = movie - 1;
+            i++;
             idx += DATA_POINT_SIZE;
         }
     }
-    numRatings = idx / DATA_POINT_SIZE;
+    numRatings = i;
+    assert (numRatings == rowIndex[user]);
     close(f);
     munmap(buffer, size);
 }

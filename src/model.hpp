@@ -29,8 +29,11 @@ static double diffclock(clock_t clock1, clock_t clock2) {
 class Model {
     public:
         Model();
-        int* ratings;
+        int* ratings; // COO format
         int numRatings;
+        unsigned char* values; // CSR values/ratings
+        unsigned short* columns; // CSR columns/movies
+        int* rowIndex; // CSR row index, where user i starts in values/columns
         virtual ~Model();
         void loadFresh(std::string inFname, std::string outFname);
         void loadCSR(std::string fname);
@@ -40,9 +43,6 @@ class Model {
         void load(std::string dataFile);
     private:
         virtual void generateMissing(void);
-        std::vector<unsigned char> values;
-        std::vector<unsigned short> columns;
-        std::vector<int> rowIndex;
 };
 
 #endif // MODEL_HPP
