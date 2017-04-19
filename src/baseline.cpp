@@ -1,44 +1,79 @@
 #include <iostream>
 #include <time.h>
 #include <math.h>
+#include <iostream>
 #include "baseline.hpp"
 
+Baseline::Baseline() : Model() {
+    this->K = 0;
+    this->average_array = new float[N_USERS];
+    this->ratings_count = new float[N_USERS];
+}
+
 Baseline::~Baseline() {
-    // None
+    delete this->average_array;
+    delete this->ratings_count;
 }
 
-float bogusMean() {
-    
-    return ;
+void Baseline::setK(float constant) {
+    this->K = constant;
 }
 
-float betterMean() {
-    return ;
+void Baseline::betterMean() {
+    int total = N_USERS;
+    float global = 0;
+
+    if (K != 0) {
+        global = globalAverage();
+        std::cout << "Global Average = " << global << std::endl;
+    }
+
+    for (int i = 0; i < total; i++) {
+        average_array[i] = 0;
+        ratings_count[i] = 0;
+
+        for (int j = rowIndex[i]; j < rowIndex[i+1]; j++) {
+            average_array[i] = average_array[i] + float(values[j]);
+            ratings_count[i]++;
+        }
+        average_array[i] = (K * global + average_array[i]) / (K + ratings_count[i]); 
+    }
 }
 
-
-float globalAverage() {
+float Baseline::globalAverage() {
     float sum = 0;
     float total = N_TRAINING;
 
     for (int i = 0; i < total; i++) {
-        sum = sum + values[i]
-    
+        sum = sum + values[i];
+    }
     return sum/total;
 }
 
 void Baseline::train(std::string saveFile) {
     std::cout << "entered train()" << std::endl;
-    build();
+    betterMean();
 }
 
-void loadSaved(std::string fname) {
-    loadCSR(fname);
+void Baseline::loadSaved(std::string fname) {
+    //loadCSR(fname);
 }
 
 int main(int argc, char **argv) {
+    // Check the number of parameters
+    if (argc < 2) {
+        // Tell the user how to run the program
+        std::cerr << "Usage: " << argv[0] << "K" << std::endl;
+        std::cerr << "Use K = 0 for regular mean" << std::endl;
+        std::cerr << "For better mean, article recommends K = 25" << std::endl;  
+        return 1;
+    }
+
     clock_t time0 = clock();
     Baseline* baseline = new Baseline();
+    baseline->setK(atof(argv[1]));
+    std::cout << "K = " << baseline->K <<std::endl;
+
     clock_t time1 = clock();
 
     // Load data from file.
@@ -53,7 +88,7 @@ int main(int argc, char **argv) {
 
     // Predict ratings
     // Load qual data
-    baseline->predict(0, 0);
+    // baseline->predict(0, 0);
 
     // Write predictions to file
 

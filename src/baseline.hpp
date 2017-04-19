@@ -8,12 +8,19 @@ class Baseline : public Model {
         ~Baseline();
         void train(std::string saveFile);
         void loadSaved(std::string fname);
+        void setK(float constant);
+        float K;
 
     private:
-        float bogusMean();
-        float betterMean();
+        void betterMean();
         // Only used for better mean
-        float globalAverage()
+        float globalAverage();
+
+        // For regular mean, k = 0
+        // For better mean, k = integer
+        // float K = 0;
+        float *average_array;
+        float *ratings_count;
 };
 
-#endif // NAIVE_SVD_HPP
+#endif
