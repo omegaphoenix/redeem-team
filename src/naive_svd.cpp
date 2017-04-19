@@ -41,15 +41,18 @@ void NaiveSVD::train(std::string saveFile) {
                   " epochs completed" << std::endl;
     #endif
 
+    float delta0;
     // Get initial error calculation (by calling runEpoch)
-    clock_t time0 = clock();
-    float delta0 = runEpoch();
-    clock_t time1 = clock();
-    numEpochs++;
-    #ifdef DEBUG
-        std::cout << "Finished epoch " << numEpochs << std::endl;
-        std::cout << "This took: " << diffclock(time1, time0) << " ms.\n";
-    #endif
+    if (numEpochs < this->MAX_EPOCHS) {
+        clock_t time0 = clock();
+        delta0 = runEpoch();
+        clock_t time1 = clock();
+        numEpochs++;
+        #ifdef DEBUG
+            std::cout << "Finished epoch " << numEpochs << std::endl;
+            std::cout << "This took: " << diffclock(time1, time0) << " ms.\n";
+        #endif
+    }
     // If num epochs left < max_epochs
     while (numEpochs < this->MAX_EPOCHS) {
         // Run an epoch and get the error back
