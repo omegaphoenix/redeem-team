@@ -10,35 +10,52 @@
 kNN::~kNN() {
 }
 
-void kNN::train() {
+void kNN::train(std::string saveFile) {
+    // Do something with saveFile
     std::cout << "entered train()" << std::endl;
-    std::cout << "ratings size = " << ratings.size() << std::endl;
-    buildMatrix(ratings);
+    buildMatrix();
 }
 
 // Calculates Pearson correlation for each item
 // Optimized to not go through entire data set twice
-float kNN::pearson(std::vector<float> x_i, std::vector<float> x_j, std::vector<int> nonzero) {
+float kNN::pearson(int i_start, int i_end, int j_start, int j_end) {
     float x_i_ave = 0;
     float x_j_ave = 0;
     int L = 0;
-    std::vector<int> index;
+    std::vector<int> ratings_i;
+    std::vector<int> ratings_j;
 
-    for (int i = 0; i < nonzero.size(); i++) {
-        int k = nonzero[i];
+    int i = i_start;
+    int j = j_start;
 
-        if (x_j[k] != 0) {
-            x_i_ave = x_i_ave + x_i[k];
-            x_j_ave = x_j_ave + x_j[k];
+    int movie_i;
+    int movie_j;
+
+    while (i < i_end && j < j_end) {
+        movie_i = columns[i];
+        movie_j = columns[j];
+        if (movie_i == movie_j) {
+            ratings_i.push_back(values[i]);
+            ratings_j.push_back(values[j]);
+            x_i_ave += values[i];
+            x_j_ave += values[j];
             L++;
-            // Storing index.  Don't want to go through entire matrix twice
-            index.push_back(i);
+            i++;
+            j++;
+        }
+        else if (movie_i < movie_j) {
+            i++;
+        }
+        else {
+            j++;
         }
     }
 
-    if (L == 0) {
+    if (L == 0) { // no movies in common
         return 0;
     }
+
+    // std::cout << "pearson(): nonzero correlation found" << std::endl;
 
     x_i_ave = x_i_ave / L;
     x_j_ave = x_j_ave / L;
@@ -51,37 +68,23 @@ float kNN::pearson(std::vector<float> x_i, std::vector<float> x_j, std::vector<i
     float ith_part;
     float jth_part;
 
-    for (int i = 0; i < index.size(); i++) {
-        ith_part = x_i[index[i]] - x_i_ave;
-        jth_part = x_j[index[i]] - x_j_ave;
+    for (int k = 0; k < ratings_i.size(); k++) {
+        ith_part = ratings_i[k] - x_i_ave;
+        jth_part = ratings_j[k] - x_j_ave;
 
-        nominator = nominator + (ith_part * jth_part);
+        nominator += (ith_part * jth_part);
 
         denom1 = denom1 + (ith_part * ith_part);
         denom2 = denom2 + (jth_part * jth_part);
     }
-    float corr = nominator/sqrt(denom1 * denom2);
+    float corr = nominator / sqrt(denom1 * denom2);
 
     return corr;
 }
 
-void kNN::buildMatrix(std::vector<std::vector<float>> &train) {
+void kNN::buildMatrix() {
     std::cout << "entered buildMatrix()\n";
     int N = N_USERS;
-
-    // NEED TO INIT corrMatrix
-    //corrMatrix.clear();
-    //std::cout << "matrix cleared\n";
-    //corrMatrix.resize(N_USERS, std::vector<float>(N_USERS, 0));
-
-    // for (int i = 0; i < N_USERS; i++) {
-    //     std::vector<float> row;
-    //     for (int j = 0; j < N_USERS; j++) {
-    //         row.push_back(0);
-    //     }
-    //     std::cout << "push row " << i << std::endl;
-    //     corrMatrix.push_back(row);
-    // }
 
     // Initialize corrMatrix with three rows
     // 0: correlation
@@ -89,34 +92,31 @@ void kNN::buildMatrix(std::vector<std::vector<float>> &train) {
     // 2: user j
     // where i < j
     for (int i = 0; i < 3; i++) {
-        std::vector<float> row;
+        std::vector<float> row(N_USERS); // is this valid initialization?
         corrMatrix.push_back(row);
     }
 
+    int num_correlations = 0;
 
     std::cout << "matrix initialized\n";
     for (int i = 0; i < N - 1; i++) {
-        std::vector<int> nonzero;
-
-        for (int j = 0; j < train[i].size(); j++) {
-            if (train[i][j] != 0) {
-                nonzero.push_back(j);
-            }
-        }
-
-        for (int j = 0; j < N; j++) {
+        for (int j = i; j < N; j++) {
             //std::cout << "Running pearson on " << i << ", " << j << std::endl;
             //corrMatrix[i][j] = pearson(train[i], train[j]);
-            float corr = pearson(train[i], train[j], nonzero);
+            float corr = pearson(rowIndex[i], rowIndex[i + 1], rowIndex[j], rowIndex[j + 1]);
             if (corr != 0) {
                 corrMatrix[0].push_back(corr);
                 corrMatrix[1].push_back(i);
                 corrMatrix[2].push_back(j);
-                std::cout << "pushed a nonzero correlation";
+                num_correlations++;
+                if (num_correlations % 1000000 == 0) {
+                    std::cout << "num_correlations = " << num_correlations << std::endl;
+                }
             }
         }
     }
 
+    std::cout << "Total number of correlations: " << num_correlations << std::endl;
     return;
 }
 
@@ -125,11 +125,8 @@ void kNN::predict(int user, int movie) {
 
 }
 
-// Returns the differences in ms.
-static double diffclock(clock_t clock1, clock_t clock2) {
-  double diffticks = clock1 - clock2;
-  double diffms = (diffticks) / (CLOCKS_PER_SEC / 1000);
-  return diffms;
+void kNN::loadSaved(std::string fname) {
+    loadCSR(fname);
 }
 
 int main(int argc, char **argv) {
@@ -138,12 +135,12 @@ int main(int argc, char **argv) {
     clock_t time1 = clock();
 
     // Load data from file.
-    knn->loadFresh("data/um/1.dta");
+    knn->load("1.dta");
     clock_t time2 = clock();
 
     // Train by building correlation matrix
     std::cout << "Begin training\n";
-    knn->train();
+    knn->train("unused variable");
 
     clock_t time3 = clock();
 
