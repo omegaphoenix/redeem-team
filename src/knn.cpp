@@ -6,6 +6,7 @@
 #include <iostream>
 #include <time.h>
 #include <math.h>
+#include <stdio.h>
 
 kNN::~kNN() {
 }
@@ -17,7 +18,6 @@ void kNN::train(std::string saveFile) {
 }
 
 // Calculates Pearson correlation for each item
-// Optimized to not go through entire data set twice
 float kNN::pearson(int i_start, int i_end, int j_start, int j_end) {
     float x_i_ave = 0;
     float x_j_ave = 0;
@@ -51,9 +51,11 @@ float kNN::pearson(int i_start, int i_end, int j_start, int j_end) {
         }
     }
 
-    if (L == 0) { // no movies in common
+    if (L <= 2) { // ignore user pairs with little in common
         return 0;
     }
+
+    //std::cout << "number of movies in common: " << L << std::endl;
 
     // std::cout << "pearson(): nonzero correlation found" << std::endl;
 
@@ -92,31 +94,68 @@ void kNN::buildMatrix() {
     // 2: user j
     // where i < j
     for (int i = 0; i < 3; i++) {
-        std::vector<float> row(N_USERS); // is this valid initialization?
+        std::vector<float> row;
+        // std::vector<float> row(N_USERS); // is this efficient initialization?
         corrMatrix.push_back(row);
     }
 
-    int num_correlations = 0;
+    num_correlations = 0;
+    clock_t prev_clock = clock();
+    clock_t curr_clock;
+    int curr_user = 0;
 
     std::cout << "matrix initialized\n";
+
     for (int i = 0; i < N - 1; i++) {
         for (int j = i; j < N; j++) {
-            //std::cout << "Running pearson on " << i << ", " << j << std::endl;
-            //corrMatrix[i][j] = pearson(train[i], train[j]);
+            // Don't bother if either user has too few movies
+            if (rowIndex[i + 1] - rowIndex[i] < 7
+                || rowIndex[j + 1] - rowIndex[j] < 7) {
+                if (i % 1000 == 0 && i != curr_user) {
+                    curr_user = i;
+                    std::cout << "user i = " << i << std::endl;
+                }
+                continue;
+            }
+
             float corr = pearson(rowIndex[i], rowIndex[i + 1], rowIndex[j], rowIndex[j + 1]);
             if (corr != 0) {
                 corrMatrix[0].push_back(corr);
                 corrMatrix[1].push_back(i);
                 corrMatrix[2].push_back(j);
                 num_correlations++;
-                if (num_correlations % 1000000 == 0) {
+                if (num_correlations % 1000 == 0) {
                     std::cout << "num_correlations = " << num_correlations << std::endl;
+                    std::cout << "current user i = " << i << std::endl;
                 }
             }
+            // if (i % 100 == 0 && i != curr_user) {
+            //     curr_user = i;
+            //     curr_clock = clock();
+            //     std::cout << "user i = " << i << std::endl;
+            //     std::cout << "it took " << diffclock(curr_clock, prev_clock) << " ms\n";
+            //     std::cout << "currently we have " << num_correlations << " correlations\n";
+            //     prev_clock = clock();
+            // }
         }
     }
 
     std::cout << "Total number of correlations: " << num_correlations << std::endl;
+
+    // Test saving
+    std::cout << "Saving model..." << std::endl;
+    save("test_knn_corrMatrix.save");
+    std::cout << "Saved!" << std::endl;
+    std::cout << "SAVED num_correlations = " << num_correlations << std::endl;
+    std::cout << "SAVED corrMatrix[0][0] = " << corrMatrix[0][0] << std::endl;
+
+    // Testing loading
+    std::cout << "Loading model..." << std::endl;
+    loadSaved("test_knn_corrMatrix.save");
+    std::cout << "Loaded!" << std::endl;
+    std::cout << "LOADED num_correlations = " << num_correlations << std::endl;
+    std::cout << "LOADED corrMatrix[0][0] = " << corrMatrix[0][0] << std::endl;
+
     return;
 }
 
@@ -126,23 +165,45 @@ void kNN::predict(int user, int movie) {
 }
 
 void kNN::loadSaved(std::string fname) {
-    loadCSR(fname);
+    FILE *in = fopen(fname.c_str(), "r");
+    // Check for errors
+
+    // Read num correlations
+    int buf[1];
+    fread(buf, sizeof(int), 1, in);
+    num_correlations = buf[0];
+
+    // Initialize correlation matrix
+    fread(&corrMatrix[0][0], sizeof(float), num_correlations, in);
+    fread(&corrMatrix[1][0], sizeof(float), num_correlations, in);
+    fread(&corrMatrix[2][0], sizeof(float), num_correlations, in);
+    fclose(in);
+}
+
+void kNN::save(std::string fname) {
+    FILE *out = fopen(fname.c_str(), "wb");
+    int buf[1];
+    buf[0] = num_correlations = corrMatrix[0].size();
+    fwrite(buf, sizeof(int), 1, out);
+
+    fwrite(&corrMatrix[0][0], sizeof(float), corrMatrix[0].size(), out);
+    fwrite(&corrMatrix[1][0], sizeof(float), corrMatrix[1].size(), out);
+    fwrite(&corrMatrix[2][0], sizeof(float), corrMatrix[2].size(), out);
+    fclose(out);
 }
 
 int main(int argc, char **argv) {
     clock_t time0 = clock();
     kNN* knn = new kNN();
-    clock_t time1 = clock();
 
     // Load data from file.
-    knn->load("1.dta");
-    clock_t time2 = clock();
+    knn->load("4.dta");
 
     // Train by building correlation matrix
     std::cout << "Begin training\n";
     knn->train("unused variable");
 
-    clock_t time3 = clock();
+    clock_t time1 = clock();
 
     // Predict ratings
     // Load qual data
@@ -151,14 +212,7 @@ int main(int argc, char **argv) {
     // Write predictions to file
 
     // Output times.
-    double ms1 = diffclock(time1, time0);
-    std::cout << "Initialization took " << ms1 << " ms" << std::endl;
-    double ms2 = diffclock(time2, time1);
-    std::cout << "Loading took " << ms2 << " ms" << std::endl;
-    double total_ms = diffclock(time2, time0);
-    std::cout << "Total took " << total_ms << " ms" << std::endl;
-
-    double kNN_ms = diffclock(time3, time0);
+    double kNN_ms = diffclock(time1, time0);
     std::cout << "kNN took " << kNN_ms << " ms" << std::endl;
 
     return 0;

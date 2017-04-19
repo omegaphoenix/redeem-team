@@ -10,6 +10,8 @@ class kNN : public Model {
         void loadSaved(std::string fname);
         void predict(int user, int movie);
         void train(std::string saveFile);
+        void save(std::string fname);
+        int num_correlations;
     private:
         float pearson(int i_start, int i_end, int j_start, int j_end);
         void buildMatrix();
