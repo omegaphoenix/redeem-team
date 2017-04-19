@@ -12,6 +12,8 @@
 
 NaiveSVD::NaiveSVD() : Model() {
     validation_loaded = false;
+    U = NULL;
+    V = NULL;
 }
 
 // Clean up U, V.
@@ -208,6 +210,12 @@ void NaiveSVD::save(std::string fname) {
 // between [-0.5, 0.5] if the saved file failed
 // to load.
 void NaiveSVD::loadSaved(std::string fname) {
+    if (U != NULL) {
+        delete U;
+    }
+    if (V != NULL) {
+        delete V;
+    }
     FILE *in = fopen(fname.c_str(), "r");
     if (fname == "" || in == NULL) {
         this->U = new float[N_USERS * this->K];
