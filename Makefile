@@ -1,8 +1,10 @@
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall -g
 PROG = naive_svd
+RBM_PROG = rbm
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
 NAIVE_SVD_CV_FILES = $(addprefix src/, validate_naive_svd.cpp naive_svd.cpp model.cpp)
+RBM_FILES = $(addprefix src/, rbm.cpp model.cpp)
 
 
 all: init naive_svd validate_naive_svd
@@ -22,6 +24,9 @@ validate_naive_svd: $(NAIVE_SVD_CV_FILES:.cpp=.o)
 
 run_nsvd:
 	bin/validate_naive_svd 2> log/validate_nsvd.log
+
+rbm: $(RBM_FILES:.cpp=.o)
+	$(CXX) $(CFLAGS) -o bin/rbm $^
 
 clean:
 	rm -f bin/* src/*.o
