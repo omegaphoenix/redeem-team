@@ -3,9 +3,7 @@
 #include <iostream>
 #include <math.h>
 #include <time.h>
-#include "utils.hpp"
 using namespace std;
-using namespace utils;
 
 // Initialize RBM variables.
 RBM::RBM() {
@@ -30,7 +28,7 @@ RBM::RBM() {
     this->minibatch = new int[MINIBATCH_SIZE];
 
     this->countUserRating = new int[N_USERS];
-    for (unsigned int i = 0; i < N_USERS; i++) {
+    for (unsigned int i = 0; i < N_USERS; ++i) {
         countUserRating[i] = rowIndex[i + 1] - rowIndex[i];
     }
 
@@ -100,7 +98,7 @@ double** RBM::pCalcV(int** V, double* h, int user) {
 void RBM::updateV(int** V, double** v, int user) {
     int count = this->countUserRating[user];
     for(unsigned int i = 0; i < count; ++i) {
-        V[i][1] = utils::bound(v[i][1]);
+        V[i][1] = bound(v[i][1]);
     }
 }
 
@@ -183,7 +181,7 @@ void RBM::updateW() {
         V = createV(user);
         size = this->countUserRating[user];
         this->hidStates[user] = pCalcH(V, user);
-        updateH(this->hidStates[user], user, false, utils::oneRand());
+        updateH(this->hidStates[user], user, false, oneRand());
         for (unsigned int j = 0; j < size; ++j) {
             for (unsigned int k = 0; k < N_FACTORS; ++k) {
                 expData[V[j][0]][k][V[j][1] - 1] += this->hidStates[user][k];
@@ -192,7 +190,7 @@ void RBM::updateW() {
         v = pCalcV(V, this->hidStates[user], user);
         updateV(V, v, user);
         this->hidStates[user] = pCalcH(V, user);
-        updateH(this->hidStates[user], user, false, utils::oneRand());
+        updateH(this->hidStates[user], user, false, oneRand());
         for (unsigned int j = 0; j < size; ++j) {
             for (unsigned int k = 0; k < N_FACTORS; ++k) {
                 expRecon[V[j][0]][k][V[j][1] - 1] += this->hidStates[user][k];
@@ -201,9 +199,9 @@ void RBM::updateW() {
     }
 
     // Update W
-    utils::matrixAdd(expData, expRecon, N_MOVIES, N_FACTORS, MAX_RATING, -1);
-    utils::matrixScalarMult(expData, (LEARNING_RATE / size), N_MOVIES, N_FACTORS, MAX_RATING);
-    utils::matrixAdd(W, expData, N_MOVIES, N_FACTORS, MAX_RATING, 1);
+    matrixAdd(expData, expRecon, N_MOVIES, N_FACTORS, MAX_RATING, -1);
+    matrixScalarMult(expData, (LEARNING_RATE / size), N_MOVIES, N_FACTORS, MAX_RATING);
+    matrixAdd(W, expData, N_MOVIES, N_FACTORS, MAX_RATING, 1);
 
     // Delete all pointer arrays
     for (unsigned int i = 0; i < size; ++i) {
@@ -255,7 +253,7 @@ void RBM::train(std::string saveFile) {
                     predict += (numer / denom) * k;
                 }
 
-                predict = utils::bound(predict);
+                predict = bound(predict);
 
                 err = (double) rating - predict;
 
@@ -265,11 +263,11 @@ void RBM::train(std::string saveFile) {
             }
 
             end = clock();
-            printf("Train RMSE: %f. Took %.f milliseconds.\n",
+            printf("Train RMSE: %f. Took %.f ms.\n",
                     sqrt(trainErr / (double) numRatings), diffclock(end, start));
         } else {
             end = clock();
-            printf("Took %.f milliseconds.\n", diffclock(end, start));
+            printf("Took %.f ms.\n", diffclock(end, start));
         }
     }
 }
