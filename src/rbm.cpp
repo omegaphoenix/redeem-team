@@ -1,207 +1,301 @@
 #include "rbm.hpp"
+#include <cmath>
 #include <iostream>
 #include <math.h>
+#include <time.h>
 #include "utils.hpp"
 using namespace std;
 using namespace utils;
 
 // Initialize RBM variables.
-RBM::RBM(int size, int numVis, int numHid, double **w, double *hb, double *vb) {
-    N = size;
-    nVisible = numVis;
-    nHidden = numHid;
+RBM::RBM() {
+    clock_t time0 = clock();
+    printf("Initializing RBM...\n");
 
-    if(w == NULL) {
-        W = new double*[nHidden];
-        for(int i=0; i<nHidden; i++) W[i] = new double[nVisible];
-        double a = 1.0 / nVisible;
+    // Initialize W
+    this->W = new double**[N_MOVIES];
 
-        for(int i=0; i<nHidden; i++) {
-            for(int j=0; j<nVisible; j++) {
-                W[i][j] = uniform(-a, a);
-            }
+    for (unsigned int i = 0; i < N_MOVIES; ++i) {
+        this->W[i] = new double*[N_FACTORS];
+        for (unsigned int j = 0; j < N_FACTORS; ++j) {
+            this->W[i][j] = new double[MAX_RATING];
         }
-    } else {
-        W = w;
     }
 
-    if(hb == NULL) {
-        hbias = new double[nHidden];
-        for(int i=0; i<nHidden; i++) hbias[i] = 0;
-    } else {
-        hbias = hb;
+    this->hidStates = new double*[N_USERS];
+    for (unsigned int i = 0; i < N_USERS; ++i) {
+        this->hidStates[i] = new double[N_FACTORS];
     }
 
-    if(vb == NULL) {
-        vbias = new double[nVisible];
-        for(int i=0; i<nVisible; i++) vbias[i] = 0;
-    } else {
-        vbias = vb;
+    this->minibatch = new int[MINIBATCH_SIZE];
+
+    this->countUserRating = new int[N_USERS];
+    for (unsigned int i = 0; i < N_USERS; i++) {
+        countUserRating[i] = rowIndex[i + 1] - rowIndex[i];
     }
+
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "RBM initialization took " << ms1 << " ms" << std::endl;
 }
 
 RBM::~RBM() {
-    for(int i=0; i<nHidden; i++) delete[] W[i];
-    delete[] W;
-    delete[] hbias;
-    delete[] vbias;
+    delete[] this->minibatch;
+    delete[] this->countUserRating;
+
+    for(unsigned int i = 0; i < N_MOVIES; ++i) {
+        for (unsigned int j = 0; j < N_FACTORS; ++j) {
+            delete[] this->W[i][j];
+        }
+        delete[] this->W[i];
+    }
+
+    for (unsigned int i = 0; i < N_USERS; ++i) {
+        delete[] this->hidStates[i];
+    }
+
+    delete[] this->W;
+	delete[] this->hidStates;
 }
 
-// Train RBM.
-void RBM::constrastiveDivergence(int *input, double lr, int k) {
-    double *phMean = new double[nHidden];
-    int *phSample = new int[nHidden];
-    double *nvMeans = new double[nVisible];
-    int *nvSamples = new int[nVisible];
-    double *nhMeans = new double[nHidden];
-    int *nhSamples = new int[nHidden];
+// movie is 0-indexed
+double RBM::sumOverFeatures(int movie, int rating, double* h) {
+	double total = 0;
+    for (unsigned int i = 0; i < N_FACTORS; ++i) {
+		// ratings are indexed 0-4
+        total += h[i] * this->W[movie][i][rating - 1];
+    }
+	return total;
+}
 
-    // CD-k
-    sampleHGivenV(input, phMean, phSample);
+// Return expected value for user.
+double** RBM::pCalcV(int** V, double* h, int user) {
+    int index = rowIndex[user];
+    int count = this->countUserRating[user];
+    int movie, eValue;
+    double numer, denom = 0;
+    // Determine most likely
+    for (unsigned int i = 0; i < count; ++i) {
+        movie = columns[index + i];
+        for (unsigned int j = 1; j <= MAX_RATING; ++j) {
+            numer = exp(sumOverFeatures(movie, j, h));
+            for (unsigned int k = 1; k <= MAX_RATING; ++k) {
+                denom += exp(sumOverFeatures(movie, k, h));
+            }
+            V[i][j] = numer / denom;
+        }
+    }
+    // Stored as movie count x 2 array
+    double** v = new double*[count];
+    for (unsigned int i = 0; i < count; ++i) {
+        v[i] = new double[2];
+        v[i][0] = V[i][0];
+        eValue = V[i][1] + (2*V[i][2]) + (3*V[i][3])+ (4*V[i][4])+ (5*V[i][5]);
+        v[i][1] = eValue;
+    }
+    return v;
+}
 
-    for(int step=0; step<k; step++) {
-        if(step == 0) {
-            gibbsHvh(phSample, nvMeans, nvSamples, nhMeans, nhSamples);
+// Update v.
+void RBM::updateV(int** V, double** v, int user) {
+    int count = this->countUserRating[user];
+    for(unsigned int i = 0; i < count; ++i) {
+        V[i][1] = utils::bound(v[i][1]);
+    }
+}
+
+// Create V.
+int** RBM::createV(int user) {
+    int index = rowIndex[user];
+    int count = this->countUserRating[user];
+    int movie, rating;
+    int** V = new int*[count];
+    // Fill up V with movies/ratings
+    for (unsigned int i = 0; i < count; ++i) {
+        // Initialize array
+        V[i] = new int[MAX_RATING + 1];
+        movie = columns[index + i];
+        rating = values[index + i];
+        V[i][0] = movie;
+        V[i][rating - 1] = 1;
+    }
+    return V;
+}
+
+// Fill up h with appropriate weight probabilities for each user.
+double* RBM::pCalcH(int** V, int user) {
+    double* h = new double[N_FACTORS];
+    int term, movie, rating; 
+    int count = this->countUserRating[user];
+    for (unsigned int i = 0; i < N_FACTORS; ++i) {
+        term = 0;
+        for (unsigned int j = 0; j < count; ++j) {
+            movie = V[j][0];
+            rating = V[j][1];
+            term += this->W[movie][i][rating - 1];
+        }
+        h[i] = 1/(1 + exp(-1 * term));
+    }
+    return h;
+}
+
+// Update h for each user.
+void RBM::updateH(double* h, int user, bool last, double threshold) {
+    // Update h
+    if (!last) {
+        for (unsigned int i = 0; i < N_FACTORS; ++i) {
+            if (h[i] > threshold) {
+                h[i] = 1;
+            }
+            else {
+                h[i] = 0;
+            }
+        }
+    }
+}
+
+void RBM::createMinibatch() {
+    unsigned int val = 0;
+    for (unsigned int i = 0; i < MINIBATCH_SIZE; ++i) {
+        val = minibatchRandom();
+        minibatch[i] = val;
+    }
+}
+
+void RBM::updateW() {
+    int** V;
+    double **v;
+    int user, size;
+    // Initialize
+    double*** expData = new double**[N_MOVIES];
+    double*** expRecon = new double**[N_MOVIES];
+    for (unsigned int i = 0; i < N_MOVIES; ++i) {
+        expData[i] = new double*[N_FACTORS];
+        expRecon[i] = new double*[N_FACTORS];
+        for (unsigned int j = 0; j < N_FACTORS; ++j) {
+            expData[i][j] = new double[MAX_RATING];
+            expRecon[i][j] = new double[MAX_RATING];
+        }
+    }
+
+    for (unsigned int i = 0; i < MINIBATCH_SIZE; ++i) {
+        user = this->minibatch[i];
+        V = createV(user);
+        size = this->countUserRating[user];
+        this->hidStates[user] = pCalcH(V, user);
+        updateH(this->hidStates[user], user, false, utils::oneRand());
+        for (unsigned int j = 0; j < size; ++j) {
+            for (unsigned int k = 0; k < N_FACTORS; ++k) {
+                expData[V[j][0]][k][V[j][1] - 1] += this->hidStates[user][k];
+            }
+        }
+        v = pCalcV(V, this->hidStates[user], user);
+        updateV(V, v, user);
+        this->hidStates[user] = pCalcH(V, user);
+        updateH(this->hidStates[user], user, false, utils::oneRand());
+        for (unsigned int j = 0; j < size; ++j) {
+            for (unsigned int k = 0; k < N_FACTORS; ++k) {
+                expRecon[V[j][0]][k][V[j][1] - 1] += this->hidStates[user][k];
+            }
+        }
+    }
+
+    // Update W
+    utils::matrixAdd(expData, expRecon, N_MOVIES, N_FACTORS, MAX_RATING, -1);
+    utils::matrixScalarMult(expData, (LEARNING_RATE / size), N_MOVIES, N_FACTORS, MAX_RATING);
+    utils::matrixAdd(W, expData, N_MOVIES, N_FACTORS, MAX_RATING, 1);
+
+    // Delete all pointer arrays
+    for (unsigned int i = 0; i < size; ++i) {
+        delete[] v[i];
+        delete[] V[i];
+    }
+
+    for(unsigned int i = 0; i < N_MOVIES; ++i) {
+        for (unsigned int j = 0; j < N_FACTORS; ++j) {
+            delete[] expData[i][j];
+            delete[] expRecon[i][j];
+        }
+        delete[] expData[i];
+        delete[] expRecon[i];
+    }
+
+    delete[] expData;
+    delete[] expRecon;
+    delete[] v;
+    delete[] V;
+}
+
+void RBM::train(std::string saveFile) {
+    int user, rating, movie, predict, err, trainCount, trainErr, numer, denom;
+    clock_t start, end;
+
+    for (unsigned int i = 0; i < RBM_EPOCHS; ++i) {
+        start = clock();
+        printf("Epoch Number: %d.\n", i);
+        createMinibatch();
+        updateW();
+        trainErr = 0;
+        trainCount = 0;
+
+        if (i % 100 == 0 && i != 0) {
+            for(unsigned int j = 0; j < numRatings; ++j) {
+                user = ratings[j * DATA_POINT_SIZE + USER_IDX];
+                movie = ratings[j * DATA_POINT_SIZE + MOVIE_IDX];
+                rating = ratings[j * DATA_POINT_SIZE + RATING_IDX];
+                predict = 0;
+                numer = 0;
+                denom = 0;
+
+                for (unsigned int k = 1; k <= MAX_RATING; ++k) {
+                    numer = exp(sumOverFeatures(movie, k, this->hidStates[user]));
+                    for (unsigned int l = 1; l <= MAX_RATING; ++l) {
+                        denom += exp(sumOverFeatures(movie, l, this->hidStates[user]));
+                    }
+                    predict += (numer / denom) * k;
+                }
+
+                predict = utils::bound(predict);
+
+                err = (double) rating - predict;
+
+                trainErr += err * err;
+
+                trainCount++;
+            }
+
+            end = clock();
+            printf("Train RMSE: %f. Took %.f milliseconds.\n",
+                    sqrt(trainErr / (double) numRatings), diffclock(end, start));
         } else {
-            gibbsHvh(nhSamples, nvMeans, nvSamples, nhMeans, nhSamples);
+            end = clock();
+            printf("Took %.f milliseconds.\n", diffclock(end, start));
         }
     }
-
-    for(int i=0; i<nHidden; i++) {
-        for(int j=0; j<nVisible; j++) {
-            // W[i][j] += lr * (phSample[i] * input[j] - nhMeans[i] * nvSamples[j]) / N;
-            W[i][j] += lr * (phMean[i] * input[j] - nhMeans[i] * nvSamples[j]) / N;
-        }
-        hbias[i] += lr * (phSample[i] - nhMeans[i]) / N;
-    }
-
-    for(int i=0; i<nVisible; i++) {
-        vbias[i] += lr * (input[i] - nvSamples[i]) / N;
-    }
-
-    delete[] phMean;
-    delete[] phSample;
-    delete[] nvMeans;
-    delete[] nvSamples;
-    delete[] nhMeans;
-    delete[] nhSamples;
 }
-
-void RBM::sampleHGivenV(int *v0Sample, double *mean, int *sample) {
-    for(int i=0; i<nHidden; i++) {
-        mean[i] = propUp(v0Sample, W[i], hbias[i]);
-        sample[i] = binomial(1, mean[i]);
-    }
-}
-
-void RBM::sampleVGivenH(int *h0Sample, double *mean, int *sample) {
-    for(int i=0; i<nVisible; i++) {
-        mean[i] = propDown(h0Sample, i, vbias[i]);
-        sample[i] = binomial(1, mean[i]);
-    }
-}
-
-double RBM::propUp(int *v, double *w, double b) {
-    double preSigmoidActivation = 0.0;
-    for(int j=0; j<nVisible; j++) {
-        preSigmoidActivation += w[j] * v[j];
-    }
-    preSigmoidActivation += b;
-    return sigmoid(preSigmoidActivation);
-}
-
-double RBM::propDown(int *h, int i, double b) {
-    double preSigmoidActivation = 0.0;
-    for(int j=0; j<nHidden; j++) {
-        preSigmoidActivation += W[j][i] * h[j];
-    }
-    preSigmoidActivation += b;
-    return sigmoid(preSigmoidActivation);
-}
-
-void RBM::gibbsHvh(int *h0Sample, double *nvMeans, int *nvSamples, \
-        double *nhMeans, int *nhSamples) {
-    sampleVGivenH(h0Sample, nvMeans, nvSamples);
-    sampleHGivenV(nvSamples, nhMeans, nhSamples);
-}
-
-void RBM::reconstruct(int *v, double *reconstructedV) {
-    double *h = new double[nHidden];
-    double preSigmoidActivation;
-
-    for(int i=0; i<nHidden; i++) {
-        h[i] = propUp(v, W[i], hbias[i]);
-    }
-
-    for(int i=0; i<nVisible; i++) {
-        preSigmoidActivation = 0.0;
-        for(int j=0; j<nHidden; j++) {
-            preSigmoidActivation += W[j][i] * h[j];
-        }
-        preSigmoidActivation += vbias[i];
-
-        reconstructedV[i] = sigmoid(preSigmoidActivation);
-    }
-
-    delete[] h;
-}
-
-
-void testRBM() {
-    srand(0);
-
-    double learningRate = 0.1;
-    int trainingEpochs = 1000;
-    int k = 1;
-
-    int trainN = 6;
-    int testN = 2;
-    int nVisible = 6;
-    int nHidden = 3;
-
-    // training data
-    int trainX[6][6] = {
-        {1, 1, 1, 0, 0, 0},
-        {1, 0, 1, 0, 0, 0},
-        {1, 1, 1, 0, 0, 0},
-        {0, 0, 1, 1, 1, 0},
-        {0, 0, 1, 0, 1, 0},
-        {0, 0, 1, 1, 1, 0}
-    };
-
-
-    // construct RBM
-    RBM rbm(trainN, nVisible, nHidden, NULL, NULL, NULL);
-
-    // train
-    for(int epoch=0; epoch<trainingEpochs; epoch++) {
-        for(int i=0; i<trainN; i++) {
-            rbm.constrastiveDivergence(trainX[i], learningRate, k);
-        }
-    }
-
-    // test data
-    int testX[2][6] = {
-        {1, 1, 0, 0, 0, 0},
-        {0, 0, 0, 1, 1, 0}
-    };
-    double reconstructedX[2][6];
-
-
-    // test
-    for(int i=0; i<testN; i++) {
-        rbm.reconstruct(testX[i], reconstructedX[i]);
-        for(int j=0; j<nVisible; j++) {
-            printf("%.5f ", reconstructedX[i][j]);
-        }
-        cout << endl;
-    }
-
-}
-
-
 
 int main() {
+    // Speed up stdio operations
+    std::ios_base::sync_with_stdio(false);
     srand(0);
+
+    clock_t time0 = clock();
+    // Initialize
+    RBM *rbm = new RBM();
+    clock_t time1 = clock();
+    rbm->load("1.dta");
+    clock_t time2 = clock();
+
+    // Learn parameters
+    rbm->train("data/um/LebronCanSuckMy5Rings.save");
+    clock_t time3 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Initializing took " << ms1 << " ms" << std::endl;
+    double ms2 = diffclock(time2, time1);
+    std::cout << "Total loading took " << ms2 << " ms" << std::endl;
+    double ms3 = diffclock(time3, time2);
+    std::cout << "Training took " << ms3 << " ms" << std::endl;
+    double total_ms = diffclock(time3, time0);
+    std::cout << "Total running time was " << total_ms << " ms" << std::endl;
     return 0;
 }

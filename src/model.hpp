@@ -6,20 +6,6 @@
 #include <vector>
 #include "utils.hpp"
 
-// Disable assertions
-// #define NDEBUG
-
-#define N_MOVIES 17770
-#define N_USERS 458293
-#define N_DAYS 2243
-#define N_TRAINING 99666408
-#define MAX_RATING 5
-#define USER_IDX 0
-#define MOVIE_IDX 1
-#define TIME_IDX 2
-#define RATING_IDX 3
-#define DATA_POINT_SIZE 4
-
 class Model {
     public:
         Model();
