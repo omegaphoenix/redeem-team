@@ -6,18 +6,18 @@ using namespace std;
 using namespace utils;
 
 // Initialize RBM variables.
-RBM::RBM(int size, int n_v, int n_h, double **w, double *hb, double *vb) {
+RBM::RBM(int size, int numVis, int numHid, double **w, double *hb, double *vb) {
     N = size;
-    n_visible = n_v;
-    n_hidden = n_h;
+    nVisible = numVis;
+    nHidden = numHid;
 
     if(w == NULL) {
-        W = new double*[n_hidden];
-        for(int i=0; i<n_hidden; i++) W[i] = new double[n_visible];
-        double a = 1.0 / n_visible;
+        W = new double*[nHidden];
+        for(int i=0; i<nHidden; i++) W[i] = new double[nVisible];
+        double a = 1.0 / nVisible;
 
-        for(int i=0; i<n_hidden; i++) {
-            for(int j=0; j<n_visible; j++) {
+        for(int i=0; i<nHidden; i++) {
+            for(int j=0; j<nVisible; j++) {
                 W[i][j] = uniform(-a, a);
             }
         }
@@ -26,141 +26,141 @@ RBM::RBM(int size, int n_v, int n_h, double **w, double *hb, double *vb) {
     }
 
     if(hb == NULL) {
-        hbias = new double[n_hidden];
-        for(int i=0; i<n_hidden; i++) hbias[i] = 0;
+        hbias = new double[nHidden];
+        for(int i=0; i<nHidden; i++) hbias[i] = 0;
     } else {
         hbias = hb;
     }
 
     if(vb == NULL) {
-        vbias = new double[n_visible];
-        for(int i=0; i<n_visible; i++) vbias[i] = 0;
+        vbias = new double[nVisible];
+        for(int i=0; i<nVisible; i++) vbias[i] = 0;
     } else {
         vbias = vb;
     }
 }
 
 RBM::~RBM() {
-    for(int i=0; i<n_hidden; i++) delete[] W[i];
+    for(int i=0; i<nHidden; i++) delete[] W[i];
     delete[] W;
     delete[] hbias;
     delete[] vbias;
 }
 
 // Train RBM.
-void RBM::contrastive_divergence(int *input, double lr, int k) {
-    double *ph_mean = new double[n_hidden];
-    int *ph_sample = new int[n_hidden];
-    double *nv_means = new double[n_visible];
-    int *nv_samples = new int[n_visible];
-    double *nh_means = new double[n_hidden];
-    int *nh_samples = new int[n_hidden];
+void RBM::constrastiveDivergence(int *input, double lr, int k) {
+    double *phMean = new double[nHidden];
+    int *phSample = new int[nHidden];
+    double *nvMeans = new double[nVisible];
+    int *nvSamples = new int[nVisible];
+    double *nhMeans = new double[nHidden];
+    int *nhSamples = new int[nHidden];
 
     // CD-k
-    sample_h_given_v(input, ph_mean, ph_sample);
+    sampleHGivenV(input, phMean, phSample);
 
     for(int step=0; step<k; step++) {
         if(step == 0) {
-            gibbs_hvh(ph_sample, nv_means, nv_samples, nh_means, nh_samples);
+            gibbsHvh(phSample, nvMeans, nvSamples, nhMeans, nhSamples);
         } else {
-            gibbs_hvh(nh_samples, nv_means, nv_samples, nh_means, nh_samples);
+            gibbsHvh(nhSamples, nvMeans, nvSamples, nhMeans, nhSamples);
         }
     }
 
-    for(int i=0; i<n_hidden; i++) {
-        for(int j=0; j<n_visible; j++) {
-            // W[i][j] += lr * (ph_sample[i] * input[j] - nh_means[i] * nv_samples[j]) / N;
-            W[i][j] += lr * (ph_mean[i] * input[j] - nh_means[i] * nv_samples[j]) / N;
+    for(int i=0; i<nHidden; i++) {
+        for(int j=0; j<nVisible; j++) {
+            // W[i][j] += lr * (phSample[i] * input[j] - nhMeans[i] * nvSamples[j]) / N;
+            W[i][j] += lr * (phMean[i] * input[j] - nhMeans[i] * nvSamples[j]) / N;
         }
-        hbias[i] += lr * (ph_sample[i] - nh_means[i]) / N;
+        hbias[i] += lr * (phSample[i] - nhMeans[i]) / N;
     }
 
-    for(int i=0; i<n_visible; i++) {
-        vbias[i] += lr * (input[i] - nv_samples[i]) / N;
+    for(int i=0; i<nVisible; i++) {
+        vbias[i] += lr * (input[i] - nvSamples[i]) / N;
     }
 
-    delete[] ph_mean;
-    delete[] ph_sample;
-    delete[] nv_means;
-    delete[] nv_samples;
-    delete[] nh_means;
-    delete[] nh_samples;
+    delete[] phMean;
+    delete[] phSample;
+    delete[] nvMeans;
+    delete[] nvSamples;
+    delete[] nhMeans;
+    delete[] nhSamples;
 }
 
-void RBM::sample_h_given_v(int *v0_sample, double *mean, int *sample) {
-    for(int i=0; i<n_hidden; i++) {
-        mean[i] = propup(v0_sample, W[i], hbias[i]);
+void RBM::sampleHGivenV(int *v0Sample, double *mean, int *sample) {
+    for(int i=0; i<nHidden; i++) {
+        mean[i] = propUp(v0Sample, W[i], hbias[i]);
         sample[i] = binomial(1, mean[i]);
     }
 }
 
-void RBM::sample_v_given_h(int *h0_sample, double *mean, int *sample) {
-    for(int i=0; i<n_visible; i++) {
-        mean[i] = propdown(h0_sample, i, vbias[i]);
+void RBM::sampleVGivenH(int *h0Sample, double *mean, int *sample) {
+    for(int i=0; i<nVisible; i++) {
+        mean[i] = propDown(h0Sample, i, vbias[i]);
         sample[i] = binomial(1, mean[i]);
     }
 }
 
-double RBM::propup(int *v, double *w, double b) {
-    double pre_sigmoid_activation = 0.0;
-    for(int j=0; j<n_visible; j++) {
-        pre_sigmoid_activation += w[j] * v[j];
+double RBM::propUp(int *v, double *w, double b) {
+    double preSigmoidActivation = 0.0;
+    for(int j=0; j<nVisible; j++) {
+        preSigmoidActivation += w[j] * v[j];
     }
-    pre_sigmoid_activation += b;
-    return sigmoid(pre_sigmoid_activation);
+    preSigmoidActivation += b;
+    return sigmoid(preSigmoidActivation);
 }
 
-double RBM::propdown(int *h, int i, double b) {
-    double pre_sigmoid_activation = 0.0;
-    for(int j=0; j<n_hidden; j++) {
-        pre_sigmoid_activation += W[j][i] * h[j];
+double RBM::propDown(int *h, int i, double b) {
+    double preSigmoidActivation = 0.0;
+    for(int j=0; j<nHidden; j++) {
+        preSigmoidActivation += W[j][i] * h[j];
     }
-    pre_sigmoid_activation += b;
-    return sigmoid(pre_sigmoid_activation);
+    preSigmoidActivation += b;
+    return sigmoid(preSigmoidActivation);
 }
 
-void RBM::gibbs_hvh(int *h0_sample, double *nv_means, int *nv_samples, \
-        double *nh_means, int *nh_samples) {
-    sample_v_given_h(h0_sample, nv_means, nv_samples);
-    sample_h_given_v(nv_samples, nh_means, nh_samples);
+void RBM::gibbsHvh(int *h0Sample, double *nvMeans, int *nvSamples, \
+        double *nhMeans, int *nhSamples) {
+    sampleVGivenH(h0Sample, nvMeans, nvSamples);
+    sampleHGivenV(nvSamples, nhMeans, nhSamples);
 }
 
-void RBM::reconstruct(int *v, double *reconstructed_v) {
-    double *h = new double[n_hidden];
-    double pre_sigmoid_activation;
+void RBM::reconstruct(int *v, double *reconstructedV) {
+    double *h = new double[nHidden];
+    double preSigmoidActivation;
 
-    for(int i=0; i<n_hidden; i++) {
-        h[i] = propup(v, W[i], hbias[i]);
+    for(int i=0; i<nHidden; i++) {
+        h[i] = propUp(v, W[i], hbias[i]);
     }
 
-    for(int i=0; i<n_visible; i++) {
-        pre_sigmoid_activation = 0.0;
-        for(int j=0; j<n_hidden; j++) {
-            pre_sigmoid_activation += W[j][i] * h[j];
+    for(int i=0; i<nVisible; i++) {
+        preSigmoidActivation = 0.0;
+        for(int j=0; j<nHidden; j++) {
+            preSigmoidActivation += W[j][i] * h[j];
         }
-        pre_sigmoid_activation += vbias[i];
+        preSigmoidActivation += vbias[i];
 
-        reconstructed_v[i] = sigmoid(pre_sigmoid_activation);
+        reconstructedV[i] = sigmoid(preSigmoidActivation);
     }
 
     delete[] h;
 }
 
 
-void test_rbm() {
+void testRBM() {
     srand(0);
 
-    double learning_rate = 0.1;
-    int training_epochs = 1000;
+    double learningRate = 0.1;
+    int trainingEpochs = 1000;
     int k = 1;
 
-    int train_N = 6;
-    int test_N = 2;
-    int n_visible = 6;
-    int n_hidden = 3;
+    int trainN = 6;
+    int testN = 2;
+    int nVisible = 6;
+    int nHidden = 3;
 
     // training data
-    int train_X[6][6] = {
+    int trainX[6][6] = {
         {1, 1, 1, 0, 0, 0},
         {1, 0, 1, 0, 0, 0},
         {1, 1, 1, 0, 0, 0},
@@ -171,28 +171,28 @@ void test_rbm() {
 
 
     // construct RBM
-    RBM rbm(train_N, n_visible, n_hidden, NULL, NULL, NULL);
+    RBM rbm(trainN, nVisible, nHidden, NULL, NULL, NULL);
 
     // train
-    for(int epoch=0; epoch<training_epochs; epoch++) {
-        for(int i=0; i<train_N; i++) {
-            rbm.contrastive_divergence(train_X[i], learning_rate, k);
+    for(int epoch=0; epoch<trainingEpochs; epoch++) {
+        for(int i=0; i<trainN; i++) {
+            rbm.constrastiveDivergence(trainX[i], learningRate, k);
         }
     }
 
     // test data
-    int test_X[2][6] = {
+    int testX[2][6] = {
         {1, 1, 0, 0, 0, 0},
         {0, 0, 0, 1, 1, 0}
     };
-    double reconstructed_X[2][6];
+    double reconstructedX[2][6];
 
 
     // test
-    for(int i=0; i<test_N; i++) {
-        rbm.reconstruct(test_X[i], reconstructed_X[i]);
-        for(int j=0; j<n_visible; j++) {
-            printf("%.5f ", reconstructed_X[i][j]);
+    for(int i=0; i<testN; i++) {
+        rbm.reconstruct(testX[i], reconstructedX[i]);
+        for(int j=0; j<nVisible; j++) {
+            printf("%.5f ", reconstructedX[i][j]);
         }
         cout << endl;
     }

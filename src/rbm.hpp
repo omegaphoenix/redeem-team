@@ -6,19 +6,19 @@ class RBM : public Model {
 
     public:
         int N;
-        int n_visible;
-        int n_hidden;
+        int nVisible;
+        int nHidden;
         double **W;
         double *hbias;
         double *vbias;
         RBM(int, int, int, double**, double*, double*);
         ~RBM();
-        void contrastive_divergence(int*, double, int);
-        void sample_h_given_v(int*, double*, int*);
-        void sample_v_given_h(int*, double*, int*);
-        double propup(int*, double*, double);
-        double propdown(int*, int, double);
-        void gibbs_hvh(int*, double*, int*, double*, int*);
+        void constrastiveDivergence(int*, double, int);
+        void sampleHGivenV(int*, double*, int*);
+        void sampleVGivenH(int*, double*, int*);
+        double propUp(int*, double*, double);
+        double propDown(int*, int, double);
+        void gibbsHvh(int*, double*, int*, double*, int*);
         void reconstruct(int*, double*);
         void loadSaved(std::string fname) {};
         void train(std::string saveFile) {};
