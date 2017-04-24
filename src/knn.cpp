@@ -168,15 +168,21 @@ void kNN::buildMatrix(std::string saveFile) {
 // Find "closest" users and average their ratings of given movie
 void kNN::predict(int user, int movie) {
     std::priority_queue<float> corr;
-
+    int count = 0;
     // put correlations in a priority queue
     for (int i = 0; i < num_correlations; i++) {
         float c = corrMatrix[0][i];
-        corr.push(c);
+        if (c == 1) {
+            count++;
+        }
+        if (!isnan(c)) {
+            corr.push(c);
+        }
     }
+    std::cout << "number of 1s = " << count << std::endl;
 
     // get top K's average
-    int K = 100;
+    int K = 10;
     float avg = 0;
     for (int i = 0; i < K; i++) {
         if (corr.empty()) {
@@ -185,7 +191,7 @@ void kNN::predict(int user, int movie) {
         // avg += corr.pop();
         float p = corr.top();
         corr.pop();
-        std::cout << i << "th corr value = " << p << std::endl;
+        std::cout << i << " top corr value = " << p << std::endl;
     }
 
     // return avg / K;
