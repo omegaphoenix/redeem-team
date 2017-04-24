@@ -7,14 +7,24 @@
 #include <time.h>
 #include <math.h>
 #include <stdio.h>
+#include <string>
+#include <sys/stat.h>
+#include <queue>
 
 kNN::~kNN() {
 }
 
 void kNN::train(std::string saveFile) {
-    // Do something with saveFile
     std::cout << "entered train()" << std::endl;
-    buildMatrix();
+    struct stat buffer;
+    if (stat(saveFile.c_str(), &buffer) == 0) {
+        std::cout << "File exists. Loading file...\n";
+        loadSaved(saveFile);
+    }
+    else {
+        std::cout << "File does not exist. Building matrix...\n";
+        buildMatrix(saveFile);
+    }
 }
 
 // Calculates Pearson correlation for each item
@@ -51,22 +61,16 @@ float kNN::pearson(int i_start, int i_end, int j_start, int j_end) {
         }
     }
 
-    if (L <= 2) { // ignore user pairs with little in common
+    if (L <= shared_threshold) { // ignore user pairs with little in common
         return 0;
     }
-
-    //std::cout << "number of movies in common: " << L << std::endl;
-
-    // std::cout << "pearson(): nonzero correlation found" << std::endl;
 
     x_i_ave = x_i_ave / L;
     x_j_ave = x_j_ave / L;
 
     float nominator = 0;
-
     float denom1 = 0;
     float denom2 = 0;
-
     float ith_part;
     float jth_part;
 
@@ -84,8 +88,10 @@ float kNN::pearson(int i_start, int i_end, int j_start, int j_end) {
     return corr;
 }
 
-void kNN::buildMatrix() {
+void kNN::buildMatrix(std::string saveFile) {
     std::cout << "entered buildMatrix()\n";
+
+    // Number of items
     int N = N_USERS;
 
     // Initialize corrMatrix with three rows
@@ -109,8 +115,8 @@ void kNN::buildMatrix() {
     for (int i = 0; i < N - 1; i++) {
         for (int j = i; j < N; j++) {
             // Don't bother if either user has too few movies
-            if (rowIndex[i + 1] - rowIndex[i] < 7
-                || rowIndex[j + 1] - rowIndex[j] < 7) {
+            if (rowIndex[i + 1] - rowIndex[i] < individual_threshold
+                || rowIndex[j + 1] - rowIndex[j] < individual_threshold) {
                 if (i % 1000 == 0 && i != curr_user) {
                     curr_user = i;
                     std::cout << "user i = " << i << std::endl;
@@ -142,9 +148,9 @@ void kNN::buildMatrix() {
 
     std::cout << "Total number of correlations: " << num_correlations << std::endl;
 
-    // Test saving
+    // Save correlation matrix
     std::cout << "Saving model..." << std::endl;
-    save("test_knn_corrMatrix.save");
+    save(saveFile);
     std::cout << "Saved!" << std::endl;
     std::cout << "SAVED num_correlations = " << num_correlations << std::endl;
     std::cout << "SAVED corrMatrix[0][0] = " << corrMatrix[0][0] << std::endl;
@@ -159,14 +165,34 @@ void kNN::buildMatrix() {
     return;
 }
 
-// Find "closest" movies and average user's ratings for them
+// Find "closest" users and average their ratings of given movie
 void kNN::predict(int user, int movie) {
+    std::priority_queue<float> corr;
 
+    // put correlations in a priority queue
+    for (int i = 0; i < num_correlations; i++) {
+        float c = corrMatrix[0][i];
+        corr.push(c);
+    }
+
+    // get top K's average
+    int K = 100;
+    float avg = 0;
+    for (int i = 0; i < K; i++) {
+        if (corr.empty()) {
+            break;
+        }
+        // avg += corr.pop();
+        float p = corr.top();
+        corr.pop();
+        std::cout << i << "th corr value = " << p << std::endl;
+    }
+
+    // return avg / K;
 }
 
 void kNN::loadSaved(std::string fname) {
     FILE *in = fopen(fname.c_str(), "r");
-    // Check for errors
 
     // Read num correlations
     int buf[1];
@@ -174,6 +200,12 @@ void kNN::loadSaved(std::string fname) {
     num_correlations = buf[0];
 
     // Initialize correlation matrix
+    for (int i = 0; i < 3; i++) {
+        std::vector<float> row(num_correlations, 0);
+        corrMatrix.push_back(row);
+    }
+
+    // Read matrix
     fread(&corrMatrix[0][0], sizeof(float), num_correlations, in);
     fread(&corrMatrix[1][0], sizeof(float), num_correlations, in);
     fread(&corrMatrix[2][0], sizeof(float), num_correlations, in);
@@ -196,24 +228,39 @@ int main(int argc, char **argv) {
     clock_t time0 = clock();
     kNN* knn = new kNN();
 
+    std::string data_file = "4.dta";
+
     // Load data from file.
-    knn->load("4.dta");
+    knn->load(data_file);
 
     // Train by building correlation matrix
+    knn->metric = kPearson;
+    knn->shared_threshold = 2;
+    knn->individual_threshold = 7;
     std::cout << "Begin training\n";
-    knn->train("unused variable");
+
+    // std::string corr_file = "knn_pearson_s" + std::to_string(shared_threshold)
+    //     + "_i" + std::to_string(individual_threshold)
+    //     + ".save";
+
+    knn->train("test_knn_corrMatrix.save");
 
     clock_t time1 = clock();
 
     // Predict ratings
     // Load qual data
-    knn->predict(0, 0);
+    //knn->load("1.dta");
+    knn->predict(1, 1);
+
+    clock_t time2 = clock();
 
     // Write predictions to file
 
     // Output times.
     double kNN_ms = diffclock(time1, time0);
-    std::cout << "kNN took " << kNN_ms << " ms" << std::endl;
+    std::cout << "kNN training took " << kNN_ms << " ms" << std::endl;
+    double predict_ms = diffclock(time2, time1);
+    std::cout << "kNN prediction took " << kNN_ms << " ms" << std::endl;
 
     return 0;
 }

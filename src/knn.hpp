@@ -3,6 +3,11 @@
 #include "model.hpp"
 #include <vector>
 
+enum CorrelationMetric {
+    kPearson = 0,
+    kSpearman
+};
+
 class kNN : public Model {
     public:
         kNN() : Model() {};
@@ -12,9 +17,12 @@ class kNN : public Model {
         void train(std::string saveFile);
         void save(std::string fname);
         int num_correlations;
+        CorrelationMetric metric;
+        int shared_threshold;
+        int individual_threshold;
     private:
         float pearson(int i_start, int i_end, int j_start, int j_end);
-        void buildMatrix();
+        void buildMatrix(std::string saveFile);
         std::vector<std::vector<float>> corrMatrix;
 };
 
