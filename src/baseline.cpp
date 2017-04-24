@@ -36,7 +36,7 @@ void Baseline::betterMean() {
             average_array[i] = average_array[i] + float(values[j]);
             ratings_count[i]++;
         }
-        average_array[i] = (K * global + average_array[i]) / (K + ratings_count[i]); 
+        average_array[i] = (K * global + average_array[i]) / (K + ratings_count[i]);
     }
 }
 
