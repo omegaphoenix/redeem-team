@@ -113,7 +113,7 @@ void kNN::buildMatrix(std::string saveFile) {
     std::cout << "matrix initialized\n";
 
     for (int i = 0; i < N - 1; i++) {
-        for (int j = i; j < N; j++) {
+        for (int j = i + 1; j < N; j++) {
             // Don't bother if either user has too few movies
             if (rowIndex[i + 1] - rowIndex[i] < individual_threshold
                 || rowIndex[j + 1] - rowIndex[j] < individual_threshold) {
