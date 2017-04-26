@@ -217,12 +217,12 @@ float kNN::predict(int user, int movie) {
             if (columns[i] == movie) {
                 // TODO: implement weighted average of rankings
                 total += values[i];
+                ++actualK;
             }
             else if (columns[i] > movie) {
                 break;
             }
         }
-        ++actualK;
     }
 
     if (actualK <= 0) {
