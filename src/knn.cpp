@@ -11,6 +11,20 @@
 #include <sys/stat.h>
 #include <queue>
 
+/* Stores correlation value and correlated user. */
+struct corrUser {
+    float corr;
+    int user;
+
+    corrUser(float c, int u) : corr(c), user(u) {
+    }
+
+    bool operator<(const struct corrUser &other) const
+    {
+        return corr < other.corr;
+    }
+};
+
 kNN::~kNN() {
 }
 
@@ -101,7 +115,6 @@ void kNN::buildMatrix(std::string saveFile) {
     // where i < j
     for (int i = 0; i < 3; i++) {
         std::vector<float> row;
-        // std::vector<float> row(N_USERS); // is this efficient initialization?
         corrMatrix.push_back(row);
     }
 
@@ -135,14 +148,6 @@ void kNN::buildMatrix(std::string saveFile) {
                     std::cout << "current user i = " << i << std::endl;
                 }
             }
-            // if (i % 100 == 0 && i != curr_user) {
-            //     curr_user = i;
-            //     curr_clock = clock();
-            //     std::cout << "user i = " << i << std::endl;
-            //     std::cout << "it took " << diffclock(curr_clock, prev_clock) << " ms\n";
-            //     std::cout << "currently we have " << num_correlations << " correlations\n";
-            //     prev_clock = clock();
-            // }
         }
     }
 
@@ -166,35 +171,70 @@ void kNN::buildMatrix(std::string saveFile) {
 }
 
 // Find "closest" users and average their ratings of given movie
-void kNN::predict(int user, int movie) {
-    std::priority_queue<float> corr;
-    int count = 0;
+float kNN::predict(int user, int movie) {
+    std::priority_queue<corrUser> top_corr;
+    // int count = 0;
     // put correlations in a priority queue
     for (int i = 0; i < num_correlations; i++) {
         float c = corrMatrix[0][i];
-        if (c == 1) {
-            count++;
-        }
+        // if (c == 1) {
+        //     count++;
+        // }
         if (!isnan(c)) {
-            corr.push(c);
+            if (corrMatrix[1][i] == user) {
+                top_corr.push(corrUser(c, corrMatrix[2][i]));
+            }
+            else if (corrMatrix[2][i] == user) {
+                top_corr.push(corrUser(c, corrMatrix[1][i]));;
+            }
         }
     }
-    std::cout << "number of 1s = " << count << std::endl;
+    //std::cout << "number of 1s = " << count << std::endl;
 
     // get top K's average
     int K = 10;
-    float avg = 0;
-    for (int i = 0; i < K; i++) {
-        if (corr.empty()) {
+    float total = 0;
+    int actualK = 0;
+    while (actualK < K) {
+        if (top_corr.empty()) {
             break;
         }
         // avg += corr.pop();
-        float p = corr.top();
-        corr.pop();
-        std::cout << i << " top corr value = " << p << std::endl;
+        corrUser top = top_corr.top();
+        top_corr.pop();
+
+        // ignore negative correlations - remove after implementing weighted avg
+        if (top.corr < 0) {
+            break;
+        }
+
+        // std::cout << actualK << " top corr value = " << top.corr << " with user " << top.user << std::endl;
+
+        // check if correlated user has rated movie
+        int start_index = rowIndex[top.user];
+        int end_index = rowIndex[top.user + 1];
+        for (int i = start_index; i < end_index; ++i) {
+            if (columns[i] == movie) {
+                // TODO: implement weighted average of rankings
+                total += values[i];
+            }
+            else if (columns[i] > movie) {
+                break;
+            }
+        }
+        ++actualK;
     }
 
-    // return avg / K;
+    if (actualK <= 0) {
+        return 0; // should be baseline
+    }
+
+    // for debugging purposes only
+    if (total != 0) {
+        std::cout << "got a value!! rating = " << total / K << std::endl;
+    }
+
+    return total / K;
 }
 
 void kNN::loadSaved(std::string fname) {
@@ -243,6 +283,7 @@ int main(int argc, char **argv) {
     knn->metric = kPearson;
     knn->shared_threshold = 2;
     knn->individual_threshold = 7;
+    knn->K = 10;
     std::cout << "Begin training\n";
 
     // std::string corr_file = "knn_pearson_s" + std::to_string(shared_threshold)
@@ -255,8 +296,25 @@ int main(int argc, char **argv) {
 
     // Predict ratings
     // Load qual data
-    //knn->load("1.dta");
-    knn->predict(1, 1);
+    std::cout << "PREDICTIONS:\n";
+    kNN* qual = new kNN();
+    qual->load("5-1.dta"); // is this how we're going to do things
+
+    for (int i = 0; i < qual->numRatings; i++) {
+        int user = qual->ratings[i * DATA_POINT_SIZE + USER_IDX];
+        int movie = qual->ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        float rating = knn->predict(user, movie);
+        if (rating < 1) {
+            rating = 1;
+        }
+        else if (rating > 5) {
+            rating = 5;
+        }
+        // std::cout << "user " << user << " will rate movie " << movie << ": " << rating << "\n";
+        if (user % 1000 == 0) {
+            std::cout << "predicting for user " << user << "\n";
+        }
+    }
 
     clock_t time2 = clock();
 
@@ -266,7 +324,7 @@ int main(int argc, char **argv) {
     double kNN_ms = diffclock(time1, time0);
     std::cout << "kNN training took " << kNN_ms << " ms" << std::endl;
     double predict_ms = diffclock(time2, time1);
-    std::cout << "kNN prediction took " << kNN_ms << " ms" << std::endl;
+    std::cout << "kNN prediction took " << predict_ms << " ms" << std::endl;
 
     return 0;
 }
