@@ -5,7 +5,7 @@
 #define N_FACTORS 100
 #define MINIBATCH_SIZE 100
 #define LEARNING_RATE 0.1
-#define RBM_EPOCHS 101
+#define RBM_EPOCHS 5001
 
 class RBM : public Model {
 

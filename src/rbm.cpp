@@ -227,7 +227,9 @@ void RBM::updateW() {
 void RBM::train(std::string saveFile) {
     int user, rating, movie, predict, err, trainCount, trainErr, numer, denom;
     clock_t start, end;
+    double RMSE, timeElapsed;
 
+    FILE* out;
     for (unsigned int i = 0; i < RBM_EPOCHS; ++i) {
         start = clock();
         printf("Epoch Number: %d.\n", i);
@@ -263,8 +265,12 @@ void RBM::train(std::string saveFile) {
             }
 
             end = clock();
-            printf("Train RMSE: %f. Took %.f ms.\n",
-                    sqrt(trainErr / (double) numRatings), diffclock(end, start));
+            RMSE = sqrt(trainErr / (double) numRatings);
+            timeElapsed = diffclock(end, start);
+            printf("Train RMSE: %f. Took %.f ms.\n", RMSE, timeElapsed);
+            out = fopen((saveFile).c_str(), "a");
+            fprintf(out, "Train RMSE: %f. Took %.f ms.\n", RMSE, timeElapsed);
+            fclose(out);
         } else {
             end = clock();
             printf("Took %.f ms.\n", diffclock(end, start));
