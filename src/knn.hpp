@@ -17,6 +17,7 @@ class kNN : public Model {
         void train(std::string saveFile);
         void save(std::string fname);
         int num_correlations;
+        int baseline;
         CorrelationMetric metric;
         // ignore user pairs with fewer than shared_threshold movies in common
         int shared_threshold;

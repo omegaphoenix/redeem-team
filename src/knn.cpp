@@ -3,6 +3,8 @@
  */
 
 #include "knn.hpp"
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <time.h>
 #include <math.h>
@@ -226,7 +228,7 @@ float kNN::predict(int user, int movie) {
     }
 
     if (actualK <= 0) {
-        return 0; // should be baseline
+        return baseline;
     }
 
     // for debugging purposes only
@@ -278,6 +280,7 @@ int main(int argc, char **argv) {
 
     // Load data from file.
     knn->load(data_file);
+    knn->baseline = 3; // TODO: figure out what to use
 
     // Train by building correlation matrix
     knn->metric = kPearson;
@@ -294,11 +297,16 @@ int main(int argc, char **argv) {
 
     clock_t time1 = clock();
 
-    // Predict ratings
+    // Predict ratings and write to file
     // Load qual data
     std::cout << "PREDICTIONS:\n";
     kNN* qual = new kNN();
     qual->load("5-1.dta"); // is this how we're going to do things
+
+    // Prepare file
+    std::ofstream outputFile;
+    outputFile << std::setprecision(3);
+    outputFile.open("out/knn.dta");
 
     for (int i = 0; i < qual->numRatings; i++) {
         int user = qual->ratings[i * DATA_POINT_SIZE + USER_IDX];
@@ -310,11 +318,15 @@ int main(int argc, char **argv) {
         else if (rating > 5) {
             rating = 5;
         }
+
+        outputFile << rating << "\n";
+
         // std::cout << "user " << user << " will rate movie " << movie << ": " << rating << "\n";
         if (user % 1000 == 0) {
             std::cout << "predicting for user " << user << "\n";
         }
     }
+    outputFile.close();
 
     clock_t time2 = clock();
 
