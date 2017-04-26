@@ -233,10 +233,12 @@ float kNN::predict(int user, int movie) {
 
     // for debugging purposes only
     if (total != 0) {
-        std::cout << "got a value!! rating = " << total / K << std::endl;
+        std::cout << "total = " << total << "\n";
+        std::cout << "actualK = " << actualK << "\n";
+        std::cout << "got a value!! rating = " << total / actualK << std::endl;
     }
 
-    return total / K;
+    return total / actualK;
 }
 
 void kNN::loadSaved(std::string fname) {
@@ -322,9 +324,9 @@ int main(int argc, char **argv) {
         outputFile << rating << "\n";
 
         // std::cout << "user " << user << " will rate movie " << movie << ": " << rating << "\n";
-        if (user % 1000 == 0) {
-            std::cout << "predicting for user " << user << "\n";
-        }
+        // if (user % 1000 == 0) {
+        //     std::cout << "predicting for user " << user << "\n";
+        // }
     }
     outputFile.close();
 
