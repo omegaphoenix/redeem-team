@@ -31,12 +31,14 @@ int main(int argc, char** argv) {
             std::string fname;
 
             assert (nsvd->MAX_EPOCHS % 10 == 0);
+            bool file_exists = false;
             for (int epoch = nsvd->MAX_EPOCHS; epoch > 0; epoch -= 10) {
                 fname = "model/naive_svd/k=" + std::to_string(k)
                         + "_lamb=" + std::to_string(lamb) + "_epoch="
                         + std::to_string(epoch) + ".save";
                 std::ifstream f(fname.c_str());
                 if (f.good()) {
+                    file_exists = true;
                     break;
                 }
             }
@@ -46,8 +48,12 @@ int main(int argc, char** argv) {
             fname = "model/naive_svd/k=" + std::to_string(k)
                     + "_lamb=" + std::to_string(lamb) + "_epoch="
                     + std::to_string(nsvd->MAX_EPOCHS) + ".save";
-            std::ofstream dst(fname, std::ios::binary);
-            dst << src.rdbuf();
+            if (file_exists) {
+                std::ofstream dst(fname, std::ios::binary);
+                dst << src.rdbuf();
+                dst.close();
+            }
+            src.close();
 
             #ifdef TRAIN
                 std::cout << "Training: " << fname << std::endl;
