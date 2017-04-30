@@ -24,7 +24,7 @@ naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 validate_naive_svd: $(NAIVE_SVD_CV_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
-run_nsvd:
+run_nsvd: validate_naive_svd
 	bin/validate_naive_svd 2> log/validate_nsvd.log
 
 clean:
