@@ -21,6 +21,7 @@ void Baseline::setK(float constant) {
 }
 
 void Baseline::betterMean() {
+    float global = 0;
     if (K != 0) {
         global = globalAverage();
         std::cout << "Global Average = " << global << std::endl;
@@ -56,7 +57,7 @@ float Baseline::globalAverage() {
     for (int i = 0; i < N_TRAINING; i++) {
         sum = sum + values[i];
     }
-    return sum / total;
+    return sum / N_TRAINING;
 }
 
 void Baseline::train(std::string saveFile) {
@@ -93,6 +94,10 @@ int main(int argc, char **argv) {
     // Train by building correlation matrix
     std::cout << "Begin training\n";
     baseline->train("unused variable");
+    // for(int i = 0; i < 100; ++i) {
+    //     std::cout << "avg " << baseline->average_array[i] << "\n";
+    //     std::cout << "stdev " << baseline->stdev_array[i] << "\n\n";
+    // }
 
     clock_t time3 = clock();
 
