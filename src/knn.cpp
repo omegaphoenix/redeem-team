@@ -3,6 +3,7 @@
  */
 
 #include "knn.hpp"
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -31,7 +32,7 @@ kNN::~kNN() {
 }
 
 void kNN::train(std::string saveFile) {
-    std::cout << "entered train()" << std::endl;
+    std::cout << "Begin training..." << std::endl;
     struct stat buffer;
     if (stat(saveFile.c_str(), &buffer) == 0) {
         std::cout << "File exists. Loading file...\n";
@@ -274,6 +275,31 @@ void kNN::save(std::string fname) {
     fclose(out);
 }
 
+std::string kNN::getFilename(std::string data_file) {
+    std::string metric_name = "";
+    if (metric == kPearson) {
+        metric_name = "pearson";
+    }
+    else if (metric == kSpearman) {
+        metric_name = "spearman";
+    }
+    else {
+        metric_name = "unknown";
+    }
+
+    // remove '.' from file name
+    data_file.erase(
+        std::remove(data_file.begin(), data_file.end(), '.'), data_file.end());
+
+    std::string fname = "knn_" + metric_name
+        + "_s" + std::to_string(shared_threshold)
+        + "_i" + std::to_string(individual_threshold)
+        + "_k" + std::to_string(K)
+        + "_train=" + data_file
+        + ".save";
+    return fname;
+}
+
 int main(int argc, char **argv) {
     clock_t time0 = clock();
     kNN* knn = new kNN();
@@ -289,13 +315,11 @@ int main(int argc, char **argv) {
     knn->shared_threshold = 2;
     knn->individual_threshold = 7;
     knn->K = 10;
-    std::cout << "Begin training\n";
+    std::cout << "Begin training: ";
 
-    // std::string corr_file = "knn_pearson_s" + std::to_string(shared_threshold)
-    //     + "_i" + std::to_string(individual_threshold)
-    //     + ".save";
+    std::cout << knn->getFilename(data_file) << "\n";
 
-    knn->train("test_knn_corrMatrix.save");
+    knn->train("bin/knn/" + knn->getFilename(data_file));
 
     clock_t time1 = clock();
 
@@ -331,8 +355,6 @@ int main(int argc, char **argv) {
     outputFile.close();
 
     clock_t time2 = clock();
-
-    // Write predictions to file
 
     // Output times.
     double kNN_ms = diffclock(time1, time0);

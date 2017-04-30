@@ -16,6 +16,7 @@ class kNN : public Model {
         float predict(int user, int movie);
         void train(std::string saveFile);
         void save(std::string fname);
+        std::string getFilename(std::string data_file);
         int num_correlations;
         int baseline;
         CorrelationMetric metric;
