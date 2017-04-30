@@ -16,7 +16,7 @@ class kNN : public Model {
         float predict(int user, int movie);
         void train(std::string saveFile);
         void save(std::string fname);
-        void normalizeRatings(float* average_array, float* stdev_array);
+        void normalizeRatings(float average_array[], float stdev_array[]);
         std::string getFilename(std::string data_file);
         int num_correlations;
         int baseline;

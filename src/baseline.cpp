@@ -71,7 +71,7 @@ void Baseline::loadSaved(std::string fname) {
     //loadCSR(fname);
 }
 
-
+/*
 int main(int argc, char **argv) {
     // Check the number of parameters
     if (argc < 2) {
@@ -116,3 +116,4 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+*/

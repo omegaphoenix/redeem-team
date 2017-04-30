@@ -36,22 +36,14 @@ kNN::~kNN() {
     delete this->normalized_values;
 }
 
-void kNN::normalizeRatings(float* average_array, float* stdev_array) {
+void kNN::normalizeRatings(float average_array[], float stdev_array[]) {
     int user = 0;
     for (int i = 0; i < N_TRAINING; i++) {
         if (i == rowIndex[user + 1]) {
             user++;
         }
         normalized_values[i] = (values[i] - average_array[user]) / stdev_array[user];
-        std::cout << "average " << average_array[user] << std::endl;
-        std::cout << "deviation " << stdev_array[user] << std::endl;
-        std::cout << "normalized " << normalized_values[i] << std::endl;
     }
-    /*
-    for (int i = 0; i < 100; i++) {
-        //std::cout << normalized_values[i] << std::endl;
-    }
-    */
 }
 
 void kNN::train(std::string saveFile) {
@@ -337,6 +329,12 @@ int main(int argc, char **argv) {
     base->load(data_file);
 
     base->train("unused variable");
+    
+    for (int i = 0; i < 1000 ; i++) {
+        std::cout << "average " << base->average_array[i] << std::endl;
+        std::cout << "std " << base->stdev_array[i] << std::endl;
+    }
+
     knn->normalizeRatings(base->average_array, base->stdev_array);
 
 
