@@ -1,7 +1,6 @@
 #include <iostream>
 #include <time.h>
 #include <math.h>
-#include <iostream>
 #include "baseline.hpp"
 
 Baseline::Baseline() : Model() {
