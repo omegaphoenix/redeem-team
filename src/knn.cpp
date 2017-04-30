@@ -4,6 +4,7 @@
 #include "baseline.hpp"
 #include "knn.hpp"
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -47,7 +48,7 @@ void kNN::normalizeRatings(float average_array[], float stdev_array[]) {
 }
 
 void kNN::train(std::string saveFile) {
-    std::cout << "Begin training..." << std::endl;
+    std::cout << "Begin training: " << saveFile << std::endl;
     struct stat buffer;
     if (stat(saveFile.c_str(), &buffer) == 0) {
         std::cout << "File exists. Loading file...\n";
@@ -176,19 +177,18 @@ void kNN::buildMatrix(std::string saveFile) {
     save(saveFile);
     std::cout << "Saved!" << std::endl;
     std::cout << "SAVED num_correlations = " << num_correlations << std::endl;
-    std::cout << "SAVED corrMatrix[0][0] = " << corrMatrix[0][0] << std::endl;
 
     // Testing loading
     std::cout << "Loading model..." << std::endl;
     loadSaved("test_knn_corrMatrix.save");
     std::cout << "Loaded!" << std::endl;
     std::cout << "LOADED num_correlations = " << num_correlations << std::endl;
-    std::cout << "LOADED corrMatrix[0][0] = " << corrMatrix[0][0] << std::endl;
 
     return;
 }
 
 // Find "closest" users and average their ratings of given movie
+// Change this to: go through all users that have rated a certain movie
 float kNN::predict(int user, int movie) {
     std::priority_queue<corrUser> top_corr;
     // int count = 0;
@@ -203,7 +203,7 @@ float kNN::predict(int user, int movie) {
                 top_corr.push(corrUser(c, corrMatrix[2][i]));
             }
             else if (corrMatrix[2][i] == user) {
-                top_corr.push(corrUser(c, corrMatrix[1][i]));;
+                top_corr.push(corrUser(c, corrMatrix[1][i]));
             }
         }
     }
@@ -290,6 +290,36 @@ void kNN::save(std::string fname) {
     fclose(out);
 }
 
+// rmse
+float kNN::validate(std::string valid_file) {
+    // load validation set
+    load(valid_file);
+
+    float error = 0;
+    float sum_sq_error = 0;
+    // predict and calculate
+    for (int i = 0; i < numRatings; i++) {
+        int user = ratings[i * DATA_POINT_SIZE + USER_IDX];
+        int movie = ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        int actual_rating = ratings[i * DATA_POINT_SIZE + RATING_IDX];
+        float rating = predict(user, movie);
+        if (rating < 1) {
+            rating = 1;
+        }
+        else if (rating > 5) {
+            rating = 5;
+        }
+
+        sum_sq_error += (rating - actual_rating) * (rating - actual_rating);
+    }
+
+    return sqrt(sum_sq_error /= numRatings);
+}
+
+float kNN::rmse(float actual, float predicted) {
+    return 0;
+}
+
 std::string kNN::getFilename(std::string data_file) {
     std::string metric_name = "";
     if (metric == kPearson) {
@@ -343,16 +373,21 @@ int main(int argc, char **argv) {
     knn->shared_threshold = 2;
     knn->individual_threshold = 7;
     knn->K = 10;
-    std::cout << "Begin training: ";
 
-    std::cout << knn->getFilename(data_file) << "\n";
-
-    knn->train("bin/knn/" + knn->getFilename(data_file));
+    knn->train("model/knn/" + knn->getFilename(data_file));
 
     clock_t time1 = clock();
 
+    // Validate?
+    std::cout << "Validating...RMSE = \n";
+    std::cout << knn->validate("2.dta") << "\n";
+    std::cout << "Validation DONE\n";
+
+    clock_t time_valid = clock();
+
     // Predict ratings and write to file
     // Load qual data
+    knn->load(data_file); // can this be done more elegantly
     std::cout << "PREDICTIONS:\n";
     kNN* qual = new kNN();
     qual->load("5-1.dta"); // is this how we're going to do things
@@ -360,7 +395,7 @@ int main(int argc, char **argv) {
     // Prepare file
     std::ofstream outputFile;
     outputFile << std::setprecision(3);
-    outputFile.open("out/knn.dta");
+    outputFile.open("out/knn_test.dta");
 
     for (int i = 0; i < qual->numRatings; i++) {
         int user = qual->ratings[i * DATA_POINT_SIZE + USER_IDX];
@@ -387,7 +422,9 @@ int main(int argc, char **argv) {
     // Output times.
     double kNN_ms = diffclock(time1, time0);
     std::cout << "kNN training took " << kNN_ms << " ms" << std::endl;
-    double predict_ms = diffclock(time2, time1);
+    double valid_ms = diffclock(time_valid, time1);
+    std::cout << "kNN validation took " << valid_ms << " ms" << std::endl;
+    double predict_ms = diffclock(time2, time_valid);
     std::cout << "kNN prediction took " << predict_ms << " ms" << std::endl;
 
     return 0;
