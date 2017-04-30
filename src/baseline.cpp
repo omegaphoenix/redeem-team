@@ -13,6 +13,7 @@ Baseline::Baseline() : Model() {
 Baseline::~Baseline() {
     delete this->average_array;
     delete this->ratings_count;
+    delete this->stdev_array;
 }
 
 void Baseline::setK(float constant) {
@@ -20,15 +21,12 @@ void Baseline::setK(float constant) {
 }
 
 void Baseline::betterMean() {
-    int total = N_USERS;
-    float global = 0;
-
     if (K != 0) {
         global = globalAverage();
         std::cout << "Global Average = " << global << std::endl;
     }
 
-    for (int i = 0; i < total; i++) {
+    for (int i = 0; i < N_USERS; i++) {
         average_array[i] = 0;
         ratings_count[i] = 0;
 
@@ -41,24 +39,21 @@ void Baseline::betterMean() {
 }
 
 void Baseline::standardDeviation() {
-    int total = N_USERS;
-    
-    for (int i = 0; i < total; i++) {
+    for (int i = 0; i < N_USERS; i++) {
         stdev_array[i] = 0;
 
         for (int j = rowIndex[i]; j < rowIndex[i+1]; j++) {
             stdev_array[i] = pow(float(values[j]) - average_array[i], 2);
         }
-        stdev_array[i] = stdev_array[i]/(ratings_count[i]-1);
+        stdev_array[i] = stdev_array[i] / (ratings_count[i] - 1);
         stdev_array[i] = sqrt(stdev_array[i]);
     }      
 }
 
 float Baseline::globalAverage() {
     float sum = 0;
-    float total = N_TRAINING;
 
-    for (int i = 0; i < total; i++) {
+    for (int i = 0; i < N_TRAINING; i++) {
         sum = sum + values[i];
     }
     return sum/total;
@@ -88,7 +83,7 @@ int main(int argc, char **argv) {
     Baseline* baseline = new Baseline();
     baseline->setK(atof(argv[1]));
     std::cout << "K = " << baseline->K <<std::endl;
-
+ 
     clock_t time1 = clock();
 
     // Load data from file.
