@@ -21,6 +21,7 @@ void Baseline::setK(float constant) {
 }
 
 void Baseline::betterMean() {
+    float global = 0;
     if (K != 0) {
         global = globalAverage();
         std::cout << "Global Average = " << global << std::endl;
@@ -47,7 +48,7 @@ void Baseline::standardDeviation() {
         }
         stdev_array[i] = stdev_array[i] / ratings_count[i];
         stdev_array[i] = sqrt(stdev_array[i]);
-    }      
+    }
 }
 
 float Baseline::globalAverage() {
@@ -56,7 +57,7 @@ float Baseline::globalAverage() {
     for (int i = 0; i < N_TRAINING; i++) {
         sum = sum + values[i];
     }
-    return sum/total;
+    return sum / N_TRAINING;
 }
 
 void Baseline::train(std::string saveFile) {
@@ -75,7 +76,7 @@ int main(int argc, char **argv) {
         // Tell the user how to run the program
         std::cerr << "Usage: " << argv[0] << "K" << std::endl;
         std::cerr << "Use K = 0 for regular mean" << std::endl;
-        std::cerr << "For better mean, article recommends K = 25" << std::endl;  
+        std::cerr << "For better mean, article recommends K = 25" << std::endl;
         return 1;
     }
 
@@ -83,7 +84,7 @@ int main(int argc, char **argv) {
     Baseline* baseline = new Baseline();
     baseline->setK(atof(argv[1]));
     std::cout << "K = " << baseline->K <<std::endl;
- 
+
     clock_t time1 = clock();
 
     // Load data from file.
@@ -93,14 +94,12 @@ int main(int argc, char **argv) {
     // Train by building correlation matrix
     std::cout << "Begin training\n";
     baseline->train("unused variable");
+    // for(int i = 0; i < 100; ++i) {
+    //     std::cout << "avg " << baseline->average_array[i] << "\n";
+    //     std::cout << "stdev " << baseline->stdev_array[i] << "\n\n";
+    // }
 
     clock_t time3 = clock();
-
-    // Predict ratings
-    // Load qual data
-    // baseline->predict(0, 0);
-
-    // Write predictions to file
 
     // Output times.
     double ms1 = diffclock(time1, time0);
