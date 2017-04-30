@@ -47,7 +47,7 @@ void Baseline::standardDeviation() {
         }
         stdev_array[i] = stdev_array[i] / (ratings_count[i] - 1);
         stdev_array[i] = sqrt(stdev_array[i]);
-    }      
+    }
 }
 
 float Baseline::globalAverage() {
@@ -56,7 +56,7 @@ float Baseline::globalAverage() {
     for (int i = 0; i < N_TRAINING; i++) {
         sum = sum + values[i];
     }
-    return sum/total;
+    return sum / total;
 }
 
 void Baseline::train(std::string saveFile) {
@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
         // Tell the user how to run the program
         std::cerr << "Usage: " << argv[0] << "K" << std::endl;
         std::cerr << "Use K = 0 for regular mean" << std::endl;
-        std::cerr << "For better mean, article recommends K = 25" << std::endl;  
+        std::cerr << "For better mean, article recommends K = 25" << std::endl;
         return 1;
     }
 
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
     Baseline* baseline = new Baseline();
     baseline->setK(atof(argv[1]));
     std::cout << "K = " << baseline->K <<std::endl;
- 
+
     clock_t time1 = clock();
 
     // Load data from file.
@@ -95,12 +95,6 @@ int main(int argc, char **argv) {
     baseline->train("unused variable");
 
     clock_t time3 = clock();
-
-    // Predict ratings
-    // Load qual data
-    // baseline->predict(0, 0);
-
-    // Write predictions to file
 
     // Output times.
     double ms1 = diffclock(time1, time0);
