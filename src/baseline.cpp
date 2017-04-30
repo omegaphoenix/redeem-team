@@ -8,6 +8,7 @@ Baseline::Baseline() : Model() {
     this->K = 0;
     this->average_array = new float[N_USERS];
     this->ratings_count = new float[N_USERS];
+    this->stdev_array = new float[N_USERS];
 }
 
 Baseline::~Baseline() {
@@ -40,6 +41,20 @@ void Baseline::betterMean() {
     }
 }
 
+void Baseline::standardDeviation() {
+    int total = N_USERS;
+    
+    for (int i = 0; i < total; i++) {
+        stdev_array[i] = 0;
+
+        for (int j = rowIndex[i]; j < rowIndex[i+1]; j++) {
+            stdev_array[i] = pow(float(values[j]) - average_array[i], 2);
+        }
+        stdev_array[i] = stdev_array[i]/(ratings_count[i]-1);
+        stdev_array[i] = sqrt(stdev_array[i]);
+    }      
+}
+
 float Baseline::globalAverage() {
     float sum = 0;
     float total = N_TRAINING;
@@ -53,6 +68,7 @@ float Baseline::globalAverage() {
 void Baseline::train(std::string saveFile) {
     std::cout << "entered train()" << std::endl;
     betterMean();
+    standardDeviation();
 }
 
 void Baseline::loadSaved(std::string fname) {
