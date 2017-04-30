@@ -46,7 +46,7 @@ void Baseline::standardDeviation() {
         for (int j = rowIndex[i]; j < rowIndex[i+1]; j++) {
             stdev_array[i] = pow(float(values[j]) - average_array[i], 2);
         }
-        stdev_array[i] = stdev_array[i] / (ratings_count[i] - 1);
+        stdev_array[i] = stdev_array[i] / ratings_count[i];
         stdev_array[i] = sqrt(stdev_array[i]);
     }
 }
@@ -94,10 +94,13 @@ int main(int argc, char **argv) {
     // Train by building correlation matrix
     std::cout << "Begin training\n";
     baseline->train("unused variable");
-    // for(int i = 0; i < 100; ++i) {
-    //     std::cout << "avg " << baseline->average_array[i] << "\n";
-    //     std::cout << "stdev " << baseline->stdev_array[i] << "\n\n";
-    // }
+    for(int i = 0; i < N_USERS; ++i) {
+         //std::cout << "avg " << baseline->average_array[i] << "\n";
+         //std::cout << "stdev " << baseline->stdev_array[i] << "\n\n";
+        if (isnan(baseline->average_array[i]) || isnan(baseline->average_array[i])) {
+            std::cout << "NaN" << std::endl;
+        }
+    }
 
     clock_t time3 = clock();
 
