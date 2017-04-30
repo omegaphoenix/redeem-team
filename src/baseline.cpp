@@ -94,10 +94,13 @@ int main(int argc, char **argv) {
     // Train by building correlation matrix
     std::cout << "Begin training\n";
     baseline->train("unused variable");
-    // for(int i = 0; i < 100; ++i) {
-    //     std::cout << "avg " << baseline->average_array[i] << "\n";
-    //     std::cout << "stdev " << baseline->stdev_array[i] << "\n\n";
-    // }
+    for(int i = 0; i < N_USERS; ++i) {
+         //std::cout << "avg " << baseline->average_array[i] << "\n";
+         //std::cout << "stdev " << baseline->stdev_array[i] << "\n\n";
+        if (isnan(baseline->average_array[i]) || isnan(baseline->average_array[i])) {
+            std::cout << "NaN" << std::endl;
+        }
+    }
 
     clock_t time3 = clock();
 
