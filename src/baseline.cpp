@@ -45,7 +45,7 @@ void Baseline::standardDeviation() {
         for (int j = rowIndex[i]; j < rowIndex[i+1]; j++) {
             stdev_array[i] = pow(float(values[j]) - average_array[i], 2);
         }
-        stdev_array[i] = stdev_array[i] / (ratings_count[i] - 1);
+        stdev_array[i] = stdev_array[i] / ratings_count[i];
         stdev_array[i] = sqrt(stdev_array[i]);
     }      
 }
