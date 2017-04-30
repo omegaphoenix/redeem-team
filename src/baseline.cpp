@@ -21,6 +21,7 @@ void Baseline::setK(float constant) {
 }
 
 void Baseline::betterMean() {
+    float global = 0; 
     if (K != 0) {
         global = globalAverage();
         std::cout << "Global Average = " << global << std::endl;
@@ -56,7 +57,7 @@ float Baseline::globalAverage() {
     for (int i = 0; i < N_TRAINING; i++) {
         sum = sum + values[i];
     }
-    return sum / total;
+    return sum / N_TRAINING;
 }
 
 void Baseline::train(std::string saveFile) {
@@ -68,6 +69,7 @@ void Baseline::train(std::string saveFile) {
 void Baseline::loadSaved(std::string fname) {
     //loadCSR(fname);
 }
+
 
 int main(int argc, char **argv) {
     // Check the number of parameters

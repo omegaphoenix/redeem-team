@@ -10,12 +10,13 @@ enum CorrelationMetric {
 
 class kNN : public Model {
     public:
-        kNN() : Model() {};
+        kNN();
         ~kNN();
         void loadSaved(std::string fname);
         float predict(int user, int movie);
         void train(std::string saveFile);
         void save(std::string fname);
+        void normalizeRatings(float* average_array, float* stdev_array);
         std::string getFilename(std::string data_file);
         int num_correlations;
         int baseline;
@@ -29,6 +30,7 @@ class kNN : public Model {
         float pearson(int i_start, int i_end, int j_start, int j_end);
         void buildMatrix(std::string saveFile);
         std::vector<std::vector<float>> corrMatrix;
+        float* normalized_values;
 };
 
 #endif // KNN_HPP

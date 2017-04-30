@@ -1,7 +1,7 @@
 /*
  * We are using USERS
  */
-
+#include "baseline.hpp"
 #include "knn.hpp"
 #include <algorithm>
 #include <fstream>
@@ -28,7 +28,30 @@ struct corrUser {
     }
 };
 
+kNN::kNN() : Model() {
+    this->normalized_values = new float[N_TRAINING];
+}
+
 kNN::~kNN() {
+    delete this->normalized_values;
+}
+
+void kNN::normalizeRatings(float* average_array, float* stdev_array) {
+    int user = 0;
+    for (int i = 0; i < N_TRAINING; i++) {
+        if (i == rowIndex[user + 1]) {
+            user++;
+        }
+        normalized_values[i] = (values[i] - average_array[user]) / stdev_array[user];
+        std::cout << "average " << average_array[user] << std::endl;
+        std::cout << "deviation " << stdev_array[user] << std::endl;
+        std::cout << "normalized " << normalized_values[i] << std::endl;
+    }
+    /*
+    for (int i = 0; i < 100; i++) {
+        //std::cout << normalized_values[i] << std::endl;
+    }
+    */
 }
 
 void kNN::train(std::string saveFile) {
@@ -303,12 +326,19 @@ std::string kNN::getFilename(std::string data_file) {
 int main(int argc, char **argv) {
     clock_t time0 = clock();
     kNN* knn = new kNN();
+    Baseline* base = new Baseline();
+
 
     std::string data_file = "4.dta";
 
     // Load data from file.
     knn->load(data_file);
     knn->baseline = 3; // TODO: figure out what to use
+    base->load(data_file);
+
+    base->train("unused variable");
+    knn->normalizeRatings(base->average_array, base->stdev_array);
+
 
     // Train by building correlation matrix
     knn->metric = kPearson;
