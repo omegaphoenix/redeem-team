@@ -58,9 +58,20 @@ static double bound(double x) {
     return x;
 }
 
-// Returns random user for minibatch
-static unsigned int minibatchRandom() {
-    return ((unsigned int) (rand() * 14)) % N_USERS;
+static unsigned long x=123456789, y=362436069, z=521288629;
+static unsigned int minibatchRandom(void) {
+    //period 2^96-1
+    unsigned long t;
+    x ^= x << 16;
+    x ^= x >> 5;
+    x ^= x << 1;
+
+    t = x;
+    x = y;
+    y = z;
+    z = t ^ x ^ y;
+
+    return (unsigned int) (z % N_USERS);
 }
 
 // Returns positive random double between 0 and 1

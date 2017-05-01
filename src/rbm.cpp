@@ -107,17 +107,17 @@ int** RBM::createV(int user) {
     int index = rowIndex[user];
     int count = this->countUserRating[user];
     int movie, rating;
-    int** V = new int*[count];
+    int** newV = new int*[count];
     // Fill up V with movies/ratings
     for (unsigned int i = 0; i < count; ++i) {
         // Initialize array
-        V[i] = new int[MAX_RATING + 1];
+        newV[i] = new int[MAX_RATING + 1];
         movie = columns[index + i];
         rating = values[index + i];
-        V[i][0] = movie;
-        V[i][rating - 1] = 1;
+        newV[i][0] = movie;
+        newV[i][rating - 1] = 1;
     }
-    return V;
+    return newV;
 }
 
 // Fill up h with appropriate weight probabilities for each user.
@@ -161,8 +161,6 @@ void RBM::createMinibatch() {
 }
 
 void RBM::updateW() {
-    int** V;
-    double **v;
     int user, size;
     // Initialize
     double*** expData = new double**[N_MOVIES];
@@ -178,7 +176,7 @@ void RBM::updateW() {
 
     for (unsigned int i = 0; i < MINIBATCH_SIZE; ++i) {
         user = this->minibatch[i];
-        V = createV(user);
+        int** V = createV(user);
         size = this->countUserRating[user];
         this->hidStates[user] = pCalcH(V, user);
         updateH(this->hidStates[user], user, false, oneRand());
@@ -187,7 +185,7 @@ void RBM::updateW() {
                 expData[V[j][0]][k][V[j][1] - 1] += this->hidStates[user][k];
             }
         }
-        v = pCalcV(V, this->hidStates[user], user);
+        double **v = pCalcV(V, this->hidStates[user], user);
         updateV(V, v, user);
         this->hidStates[user] = pCalcH(V, user);
         updateH(this->hidStates[user], user, false, oneRand());
@@ -196,18 +194,18 @@ void RBM::updateW() {
                 expRecon[V[j][0]][k][V[j][1] - 1] += this->hidStates[user][k];
             }
         }
+        for (unsigned int j = 0; j < size; ++j) {
+            delete[] V[j];
+            delete[] v[j];
+        }
+        delete[] V;
+        delete[] v;
     }
 
     // Update W
     matrixAdd(expData, expRecon, N_MOVIES, N_FACTORS, MAX_RATING, -1);
     matrixScalarMult(expData, (LEARNING_RATE / size), N_MOVIES, N_FACTORS, MAX_RATING);
     matrixAdd(W, expData, N_MOVIES, N_FACTORS, MAX_RATING, 1);
-
-    // Delete all pointer arrays
-    for (unsigned int i = 0; i < size; ++i) {
-        delete[] v[i];
-        delete[] V[i];
-    }
 
     for(unsigned int i = 0; i < N_MOVIES; ++i) {
         for (unsigned int j = 0; j < N_FACTORS; ++j) {
@@ -220,8 +218,6 @@ void RBM::updateW() {
 
     delete[] expData;
     delete[] expRecon;
-    delete[] v;
-    delete[] V;
 }
 
 void RBM::train(std::string saveFile) {
@@ -238,7 +234,7 @@ void RBM::train(std::string saveFile) {
         trainErr = 0;
         trainCount = 0;
 
-        if (i % 100 == 0 && i != 0) {
+        if (i % 50 == 0 && i != 0) {
             for(unsigned int j = 0; j < numRatings; ++j) {
                 user = ratings[j * DATA_POINT_SIZE + USER_IDX];
                 movie = ratings[j * DATA_POINT_SIZE + MOVIE_IDX];
@@ -291,7 +287,7 @@ int main() {
     clock_t time2 = clock();
 
     // Learn parameters
-    rbm->train("data/um/LebronCanSuckMy5Rings.save");
+    rbm->train("data/um/rbm.save");
     clock_t time3 = clock();
     double ms1 = diffclock(time1, time0);
     std::cout << "Initializing took " << ms1 << " ms" << std::endl;
