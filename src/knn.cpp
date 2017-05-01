@@ -39,11 +39,14 @@ kNN::~kNN() {
 
 void kNN::normalizeRatings(float average_array[], float stdev_array[]) {
     int user = 0;
-    for (int i = 0; i < N_TRAINING; i++) {
-        if (i == rowIndex[user + 1]) {
+    int nan_count = 0;
+    int stdev_count = 0;
+
+    for (int i = 0; i < numRatings; i++) {
+        while (i == rowIndex[user + 1]) {
             user++;
         }
-        normalized_values[i] = (values[i] - average_array[user]) / stdev_array[user];
+        normalized_values[i] = (values[i] - average_array[user]) / stdev_array[user];   
     }
 }
 
@@ -359,11 +362,11 @@ int main(int argc, char **argv) {
     base->load(data_file);
 
     base->train("unused variable");
-    
-    for (int i = 0; i < 1000 ; i++) {
+    /*
+    for (int i = 0; i < N_USERS ; i++) {
         std::cout << "average " << base->average_array[i] << std::endl;
         std::cout << "std " << base->stdev_array[i] << std::endl;
-    }
+    }*/
 
     knn->normalizeRatings(base->average_array, base->stdev_array);
 

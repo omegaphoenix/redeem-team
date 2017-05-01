@@ -36,7 +36,13 @@ void Baseline::betterMean() {
             average_array[i] = average_array[i] + float(values[j]);
             ratings_count[i]++;
         }
-        average_array[i] = (K * global + average_array[i]) / (K + ratings_count[i]);
+        if (ratings_count[i] != 0) {
+            average_array[i] = (K * global + average_array[i]) / (K + ratings_count[i]);
+        }
+
+        if (isnan(average_array[i])) {
+            std::cout << "user ID: " << i << std::endl;
+        }
     }
 }
 
@@ -55,10 +61,10 @@ void Baseline::standardDeviation() {
 float Baseline::globalAverage() {
     float sum = 0;
 
-    for (int i = 0; i < N_TRAINING; i++) {
+    for (int i = 0; i < numRatings; i++) {
         sum = sum + values[i];
     }
-    return sum / N_TRAINING;
+    return sum / numRatings;
 }
 
 void Baseline::train(std::string saveFile) {
@@ -97,9 +103,9 @@ int main(int argc, char **argv) {
     std::cout << "Begin training\n";
     baseline->train("unused variable");
     for(int i = 0; i < N_USERS; ++i) {
-         //std::cout << "avg " << baseline->average_array[i] << "\n";
-         //std::cout << "stdev " << baseline->stdev_array[i] << "\n\n";
-        if (isnan(baseline->average_array[i]) || isnan(baseline->average_array[i])) {
+        std::cout << "avg " << baseline->average_array[i] << "\n";
+        std::cout << "stdev " << baseline->stdev_array[i] << "\n\n";
+        if (isnan(baseline->average_array[i]) || isnan(baseline->stdev_array[i])) {
             std::cout << "NaN" << std::endl;
         }
     }
