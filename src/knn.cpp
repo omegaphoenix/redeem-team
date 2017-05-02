@@ -63,6 +63,7 @@ float kNN::pearson(int i_start, int i_end, int j_start, int j_end) {
         movie_i = columns[i];
         movie_j = columns[j];
         if (movie_i == movie_j) {
+            // std::cout << "values[" << i << "] = " << int(values[i]) << "\n";
             ratings_i.push_back(values[i]);
             ratings_j.push_back(values[j]);
             x_i_ave += values[i];
@@ -126,6 +127,7 @@ void kNN::buildMatrix(std::string saveFile) {
     clock_t prev_clock = clock();
     clock_t curr_clock;
     int curr_user = 0;
+    int num_users = 0;
 
     std::cout << "matrix initialized\n";
 
@@ -140,6 +142,7 @@ void kNN::buildMatrix(std::string saveFile) {
                 }
                 continue;
             }
+            num_users++;
 
             float corr = pearson(rowIndex[i], rowIndex[i + 1], rowIndex[j], rowIndex[j + 1]);
             if (corr != 0) {
@@ -155,19 +158,14 @@ void kNN::buildMatrix(std::string saveFile) {
         }
     }
 
-    std::cout << "Total number of correlations: " << num_correlations << std::endl;
+    std::cout << "Total number of correlations: " << num_correlations << "\n";
+    std::cout << "Total number of users above threshold: " << num_users << "\n";
 
     // Save correlation matrix
     std::cout << "Saving model..." << std::endl;
     save(saveFile);
     std::cout << "Saved!" << std::endl;
     std::cout << "SAVED num_correlations = " << num_correlations << std::endl;
-
-    // Testing loading
-    std::cout << "Loading model..." << std::endl;
-    loadSaved("test_knn_corrMatrix.save");
-    std::cout << "Loaded!" << std::endl;
-    std::cout << "LOADED num_correlations = " << num_correlations << std::endl;
 
     return;
 }
@@ -197,6 +195,8 @@ float kNN::predict(int user, int movie) {
     // get top K's average
     int K = 10;
     float total = 0;
+    float weighted_total = 0;
+    float sum_weights = 0;
     int actualK = 0;
     while (actualK < K) {
         if (top_corr.empty()) {
@@ -220,6 +220,8 @@ float kNN::predict(int user, int movie) {
             if (columns[i] == movie) {
                 // TODO: implement weighted average of rankings
                 total += values[i];
+                weighted_total += top.corr * values[i];
+                sum_weights += abs(top.corr);
                 ++actualK;
             }
             else if (columns[i] > movie) {
@@ -233,10 +235,13 @@ float kNN::predict(int user, int movie) {
     }
 
     // for debugging purposes only
-    if (total != 0) {
-        std::cout << "total = " << total << "\n";
-        std::cout << "actualK = " << actualK << "\n";
-        std::cout << "got a value!! rating = " << total / actualK << std::endl;
+    // if (total != 0) {
+    //     std::cout << "total = " << total << "\n";
+    //     std::cout << "actualK = " << actualK << "\n";
+    //     std::cout << "got a value!! rating = " << total / actualK << std::endl;
+    // }
+    if (user % 1000 == 0) {
+        std::cout << "predicting for user " << user << "\n";
     }
 
     return total / actualK;
@@ -325,8 +330,7 @@ std::string kNN::getFilename(std::string data_file) {
         + "_s" + std::to_string(shared_threshold)
         + "_i" + std::to_string(individual_threshold)
         + "_k" + std::to_string(K)
-        + "_train=" + data_file
-        + ".save";
+        + "_train=" + data_file;
     return fname;
 }
 
@@ -334,7 +338,7 @@ int main(int argc, char **argv) {
     clock_t time0 = clock();
     kNN* knn = new kNN();
 
-    std::string data_file = "4.dta";
+    std::string data_file = "1.dta";
 
     // Load data from file.
     knn->load(data_file);
@@ -343,16 +347,16 @@ int main(int argc, char **argv) {
     // Train by building correlation matrix
     knn->metric = kPearson;
     knn->shared_threshold = 2;
-    knn->individual_threshold = 7;
+    knn->individual_threshold = 2000;
     knn->K = 10;
 
-    knn->train("model/knn/" + knn->getFilename(data_file));
+    knn->train("model/knn/" + knn->getFilename(data_file) + ".save");
 
     clock_t time1 = clock();
 
-    // Validate?
-    std::cout << "Validating...RMSE = \n";
-    std::cout << knn->validate("2.dta") << "\n";
+    // Validate
+    std::cout << "Validating...\n";
+    std::cout << "RMSE = " << knn->validate("2.dta") << "\n";
     std::cout << "Validation DONE\n";
 
     clock_t time_valid = clock();
@@ -367,7 +371,7 @@ int main(int argc, char **argv) {
     // Prepare file
     std::ofstream outputFile;
     outputFile << std::setprecision(3);
-    outputFile.open("out/knn_test.dta");
+    outputFile.open("out/" + knn->getFilename(data_file) + ".dta");
 
     for (int i = 0; i < qual->numRatings; i++) {
         int user = qual->ratings[i * DATA_POINT_SIZE + USER_IDX];
