@@ -15,10 +15,13 @@ class Baseline : public Model {
         float* average_array;
         float* ratings_count;
         float* stdev_array;
+        float* movie_average_array;
+        float* movie_count;
 
     private:
         void betterMean();
         void standardDeviation();
+        void movieMean();
         // Only used for better mean
         float globalAverage();
 };
