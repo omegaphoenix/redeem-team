@@ -2,10 +2,10 @@
 #define RBM_HPP
 #include "model.hpp"
 
-#define N_FACTORS 100
-#define MINIBATCH_SIZE 100
+#define N_FACTORS 10
+#define MINIBATCH_SIZE 10
 #define LEARNING_RATE 0.1
-#define RBM_EPOCHS 1
+#define RBM_EPOCHS 2
 
 class RBM : public Model {
 
@@ -17,13 +17,14 @@ class RBM : public Model {
         double* vbias;
         RBM();
         ~RBM();
+        void init();
         void loadSaved(std::string fname) {};
 
         double sumOverFeatures(int movie, int rating, double* h);
         double** pCalcV(int** V, double* h, int user);
-        void updateV(int** V, double** v, int user);
+        void updateV(double** v, int user);
         int** createV(int user);
-        double* pCalcH(int** V, int user);
+        void pCalcH(double* h, int** V, int user);
         void updateH(double* h, int user, bool last, double threshold);
         void createMinibatch();
         void updateW(void);
@@ -32,7 +33,7 @@ class RBM : public Model {
     private:
         double*** W;
         double** hidStates;
-        int *minibatch;
-        int *countUserRating; // number of movies rated
+        int* minibatch;
+        int* countUserRating; // number of movies rated
 };
 #endif // RBM_HPP

@@ -1,8 +1,12 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
 #include <iostream>
 #include <math.h>
+
 using namespace std;
 
 // Disable assertions
@@ -18,6 +22,18 @@ using namespace std;
 #define TIME_IDX 2
 #define RATING_IDX 3
 #define DATA_POINT_SIZE 4
+
+// Returns a uniformly distributed random number
+static double uniformRandom() {
+  return ( (double)(rand()) + 1. )/( (double)(RAND_MAX) + 1. );
+}
+
+// Returns a normally distributed random number
+static double normalRandom() {
+  double u1=uniformRandom();
+  double u2=uniformRandom();
+  return cos(8.*atan(1.)*u2)*sqrt(-2.*log(u1));
+}
 
 // Returns the differences in ms.
 static double diffclock(clock_t clock1, clock_t clock2) {

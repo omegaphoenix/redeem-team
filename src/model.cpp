@@ -22,7 +22,10 @@ Model::Model() {
 
 // Clean up ratings.
 Model::~Model() {
-    free(ratings);
+    delete ratings;
+    delete values;
+    delete columns;
+    delete rowIndex;
 }
 
 // Load new ratings array into CSR format.

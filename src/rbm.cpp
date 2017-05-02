@@ -1,4 +1,5 @@
 #include "rbm.hpp"
+#include <assert.h>
 #include <cmath>
 #include <iostream>
 #include <math.h>
@@ -12,11 +13,13 @@ RBM::RBM() {
 
     // Initialize W
     this->W = new double**[N_MOVIES];
-
     for (unsigned int i = 0; i < N_MOVIES; ++i) {
         this->W[i] = new double*[N_FACTORS];
         for (unsigned int j = 0; j < N_FACTORS; ++j) {
             this->W[i][j] = new double[MAX_RATING];
+            for (unsigned int k = 0; k < MAX_RATING; ++k) {
+                this->W[i][j][k] = normalRandom() * 0.1;
+            }
         }
     }
 
@@ -28,9 +31,6 @@ RBM::RBM() {
     this->minibatch = new int[MINIBATCH_SIZE];
 
     this->countUserRating = new int[N_USERS];
-    for (unsigned int i = 0; i < N_USERS; ++i) {
-        countUserRating[i] = rowIndex[i + 1] - rowIndex[i];
-    }
 
     clock_t time1 = clock();
     double ms1 = diffclock(time1, time0);
@@ -56,6 +56,19 @@ RBM::~RBM() {
 	delete[] this->hidStates;
 }
 
+void RBM::init() {
+    cout << "yo" << endl;
+    this->load("1.dta");
+    cout << "mama" << endl;
+    int userNumRatings = 0;
+    for (unsigned int i = 0; i < N_USERS; ++i) {
+        userNumRatings = rowIndex[i + 1] - rowIndex[i];
+        assert(userNumRatings >= 0 && userNumRatings <= N_MOVIES);
+        this->countUserRating[i] = userNumRatings;
+    }
+    cout << "so fat" << endl;
+}
+
 // movie is 0-indexed
 double RBM::sumOverFeatures(int movie, int rating, double* h) {
 	double total = 0;
@@ -72,38 +85,49 @@ double** RBM::pCalcV(int** V, double* h, int user) {
     int count = this->countUserRating[user];
     int movie, eValue;
     double numer, denom = 0;
+    // Stored as movie count x 2 array
+    double** temp = new double*[count];
     // Determine most likely
     for (unsigned int i = 0; i < count; ++i) {
         movie = columns[index + i];
+        assert(V[i][0] == movie);
+        temp[i] = new double[MAX_RATING + 1];
         for (unsigned int j = 1; j <= MAX_RATING; ++j) {
             numer = exp(sumOverFeatures(movie, j, h));
+            assert(numer >= 0);
             for (unsigned int k = 1; k <= MAX_RATING; ++k) {
                 denom += exp(sumOverFeatures(movie, k, h));
             }
-            V[i][j] = numer / denom;
+            double prob = numer /denom;
+            // cout << "numer" << numer << endl;
+            // cout << "denom" << denom << endl;
+            assert(prob >= 0 && prob <= 1);
+            temp[i][j] = prob;
         }
     }
-    // Stored as movie count x 2 array
     double** v = new double*[count];
     for (unsigned int i = 0; i < count; ++i) {
         v[i] = new double[2];
         v[i][0] = V[i][0];
-        eValue = V[i][1] + (2*V[i][2]) + (3*V[i][3])+ (4*V[i][4])+ (5*V[i][5]);
+        eValue = temp[i][1] + (2*temp[i][2]) + (3*temp[i][3])+ (4*temp[i][4])+ (5*temp[i][5]);
         v[i][1] = eValue;
+        delete[] temp[i];
     }
+    delete[] temp;
     return v;
 }
 
 // Update v.
-void RBM::updateV(int** V, double** v, int user) {
+void RBM::updateV(double** v, int user) {
     int count = this->countUserRating[user];
     for(unsigned int i = 0; i < count; ++i) {
-        V[i][1] = bound(v[i][1]);
+        v[i][1] = bound(v[i][1]);
     }
 }
 
 // Create V.
 int** RBM::createV(int user) {
+    assert(user > 0 && user < N_USERS);
     int index = rowIndex[user];
     int count = this->countUserRating[user];
     int movie, rating;
@@ -111,30 +135,29 @@ int** RBM::createV(int user) {
     // Fill up V with movies/ratings
     for (unsigned int i = 0; i < count; ++i) {
         // Initialize array
-        newV[i] = new int[MAX_RATING + 1];
+        newV[i] = new int[MAX_RATING + 1]();
         movie = columns[index + i];
         rating = values[index + i];
         newV[i][0] = movie;
-        newV[i][rating - 1] = 1;
+        newV[i][rating] = 1;
     }
     return newV;
 }
 
 // Fill up h with appropriate weight probabilities for each user.
-double* RBM::pCalcH(int** V, int user) {
-    double* h = new double[N_FACTORS];
+void RBM::pCalcH(double* h, int** V, int user) {
     int term, movie, rating; 
     int count = this->countUserRating[user];
     for (unsigned int i = 0; i < N_FACTORS; ++i) {
         term = 0;
         for (unsigned int j = 0; j < count; ++j) {
             movie = V[j][0];
-            rating = V[j][1];
-            term += this->W[movie][i][rating - 1];
+            for (unsigned int k = 0; k < MAX_RATING; ++k) {
+                term += this->W[movie][i][k] * V[j][k+1];
+            }
         }
         h[i] = 1/(1 + exp(-1 * term));
     }
-    return h;
 }
 
 // Update h for each user.
@@ -176,28 +199,43 @@ void RBM::updateW() {
 
     for (unsigned int i = 0; i < MINIBATCH_SIZE; ++i) {
         user = this->minibatch[i];
+        printf("Creating V\n");
         int** V = createV(user);
         size = this->countUserRating[user];
-        this->hidStates[user] = pCalcH(V, user);
+        printf("Calculating hidden states\n");
+        pCalcH(this->hidStates[user], V, user);
+        printf("Update hidden states\n");
         updateH(this->hidStates[user], user, false, oneRand());
+        printf("Update hidden states part 2\n");
         for (unsigned int j = 0; j < size; ++j) {
+            int movie = V[j][0];
             for (unsigned int k = 0; k < N_FACTORS; ++k) {
-                expData[V[j][0]][k][V[j][1] - 1] += this->hidStates[user][k];
+                for (unsigned int l = 0; l < MAX_RATING; ++l) {
+                    expData[movie][k][l] += this->hidStates[user][k] * V[j][l+1];
+                }
             }
         }
+        printf("Calculating V\n");
         double **v = pCalcV(V, this->hidStates[user], user);
-        updateV(V, v, user);
-        this->hidStates[user] = pCalcH(V, user);
+        printf("Updating V\n");
+        updateV(v, user);
+        pCalcH(this->hidStates[user], V, user);
+        printf("Updating H\n");
         updateH(this->hidStates[user], user, false, oneRand());
         for (unsigned int j = 0; j < size; ++j) {
+            int movie = V[j][0];
             for (unsigned int k = 0; k < N_FACTORS; ++k) {
-                expRecon[V[j][0]][k][V[j][1] - 1] += this->hidStates[user][k];
+                for (unsigned int l = 0; l < MAX_RATING; ++l) {
+                    expRecon[movie][k][l] += this->hidStates[user][k] * V[j][l+1];
+                }
             }
         }
+        printf("Deleting parts of V\n");
         for (unsigned int j = 0; j < size; ++j) {
             delete[] V[j];
             delete[] v[j];
         }
+        printf("Deleting V\n");
         delete[] V;
         delete[] v;
     }
@@ -230,11 +268,14 @@ void RBM::train(std::string saveFile) {
         start = clock();
         printf("Epoch Number: %d.\n", i);
         createMinibatch();
+        printf("Updating W\n");
         updateW();
+        printf("Finished updating W\n");
         trainErr = 0;
         trainCount = 0;
 
-        if (i % 50 == 0 && i != 0) {
+        if (true) {
+        // if (i % 100 == 0 && i != 0) {
             for(unsigned int j = 0; j < numRatings; ++j) {
                 user = ratings[j * DATA_POINT_SIZE + USER_IDX];
                 movie = ratings[j * DATA_POINT_SIZE + MOVIE_IDX];
@@ -248,16 +289,28 @@ void RBM::train(std::string saveFile) {
                     for (unsigned int l = 1; l <= MAX_RATING; ++l) {
                         denom += exp(sumOverFeatures(movie, l, this->hidStates[user]));
                     }
+                    for (unsigned int l = 0; l < N_FACTORS; ++l) {
+                        cout << "hidStates" << l << ": " << this->hidStates[user][l] << endl;
+                    }
+                    cout << "user : " << user  << endl;
+                    cout << "movie : " << movie  << endl;
+                    cout << "rating : " << rating  << endl;
+                    cout << "sumOverFeatures: " << sumOverFeatures(movie, 1, this->hidStates[user]) << endl;
+                    cout << "numer: " << numer << endl;
+                    cout << "denom: " << denom << endl;
                     predict += (numer / denom) * k;
                 }
 
+                cout << "prediction before bounding: " << predict << endl;
                 predict = bound(predict);
+                cout << "prediction: " << predict << endl;
 
                 err = (double) rating - predict;
 
                 trainErr += err * err;
 
                 trainCount++;
+                break;
             }
 
             end = clock();
@@ -283,7 +336,7 @@ int main() {
     // Initialize
     RBM *rbm = new RBM();
     clock_t time1 = clock();
-    rbm->load("1.dta");
+    rbm->init();
     clock_t time2 = clock();
 
     // Learn parameters
@@ -297,5 +350,6 @@ int main() {
     std::cout << "Training took " << ms3 << " ms" << std::endl;
     double total_ms = diffclock(time3, time0);
     std::cout << "Total running time was " << total_ms << " ms" << std::endl;
+    delete rbm;
     return 0;
 }
