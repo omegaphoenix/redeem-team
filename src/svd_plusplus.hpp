@@ -9,7 +9,8 @@ class SVDPlus : public Model {
     public:
         SVDPlus();
         ~SVDPlus();
-        void setParams(int K, float eta, float lambda);
+        void setParams(int K, float eta, float lambda, 
+            float mu, float* user_bias, float* movie_bias);
         void train(std::string saveFile);
         float validate(std::string valFile, std::string saveFile);
         void save(std::string fname);
@@ -24,7 +25,7 @@ class SVDPlus : public Model {
         float dotProduct(int user, int movie);
         // TODO: write these functions
         float getBias(int user, int movie);
-        float computeError(int user, int movie, int rating);
+        float predictRating(int user, int movie);
 
         float *U;
         float *V;

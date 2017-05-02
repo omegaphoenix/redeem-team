@@ -1,4 +1,4 @@
-#include "naive_svd.hpp"
+#include "svd_plusplus.hpp"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -92,7 +92,7 @@ void SVDPlus::train(std::string saveFile) {
 // Run one epoch of SGD, returning delta error.
 float SVDPlus::runEpoch() {
     // Compute the initial error
-    float init_error = computeError();
+    float init_error = computeAllError();
 
     std::vector<int> shuffler;
     for (int i = 0; i < this->numRatings; i++) {
@@ -114,7 +114,7 @@ float SVDPlus::runEpoch() {
         update(user, movie, rating);
     }
     // Compute the new error.
-    float new_error = computeError();
+    float new_error = computeAllError();
     float delta_error = std::abs(new_error - init_error);
     #ifdef DEBUG
         std::cout << "error was " << new_error << std::endl;
@@ -129,14 +129,15 @@ float SVDPlus::runEpoch() {
 void SVDPlus::update(int user, int movie, float rating) {
 
     // Calculate error between predicted and actual rating
-    e_ui = rating - predictRating(user, movie, rating)
+    float e_ui = rating - predictRating(user, movie);
 
     // Quickly calculate the number of movies a user has rated.
     float N = (float) this->rowIndex[user + 1] - this->rowIndex[user];
     N = 1.0 / std::sqrt(N);
 
     // Calculate SUM y_j
-    float sum_y[this->K] = {};
+    float* sum_y = new float[this->K];
+    //float sum_y[this->K] = {};
     for (int j = rowIndex[user]; j < rowIndex[user + 1]; j++) {
         int movie_idx = this->columns[j];
 
@@ -166,12 +167,12 @@ void SVDPlus::update(int user, int movie, float rating) {
     for (int i = 0; i < this->K; i++) {
         // Multiply (Y - (U dot V)) with v_i
         // and subtract from (lambda * u_i) = du
-        du = (this->lambda * this->U[user * this->K + i])
+        float du = (this->lambda * this->U[user * this->K + i])
             - (this->V[movie * this->K + i] * e_ui);
 
         // Multiply (Y - (U dot V)) with u_i
         // and subtract from (lambda * v_i) = dv
-        dv = (this->lambda * this->V[movie * this->K + i])
+        float dv = (this->lambda * this->V[movie * this->K + i])
             - ((this->U[user * this->K + i] + sum_y[i]) 
             * e_ui);
 
@@ -182,25 +183,29 @@ void SVDPlus::update(int user, int movie, float rating) {
         this->V[movie * this->K + i] = this->eta * dv;
     }
 
+    delete sum_y;
+
 }
 
 float SVDPlus::getBias(int user, int movie) {
     return this->user_bias[user] + this->movie_bias[movie] - this->mu;
 }
 
-float SVDPlus::predictRating(int user, int movie, float rating) {
+float SVDPlus::predictRating(int user, int movie) {
     // Get mu + b_u + b_i
     float b_ui = getBias(user, movie);
 
     // Get |N|^(-1/2) * SUM[y_j]
     float N = (float) this->rowIndex[user + 1] - this->rowIndex[user];
     N = 1.0 / std::sqrt(N);
-    float sum_y[this->K] = {};
+    float* sum_y = new float[this->K];
+    //float sum_y[this->K] = {};
     float nearest_neighbors = 0.0;
     float implicit_neighbors = 0.0;
 
     for (int j = rowIndex[user]; j < rowIndex[user + 1]; j++) {
         int movie_j = this->columns[j];
+        float rating = (float) this->ratings[j];
 
         for (int k = 0; k < this->K; k++) {
             float y_jk = this->Y[movie_j * this->K + k];
@@ -208,7 +213,7 @@ float SVDPlus::predictRating(int user, int movie, float rating) {
             sum_y[k] += y_jk * N;
         }
         // Get |R|^(-1/2) * SUM[rating - b_uj] * w_ij
-        b_uj = getBias(user, movie_j);
+        float b_uj = getBias(user, movie_j);
         nearest_neighbors += N * (rating - b_uj) 
             * this->W[movie * N_MOVIES + movie_j];
 
@@ -218,7 +223,7 @@ float SVDPlus::predictRating(int user, int movie, float rating) {
     }
 
     // Get (V dot U) + (V dot (N * SUM[y]))
-    QP = dotProduct(user, movie);
+    float QP = dotProduct(user, movie);
     float QY = 0.0;
     for (int i = 0; i < this->K; i++) {
         QY += this->V[movie * this->K + i] * sum_y[i];
@@ -226,7 +231,7 @@ float SVDPlus::predictRating(int user, int movie, float rating) {
 
     // Finally, calculate the huge hecking thing.
     float result = b_ui + QP + QY + nearest_neighbors + implicit_neighbors;
-    return result
+    return result;
 }
 
 float SVDPlus::computeAllError() {
@@ -356,9 +361,9 @@ void SVDPlus::loadSaved(std::string fname) {
         this->C = new float[N_MOVIES * N_MOVIES];
         this->W = new float[N_MOVIES * N_MOVIES];
 
-        fread(Y, sizeof(float), N_MOVIES * K, out);
-        fread(C, sizeof(float), N_MOVIES * N_MOVIES, out);
-        fread(W, sizeof(float), N_MOVIES * N_MOVIES, out);
+        fread(Y, sizeof(float), N_MOVIES * K, in);
+        fread(C, sizeof(float), N_MOVIES * N_MOVIES, in);
+        fread(W, sizeof(float), N_MOVIES * N_MOVIES, in);
 
         fclose(in);
     }

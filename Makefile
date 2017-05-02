@@ -4,6 +4,7 @@ PROG = naive_svd
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
 NAIVE_SVD_CV_FILES = $(addprefix src/, validate_naive_svd.cpp naive_svd.cpp model.cpp)
 BASELINE_FILES = $(addprefix src/, baseline.cpp model.cpp)
+SVD_PLUS_FILES = $(addprefix src/, svd_plusplus_main.cpp svd_plusplus.cpp model.cpp)
 
 
 all: init naive_svd validate_naive_svd baseline
@@ -19,6 +20,9 @@ baseline: $(BASELINE_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
+	$(CXX) $(CFLAGS) -o bin/$@ $^
+
+svd_plus: $(SVD_PLUS_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 validate_naive_svd: $(NAIVE_SVD_CV_FILES:.cpp=.o)
