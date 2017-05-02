@@ -5,10 +5,10 @@
 
 Baseline::Baseline() : Model() {
     this->K = 0;
-    this->average_array = new float[N_USERS];
+    this->average_array = new double[N_USERS];
     this->ratings_count = new float[N_USERS];
-    this->stdev_array = new float[N_USERS];
-    this->movie_average_array = new float[N_MOVIES];
+    this->stdev_array = new double[N_USERS];
+    this->movie_average_array = new double[N_MOVIES];
     this->movie_count = new float[N_MOVIES];
 
     for (int i = 0; i < N_MOVIES;i++) {
@@ -75,38 +75,14 @@ void Baseline::standardDeviation() {
 }
 
 void Baseline::globalAverage() {
-    float sum = 0;
-    int onecount = 0;
-    int twocount = 0;
-    int threecount = 0;
-    int fourcount = 0;
-    int fivecount = 0;
+    double sum = 0;
 
     for (int i = 0; i < numRatings; i++) {
-        sum = sum + float(values[i]);
-
-        if (values[i] == 1) {
-            onecount++;
-        }
-        else if (values[i] == 2) {
-            twocount++;
-        }
-        else if (values[i] == 3) {
-            threecount++;
-        }
-        else if (values[i] == 4) {
-            fourcount++;
-        }
-        else if (values[i] == 5) {
-            fivecount++;
-        }
+        sum = sum + values[i];
     }
-    global = sum / numRatings;
 
+    global = sum / numRatings;
     std::cout << "Global Average: " << global << std::endl;
-    float ave = onecount + 2*twocount + 3*threecount + 4*fourcount + 5*fivecount;
-    ave = ave/numRatings;
-    std::cout << "ave: " << ave << std::endl;
 }
 
 void Baseline::train(std::string saveFile) {
