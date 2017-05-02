@@ -2,10 +2,10 @@
 #define RBM_HPP
 #include "model.hpp"
 
-#define N_FACTORS 10
-#define MINIBATCH_SIZE 10
+#define N_FACTORS 100
+#define MINIBATCH_SIZE 100
 #define LEARNING_RATE 0.1
-#define RBM_EPOCHS 2
+#define RBM_EPOCHS 100
 
 class RBM : public Model {
 
