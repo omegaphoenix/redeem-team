@@ -27,7 +27,7 @@ void NaiveSVD::setParams(int K, float eta, float lambda) {
     this->eta = eta;
     this->lambda = lambda;
 
-    this->MAX_EPOCHS = 60;
+    this->MAX_EPOCHS = 120;
     this->EPSILON = 0.0001;
 }
 

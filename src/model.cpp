@@ -125,7 +125,7 @@ void Model::loadCSR(std::string fname) {
             ratings[ratings_idx + MOVIE_IDX] = movie;
             ratings[ratings_idx + RATING_IDX] = rating;
             values[idx] = rating;
-            columns[idx] = movie - 1;
+            columns[idx] = movie;
             idx++;
             ratings_idx += DATA_POINT_SIZE;
         }
