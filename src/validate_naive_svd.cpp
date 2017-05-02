@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
             }
             src.close();
 
-            #ifdef TRAIN
+            #if TRAIN
                 std::cout << "Training: " << fname << std::endl;
                 nsvd->train(fname);
             #endif
