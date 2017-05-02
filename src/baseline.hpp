@@ -12,10 +12,10 @@ class Baseline : public Model {
         // For regular mean, k = 0
         // For better mean, k = integer
         float K;
-        float* average_array;
+        double* average_array;
         float* ratings_count;
-        float* stdev_array;
-        float* movie_average_array;
+        double* stdev_array;
+        double* movie_average_array;
         float* movie_count;
         float global;
 
