@@ -3,8 +3,8 @@ CXXFLAGS = -std=c++11 -Wall -g
 PROG = naive_svd
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
 NAIVE_SVD_CV_FILES = $(addprefix src/, validate_naive_svd.cpp naive_svd.cpp model.cpp)
-BASELINE_FILES = $(addprefix src/, baseline.cpp model.cpp)
-SVD_PLUS_FILES = $(addprefix src/, svd_plusplus_main.cpp svd_plusplus.cpp model.cpp)
+BASELINE_FILES = $(addprefix src/, baseline.cpp baseline_main.cpp model.cpp)
+SVD_PLUS_FILES = $(addprefix src/, svd_plusplus_main.cpp svd_plusplus.cpp baseline.cpp model.cpp)
 
 
 all: init naive_svd validate_naive_svd baseline
