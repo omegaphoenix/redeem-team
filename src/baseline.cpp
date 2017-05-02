@@ -29,13 +29,6 @@ void Baseline::setK(float constant) {
 }
 
 void Baseline::betterMean() {
-    float global = 0; 
-
-    if (K != 0) {
-        global = globalAverage();
-        std::cout << "Global Average = " << global << std::endl;
-    }
-
     for (int i = 0; i < N_USERS; i++) {
         average_array[i] = 0;
         ratings_count[i] = 0;
@@ -55,13 +48,6 @@ void Baseline::betterMean() {
 }
 
 void Baseline::movieMean() {
-    float global = 0;
-
-    if (K != 0) {
-        global = globalAverage();
-        std::cout << "Global Average = " << global << std::endl;
-    }
-
     for (int i = 0; i < numRatings; i++) {
         int index = columns[i];
         movie_average_array[index] = movie_average_array[index] + float(values[i]);
@@ -88,17 +74,44 @@ void Baseline::standardDeviation() {
     }
 }
 
-float Baseline::globalAverage() {
+void Baseline::globalAverage() {
     float sum = 0;
+    int onecount = 0;
+    int twocount = 0;
+    int threecount = 0;
+    int fourcount = 0;
+    int fivecount = 0;
 
     for (int i = 0; i < numRatings; i++) {
-        sum = sum + values[i];
+        sum = sum + float(values[i]);
+
+        if (values[i] == 1) {
+            onecount++;
+        }
+        else if (values[i] == 2) {
+            twocount++;
+        }
+        else if (values[i] == 3) {
+            threecount++;
+        }
+        else if (values[i] == 4) {
+            fourcount++;
+        }
+        else if (values[i] == 5) {
+            fivecount++;
+        }
     }
-    return sum / numRatings;
+    global = sum / numRatings;
+
+    std::cout << "Global Average: " << global << std::endl;
+    float ave = onecount + 2*twocount + 3*threecount + 4*fourcount + 5*fivecount;
+    ave = ave/numRatings;
+    std::cout << "ave: " << ave << std::endl;
 }
 
 void Baseline::train(std::string saveFile) {
     std::cout << "entered train()" << std::endl;
+    globalAverage();
     betterMean();
     standardDeviation();
     movieMean();
