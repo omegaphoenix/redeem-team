@@ -20,12 +20,16 @@ class SVDPlus : public Model {
         int MAX_EPOCHS;
     private:
         float runEpoch();
-        virtual void update(int user, int movie, float rating);
+        virtual void update(int user, int movie, float rating, 
+            float* sum_y, float e_ui, bool update_yw);
         float computeAllError();
         float dotProduct(int user, int movie);
         // TODO: write these functions
+        void getPlusVariables(int user, int movie, float N, 
+            float* sum_y, float &sum_w, float &sum_c);
         float getBias(int user, int movie);
-        float predictRating(int user, int movie);
+        float predictRating(int user, int movie, 
+            float* sum_y, float sum_w, float sum_c);
 
         float *U;
         float *V;
