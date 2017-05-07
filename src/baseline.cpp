@@ -11,7 +11,7 @@ Baseline::Baseline() : Model() {
     this->movie_average_array = new double[N_MOVIES];
     this->movie_count = new float[N_MOVIES];
 
-    for (int i = 0; i < N_MOVIES;i++) {
+    for (int i = 0; i < N_MOVIES; i++) {
         movie_count[i] = 0;
         movie_average_array[i] = 0;
     }
@@ -54,7 +54,7 @@ void Baseline::movieMean() {
         movie_count[index]++;
     }
 
-    for (int i = 0; i < N_MOVIES;i++) {
+    for (int i = 0; i < N_MOVIES; i++) {
         if (movie_count[i] != 0) {
             movie_average_array[i] = movie_average_array[i]/ movie_count[i];
         }
@@ -97,6 +97,7 @@ void Baseline::loadSaved(std::string fname) {
     //loadCSR(fname);
 }
 
+/*
 int main(int argc, char **argv) {
     // Check the number of parameters
     if (argc < 2) {
@@ -121,14 +122,14 @@ int main(int argc, char **argv) {
     // Train by building correlation matrix
     std::cout << "Begin training\n";
     baseline->train("unused variable");
-    /*
+    
     for(int i = 0; i < N_USERS; ++i) {
         std::cout << "avg " << baseline->average_array[i] << "\n";
         std::cout << "stdev " << baseline->stdev_array[i] << "\n\n";
         if (isnan(baseline->average_array[i]) || isnan(baseline->stdev_array[i])) {
             std::cout << "NaN" << std::endl;
         }
-    }*/
+    }
 
     clock_t time3 = clock();
 
@@ -144,4 +145,4 @@ int main(int argc, char **argv) {
     std::cout << "baseline took " << baseline_ms << " ms" << std::endl;
 
     return 0;
-}
+}*/
