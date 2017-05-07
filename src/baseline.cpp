@@ -5,15 +5,23 @@
 
 Baseline::Baseline() : Model() {
     this->K = 0;
-    this->average_array = new float[N_USERS];
+    this->average_array = new double[N_USERS];
     this->ratings_count = new float[N_USERS];
-    this->stdev_array = new float[N_USERS];
+    this->stdev_array = new double[N_USERS];
+    this->movie_average_array = new double[N_MOVIES];
+    this->movie_count = new float[N_MOVIES];
+
+    for (int i = 0; i < N_MOVIES; i++) {
+        movie_count[i] = 0;
+        movie_average_array[i] = 0;
+    }
 }
 
 Baseline::~Baseline() {
     delete this->average_array;
     delete this->ratings_count;
     delete this->stdev_array;
+    delete this->movie_average_array;
 }
 
 void Baseline::setK(float constant) {
@@ -21,13 +29,6 @@ void Baseline::setK(float constant) {
 }
 
 void Baseline::betterMean() {
-    float global = 0; 
-
-    if (K != 0) {
-        global = globalAverage();
-        std::cout << "Global Average = " << global << std::endl;
-    }
-
     for (int i = 0; i < N_USERS; i++) {
         average_array[i] = 0;
         ratings_count[i] = 0;
@@ -46,6 +47,21 @@ void Baseline::betterMean() {
     }
 }
 
+void Baseline::movieMean() {
+    for (int i = 0; i < numRatings; i++) {
+        int index = columns[i];
+        movie_average_array[index] = movie_average_array[index] + float(values[i]);
+        movie_count[index]++;
+    }
+
+    for (int i = 0; i < N_MOVIES; i++) {
+        if (movie_count[i] != 0) {
+            movie_average_array[i] = movie_average_array[i]/ movie_count[i];
+        }
+    }
+}
+
+
 void Baseline::standardDeviation() {
     for (int i = 0; i < N_USERS; i++) {
         stdev_array[i] = 0;
@@ -58,19 +74,23 @@ void Baseline::standardDeviation() {
     }
 }
 
-float Baseline::globalAverage() {
-    float sum = 0;
+void Baseline::globalAverage() {
+    double sum = 0;
 
     for (int i = 0; i < numRatings; i++) {
         sum = sum + values[i];
     }
-    return sum / numRatings;
+
+    global = sum / numRatings;
+    std::cout << "Global Average: " << global << std::endl;
 }
 
 void Baseline::train(std::string saveFile) {
     std::cout << "entered train()" << std::endl;
+    globalAverage();
     betterMean();
     standardDeviation();
+    movieMean();
 }
 
 void Baseline::loadSaved(std::string fname) {
@@ -102,6 +122,7 @@ int main(int argc, char **argv) {
     // Train by building correlation matrix
     std::cout << "Begin training\n";
     baseline->train("unused variable");
+    
     for(int i = 0; i < N_USERS; ++i) {
         std::cout << "avg " << baseline->average_array[i] << "\n";
         std::cout << "stdev " << baseline->stdev_array[i] << "\n\n";
@@ -124,5 +145,4 @@ int main(int argc, char **argv) {
     std::cout << "baseline took " << baseline_ms << " ms" << std::endl;
 
     return 0;
-}
-*/
+}*/
