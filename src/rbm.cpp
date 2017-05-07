@@ -61,7 +61,7 @@ RBM::~RBM() {
 }
 
 void RBM::init() {
-    this->load("1.dta");
+    this->load("3.dta");
     int userNumRatings = 0;
     for (unsigned int i = 0; i < N_USERS; ++i) {
         userNumRatings = rowIndex[i + 1] - rowIndex[i];
@@ -101,7 +101,7 @@ double** RBM::pCalcV(int** V, double* h, int user) {
             }
             double prob = numer /denom;
             for (unsigned int l = 0; l < N_FACTORS; ++l) {
-                cout << "hidStates" << l << ": " << this->hidStates[user][l] << endl;
+                // cout << "hidStates" << l << ": " << this->hidStates[user][l] << endl;
             }
             assert(prob >= 0 && prob <= 1);
             temp[i][j] = prob;
@@ -129,7 +129,7 @@ void RBM::updateV(double** v, int user) {
 
 // Create V.
 int** RBM::createV(int user) {
-    assert(user > 0 && user < N_USERS);
+    assert(user >= 0 && user < N_USERS);
     int index = rowIndex[user];
     int count = this->countUserRating[user];
     int movie, rating;
@@ -292,7 +292,7 @@ void RBM::train(std::string saveFile) {
                         denom += exp(sumOverFeatures(movie, l, this->hidStates[user]));
                     }
                     for (unsigned int l = 0; l < N_FACTORS; ++l) {
-                        cout << "hidStates" << l << ": " << this->hidStates[user][l] << endl;
+                        // cout << "hidStates" << l << ": " << this->hidStates[user][l] << endl;
                     }
                     predict += (numer / denom) * k;
                 }

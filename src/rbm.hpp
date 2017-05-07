@@ -10,11 +10,6 @@
 class RBM : public Model {
 
     public:
-        int N;
-        int nVisible;
-        int nHidden;
-        double* hbias;
-        double* vbias;
         RBM();
         ~RBM();
         void init();
