@@ -46,7 +46,7 @@ void kNN::normalizeRatings(float average_array[], float stdev_array[]) {
         while (i == rowIndex[user + 1]) {
             user++;
         }
-        normalized_values[i] = (values[i] - average_array[user]) / stdev_array[user];   
+        normalized_values[i] = (values[i] - average_array[user]) / stdev_array[user];
     }
 }
 
@@ -136,24 +136,31 @@ void kNN::buildMatrix(std::string saveFile) {
     // 1: user i
     // 2: user j
     // where i < j
+    // NEW FORMAT - CSR
+    // 0: index at which user i's correlations begin (int)
+    // 1: user j (int)
+    // 2: correlation (float)
     for (int i = 0; i < 3; i++) {
         std::vector<float> row;
         corrMatrix.push_back(row);
     }
 
-    num_correlations = 0;
-    clock_t prev_clock = clock();
-    clock_t curr_clock;
+    num_correlations = 0; // also acts as index
     int curr_user = 0;
     int num_users = 0;
 
     std::cout << "matrix initialized\n";
 
-    for (int i = 0; i < N - 1; i++) {
+    // initialize CSR
+    corrMatrix[0].push_back(-1);
+
+    for (int i = 0; i < N; i++) {
+        corrMatrix[0].push_back(num_correlations);
         for (int j = i + 1; j < N; j++) {
             // Don't bother if either user has too few movies
             if (rowIndex[i + 1] - rowIndex[i] < individual_threshold
                 || rowIndex[j + 1] - rowIndex[j] < individual_threshold) {
+                // print for debugging
                 if (i % 1000 == 0 && i != curr_user) {
                     curr_user = i;
                     std::cout << "user i = " << i << std::endl;
@@ -164,9 +171,11 @@ void kNN::buildMatrix(std::string saveFile) {
 
             float corr = pearson(rowIndex[i], rowIndex[i + 1], rowIndex[j], rowIndex[j + 1]);
             if (corr != 0) {
-                corrMatrix[0].push_back(corr);
-                corrMatrix[1].push_back(i);
-                corrMatrix[2].push_back(j);
+                // corrMatrix[0].push_back(corr);
+                // corrMatrix[1].push_back(i);
+                // corrMatrix[2].push_back(j);
+                corrMatrix[1].push_back(j);
+                corrMatrix[2].push_back(corr);
                 num_correlations++;
                 if (num_correlations % 1000 == 0) {
                     std::cout << "num_correlations = " << num_correlations << std::endl;
@@ -175,6 +184,10 @@ void kNN::buildMatrix(std::string saveFile) {
             }
         }
     }
+    corrMatrix[0].push_back(num_correlations);
+
+    std::cout << "size of corrMatrix[0] (should be 1 greater than N_USERS) = "
+        << corrMatrix[0].size() << "\n";
 
     std::cout << "Total number of correlations: " << num_correlations << "\n";
     std::cout << "Total number of users above threshold: " << num_users << "\n";
@@ -194,20 +207,40 @@ float kNN::predict(int user, int movie) {
     std::priority_queue<corrUser> top_corr;
     // int count = 0;
     // put correlations in a priority queue
-    for (int i = 0; i < num_correlations; i++) {
-        float c = corrMatrix[0][i];
-        // if (c == 1) {
-        //     count++;
-        // }
-        if (!isnan(c)) {
-            if (corrMatrix[1][i] == user) {
-                top_corr.push(corrUser(c, corrMatrix[2][i]));
-            }
-            else if (corrMatrix[2][i] == user) {
-                top_corr.push(corrUser(c, corrMatrix[1][i]));
+    for (int user_i = 0; user_i < N_USERS; user_i++) {
+        if (user_i > user) {
+            break; // user_j > user_i > user
+        }
+        int start = corrMatrix[0][user_i];
+        int end = corrMatrix[0][user_i + 1];
+        for (int j = start; j < end; j++) {
+            int user_j = corrMatrix[1][j];
+            float c = corrMatrix[2][j];
+            if (!isnan(c)) {
+                if (user_i == user) {
+                    top_corr.push(corrUser(c, user_i));
+                }
+                else if (user_j == user) {
+                    top_corr.push(corrUser(c, user_j));
+                }
             }
         }
     }
+
+    // for (int i = 0; i < num_correlations; i++) {
+    //     float c = corrMatrix[0][i];
+    //     // if (c == 1) {
+    //     //     count++;
+    //     // }
+    //     if (!isnan(c)) {
+    //         if (corrMatrix[1][i] == user) {
+    //             top_corr.push(corrUser(c, corrMatrix[2][i]));
+    //         }
+    //         else if (corrMatrix[2][i] == user) {
+    //             top_corr.push(corrUser(c, corrMatrix[1][i]));
+    //         }
+    //     }
+    // }
     //std::cout << "number of 1s = " << count << std::endl;
 
     // get top K's average
@@ -239,7 +272,7 @@ float kNN::predict(int user, int movie) {
                 // TODO: implement weighted average of rankings
                 total += values[i];
                 weighted_total += top.corr * values[i];
-                sum_weights += abs(top.corr);
+                sum_weights += std::abs(top.corr);
                 ++actualK;
             }
             else if (columns[i] > movie) {
@@ -269,28 +302,35 @@ void kNN::loadSaved(std::string fname) {
     FILE *in = fopen(fname.c_str(), "r");
 
     // Read num correlations
-    int buf[1];
-    fread(buf, sizeof(int), 1, in);
-    num_correlations = buf[0];
+    int buf[3];
+    fread(buf, sizeof(int), 3, in);
+    num_correlations = buf[1];
+
+    if (num_correlations == 0) {
+        // special case
+    }
 
     // Initialize correlation matrix
     for (int i = 0; i < 3; i++) {
-        std::vector<float> row(num_correlations, 0);
+        std::cout << "buf[" << i << "]" << " = " << buf[i] << "\n";
+        std::vector<float> row(buf[i], 0);
         corrMatrix.push_back(row);
     }
 
     // Read matrix
-    fread(&corrMatrix[0][0], sizeof(float), num_correlations, in);
-    fread(&corrMatrix[1][0], sizeof(float), num_correlations, in);
-    fread(&corrMatrix[2][0], sizeof(float), num_correlations, in);
+    fread(&corrMatrix[0][0], sizeof(float), buf[0], in);
+    fread(&corrMatrix[1][0], sizeof(float), buf[1], in);
+    fread(&corrMatrix[2][0], sizeof(float), buf[2], in);
     fclose(in);
 }
 
 void kNN::save(std::string fname) {
     FILE *out = fopen(fname.c_str(), "wb");
-    int buf[1];
-    buf[0] = num_correlations = corrMatrix[0].size();
-    fwrite(buf, sizeof(int), 1, out);
+    int buf[3];
+    buf[0] = corrMatrix[0].size();
+    buf[1] = corrMatrix[1].size();
+    buf[2] = corrMatrix[2].size();
+    fwrite(buf, sizeof(int), 3, out);
 
     fwrite(&corrMatrix[0][0], sizeof(float), corrMatrix[0].size(), out);
     fwrite(&corrMatrix[1][0], sizeof(float), corrMatrix[1].size(), out);
@@ -358,7 +398,7 @@ int main(int argc, char **argv) {
     Baseline* base = new Baseline();
 
 
-    std::string data_file = "1.dta";
+    std::string data_file = "4.dta";
 
     // Load data from file.
     knn->load(data_file);
@@ -378,7 +418,7 @@ int main(int argc, char **argv) {
     // Train by building correlation matrix
     knn->metric = kPearson;
     knn->shared_threshold = 2;
-    knn->individual_threshold = 2000;
+    knn->individual_threshold = 6;
     knn->K = 10;
 
     knn->train("model/knn/" + knn->getFilename(data_file) + ".save");
