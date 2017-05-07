@@ -29,6 +29,7 @@ class kNN : public Model {
         int K; // number of nearest neighbors
     private:
         float pearson(int i_start, int i_end, int j_start, int j_end);
+        float kNN::denormalize(float normalized, int user);
         void buildMatrix(std::string saveFile);
         float rmse(float actual, float predicted);
         std::vector<std::vector<float>> corrMatrix;

@@ -50,6 +50,10 @@ void kNN::normalizeRatings(float average_array[], float stdev_array[]) {
     }
 }
 
+float kNN::denormalize(float normalized, int user) {
+    return (normalized * stdev_array[user]) + average_array[user];
+}
+
 void kNN::train(std::string saveFile) {
     std::cout << "Begin training: " << saveFile << std::endl;
     struct stat buffer;
