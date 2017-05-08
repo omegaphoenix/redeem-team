@@ -4,8 +4,6 @@
 #include "model.hpp"
 
 #define N_FACTORS 100
-#define MINIBATCH_SIZE 100
-#define LEARNING_RATE 0.1
 #define RBM_EPOCHS 100
 
 class RBM : public Model {
@@ -20,6 +18,8 @@ class RBM : public Model {
         bool getHidVar(int nthHidVar);
         void setV(int n, int i, int k, bool newVal);
         bool getV(int n, int i, int k);
+        void resetDeltaW();
+        void contrastiveDiv();
         void updateW();
         void updateH();
         double getActualVal(int n, int i, int j, int k);
@@ -28,14 +28,15 @@ class RBM : public Model {
 
     private:
         double* W;
-        double* dW;
-        double T;
-        double epsilon; // learning rate
+        double* dW; // So we don't have to reallocate each time.
+        int T; // See equation 6 in RBM for CF, Salakhutdinov 2007
+        double epsilonW; // learning rate for weights
+        double epsilonVB; // learning rate for biases of visible units
+        double epsilonHB; // learning rate for biases of hidden units
         double* hidBiases; // bias of feature j
         double* visBiases; // bias of rating k for movie i
         double* hidProbs; // hidden probabilities
-        std::bitset<N_USERS * N_FACTORS>* hidVars;
-        // We declare this so we don't have to reallocate memory each time
-        std::bitset<N_MOVIES * MAX_RATING>* indicatorV;
+        std::bitset<N_USERS * N_FACTORS>* hidVars; // bitset
+        std::bitset<N_MOVIES * MAX_RATING>* indicatorV; // array of bitsets
 };
 #endif // RBM_HPP

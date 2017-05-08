@@ -13,8 +13,13 @@ RBM::RBM() {
     clock_t time0 = clock();
     printf("Initializing RBM...\n");
 
-    // Initial learning rate
-    this->epsilon  = 0.01;
+    // Number of full steps to run Gibb's sampler
+    this->T = 1;
+
+    // Initial learning rates
+    this->epsilonW = 0.1;
+    this->epsilonVB = 0.1;
+    this->epsilonHB = 0.1;
 
     // Initialize W
     this->W = new double[N_MOVIES * N_FACTORS * MAX_RATING];
@@ -29,7 +34,7 @@ RBM::RBM() {
     this->hidProbs = new double[N_USERS * N_FACTORS];
     for (unsigned int i = 0; i < N_USERS * N_FACTORS; ++i) {
         setHidVar(i, rand() % 2);
-        hidProbs[i] = rand() % 2;
+        hidProbs[i] = uniform(0, 1);
     }
 
     // Initialize feature biases
@@ -88,17 +93,22 @@ bool RBM::getV(int n, int i, int k) {
     return this->indicatorV[n][idx];
 }
 
-// Update W using contrastive divergence
-void RBM::updateW() {
-    double dataVal, expectVal;
-    int movIdx, facIdx, idx;
-    int movFac = N_FACTORS * MAX_RATING;
-
-    // Reset dW
-    this->dW = new double[N_MOVIES * N_FACTORS * MAX_RATING];
+// Set all dW to 0
+// TODO: Consider just creating a new array for speed
+void RBM::resetDeltaW() {
     for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
         this->dW[i] = 0;
     }
+}
+
+// Update W using contrastive divergence
+// TODO: Add biases
+// TODO: Split into positive and negative steps
+void RBM::contrastiveDiv() {
+    double dataVal, expectVal;
+    int movIdx, facIdx, idx;
+    int movFac = N_FACTORS * MAX_RATING;
+    resetDeltaW(); // set dW back to zeros
 
     updateH();
     // First half of equation 6 in RBM for CF, Salakhutdinov 2007
@@ -110,7 +120,7 @@ void RBM::updateW() {
                 for (unsigned int k = 0; k < MAX_RATING; ++k) {
                     dataVal = getActualVal(n, i, j, k);
                     idx = movIdx + facIdx + k;
-                    dW[idx] += this->epsilon * dataVal / N_USERS;
+                    dW[idx] += this->epsilonW * dataVal / N_USERS;
                 }
             }
         }
@@ -128,11 +138,18 @@ void RBM::updateW() {
                     expectVal = getExpectVal(n, i, j, k);
                     // Equation 6 in RBM for CF, Salakhutdinov 2007
                     idx = movIdx + facIdx + k;
-                    dW[idx] -= this->epsilon * expectVal / N_USERS;
+                    dW[idx] -= this->epsilonW * expectVal / N_USERS;
                 }
             }
         }
     }
+
+}
+
+// Update W using contrastive divergence
+// TODO: Make more efficient by taking advantage of sparse matrix properties
+void RBM::updateW() {
+    contrastiveDiv();
 
     // Update W
     for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
@@ -164,9 +181,12 @@ double RBM::getActualVal(int n, int i, int j, int k) {
 // <v_i^k h_j>_{T} in equation 6
 // Expectation with respect to the distribution defined by the model
 double RBM::getExpectVal(int n, int i, int j, int k) {
-    double expected = 0;
-    // double probHj = calcProbH(n, j);
-    return 0;
+    double prod = 0;
+    if (getV(n, i, k)) {
+        int idx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
+        prod = hidProbs[idx];
+    }
+    return prod;
 }
 
 /*
