@@ -12,6 +12,8 @@
 
 NaiveSVD::NaiveSVD() : Model() {
     validation_loaded = false;
+    U = NULL;
+    V = NULL;
 }
 
 // Clean up U, V.
@@ -25,7 +27,7 @@ void NaiveSVD::setParams(int K, float eta, float lambda) {
     this->eta = eta;
     this->lambda = lambda;
 
-    this->MAX_EPOCHS = 60;
+    this->MAX_EPOCHS = 120;
     this->EPSILON = 0.0001;
 }
 
@@ -39,15 +41,18 @@ void NaiveSVD::train(std::string saveFile) {
                   " epochs completed" << std::endl;
     #endif
 
+    float delta0;
     // Get initial error calculation (by calling runEpoch)
-    clock_t time0 = clock();
-    float delta0 = runEpoch();
-    clock_t time1 = clock();
-    numEpochs++;
-    #ifdef DEBUG
-        std::cout << "Finished epoch " << numEpochs << std::endl;
-        std::cout << "This took: " << diffclock(time1, time0) << " ms.\n";
-    #endif
+    if (numEpochs < this->MAX_EPOCHS) {
+        clock_t time0 = clock();
+        delta0 = runEpoch();
+        clock_t time1 = clock();
+        numEpochs++;
+        #ifdef DEBUG
+            std::cout << "Finished epoch " << numEpochs << std::endl;
+            std::cout << "This took: " << diffclock(time1, time0) << " ms.\n";
+        #endif
+    }
     // If num epochs left < max_epochs
     while (numEpochs < this->MAX_EPOCHS) {
         // Run an epoch and get the error back
@@ -208,6 +213,12 @@ void NaiveSVD::save(std::string fname) {
 // between [-0.5, 0.5] if the saved file failed
 // to load.
 void NaiveSVD::loadSaved(std::string fname) {
+    if (U != NULL) {
+        delete U;
+    }
+    if (V != NULL) {
+        delete V;
+    }
     FILE *in = fopen(fname.c_str(), "r");
     if (fname == "" || in == NULL) {
         this->U = new float[N_USERS * this->K];

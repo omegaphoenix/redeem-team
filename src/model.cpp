@@ -145,7 +145,7 @@ void Model::loadCSR(std::string fname) {
     unsigned char* buffer = (unsigned char*) mmap(NULL, size, PROT_READ, MAP_PRIVATE, f, 0);
 
     int bytes = size;
-    int ratings_idx = 0;
+    int ratingsIdx = 0;
     int idx = 0;
     rowIndex[user] = idx;
     // short for end of user marker, short + char per data point
@@ -180,13 +180,13 @@ void Model::loadCSR(std::string fname) {
             bytes--;
             assert (movie >= 0 && movie < N_MOVIES);
             assert (rating >= 0 && rating <= MAX_RATING);
-            ratings[ratings_idx + USER_IDX] = user;
-            ratings[ratings_idx + MOVIE_IDX] = movie;
-            ratings[ratings_idx + RATING_IDX] = rating;
+            ratings[ratingsIdx + USER_IDX] = user;
+            ratings[ratingsIdx + MOVIE_IDX] = movie;
+            ratings[ratingsIdx + RATING_IDX] = rating;
             values[idx] = rating;
             columns[idx] = movie;
             idx++;
-            ratings_idx += DATA_POINT_SIZE;
+            ratingsIdx += DATA_POINT_SIZE;
         }
     }
     numRatings = idx;
