@@ -22,10 +22,14 @@ RBM::RBM() {
         this->W[i] = normalRandom() * 0.1;
     }
 
+    this->dW = new double[N_MOVIES * N_FACTORS * MAX_RATING];
+
     // Initialize hidden units
     this->hidVars = new std::bitset<N_USERS * N_FACTORS>(0);
+    this->hidProbs = new double[N_USERS * N_FACTORS];
     for (unsigned int i = 0; i < N_USERS * N_FACTORS; ++i) {
         setHidVar(i, rand() % 2);
+        hidProbs[i] = rand() % 2;
     }
 
     // Initialize feature biases
@@ -35,6 +39,8 @@ RBM::RBM() {
 
     // Initialize V
     this->V = new std::bitset<N_MOVIES * MAX_RATING>(0);
+
+
     clock_t time1 = clock();
     double ms1 = diffclock(time1, time0);
     std::cout << "RBM initialization took " << ms1 << " ms" << std::endl;
@@ -43,9 +49,11 @@ RBM::RBM() {
 // Free memory
 RBM::~RBM() {
     delete[] this->W;
+    delete[] this->dW;
+    delete this->hidVars;
+    delete[] this->hidProbs;
     delete[] this->hidBiases;
     delete[] this->visBiases;
-    delete this->hidVars;
     delete this->V;
 }
 
@@ -65,48 +73,97 @@ bool RBM::getHidVar(int nthHidVar) {
     return (*this->hidVars)[nthHidVar];
 }
 
-// Set the user's kth rating for the ith movie
-void RBM::setV(int i, int k, bool newVal) {
-    this->V->set(i * MAX_RATING + k, newVal);
+// Set the nth user's kth rating for the ith movie
+void RBM::setV(int n, int i, int k, bool newVal) {
+    int idx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
+    this->V->set(idx, newVal);
 }
 
-// Did the user rate the ith movie as k
-bool RBM::getV(int i, int k) {
+// Did the nth user rate the ith movie as k
+bool RBM::getV(int n, int i, int k) {
     // Need to get the 0th element first since it is a pointer
-    return (*this->V)[i * MAX_RATING + k];
+    int idx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
+    return (*this->V)[idx];
 }
 
 // Update W using contrastive divergence
 void RBM::updateW() {
-    double dataVal, expectVal, dW;
+    double dataVal, expectVal;
     int movIdx, facIdx, idx;
     int movFac = N_FACTORS * MAX_RATING;
-    for (unsigned int i = 0; i < N_MOVIES; ++i) {
-        movIdx = i * movFac;
-        for (unsigned int j = 0; j < N_FACTORS; ++j) {
-            facIdx = j * MAX_RATING;
-            for (unsigned int k = 0; k < MAX_RATING; ++k) {
-                dataVal = getActualVal(i, j, k);
-                expectVal = getExpectVal(i, j, k);
-                // Equation 6 in RBM for CF, Salakhutdinov 2007
-                dW = this->epsilon * (dataVal - expectVal);
-                idx = movIdx + facIdx + k;
-                W[idx] += dW;
+
+    // Reset dW
+    this->dW = new double[N_MOVIES * N_FACTORS * MAX_RATING];
+    for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
+        this->dW[i] = 0;
+    }
+
+    updateH();
+    // First half of equation 6 in RBM for CF, Salakhutdinov 2007
+    for (unsigned int n = 0; n < N_USERS; ++n) {
+        for (unsigned int i = 0; i < N_MOVIES; ++i) {
+            movIdx = i * movFac;
+            for (unsigned int j = 0; j < N_FACTORS; ++j) {
+                facIdx = j * MAX_RATING;
+                for (unsigned int k = 0; k < MAX_RATING; ++k) {
+                    dataVal = getActualVal(n, i, j, k);
+                    idx = movIdx + facIdx + k;
+                    dW[idx] += this->epsilon * dataVal / N_USERS;
+                }
             }
         }
+    }
+
+    // TODO Update H and V several times
+    updateH();
+    // Second half of equation 6 in RBM for CF, Salakhutdinov 2007
+    for (unsigned int n = 0; n < N_USERS; ++n) {
+        for (unsigned int i = 0; i < N_MOVIES; ++i) {
+            movIdx = i * movFac;
+            for (unsigned int j = 0; j < N_FACTORS; ++j) {
+                facIdx = j * MAX_RATING;
+                for (unsigned int k = 0; k < MAX_RATING; ++k) {
+                    expectVal = getExpectVal(n, i, j, k);
+                    // Equation 6 in RBM for CF, Salakhutdinov 2007
+                    idx = movIdx + facIdx + k;
+                    dW[idx] -= this->epsilon * expectVal / N_USERS;
+                }
+            }
+        }
+    }
+
+    // Update W
+    for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
+        this->W[i] += this->dW[i];
+    }
+}
+
+// Update binary hidden states
+void RBM::updateH() {
+    bool var;
+    for (int i = 0; i < N_USERS * N_FACTORS; ++i) {
+        var = uniform(0, 1) > this->hidProbs[i];
+        setHidVar(i, var);
     }
 }
 
 // Frequency with which movie i with rating k and feature j are on together
 // when the features are being driven by the observed user-rating data from
 // the training set
-double RBM::getActualVal(int i, int j, int k) {
-    return 0;
+double RBM::getActualVal(int n, int i, int j, int k) {
+    double prod = 0;
+    if (getV(n, i, k)) {
+        int idx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
+        prod = hidProbs[idx];
+    }
+    return prod;
 }
 
 // <v_i^k h_j>_{T} in equation 6
 // Expectation with respect to the distribution defined by the model
-double RBM::getExpectVal(int i, int j, int k) {
+double RBM::getExpectVal(int n, int i, int j, int k) {
+    double expected = 0;
+    // double probHj = calcProbH(n, j);
     return 0;
 }
 

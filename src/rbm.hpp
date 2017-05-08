@@ -18,21 +18,24 @@ class RBM : public Model {
 
         void setHidVar(int nthHidVar, bool newVal);
         bool getHidVar(int nthHidVar);
-        void setV(int i, int k, bool newVal);
-        bool getV(int i, int k);
+        void setV(int n, int i, int k, bool newVal);
+        bool getV(int n, int i, int k);
         void updateW();
-        double getActualVal(int i, int j, int k);
-        double getExpectVal(int i, int j, int k);
+        void updateH();
+        double getActualVal(int n, int i, int j, int k);
+        double getExpectVal(int n, int i, int j, int k);
         void train(std::string saveFile) {};
 
     private:
         double* W;
+        double* dW;
         double T;
         double epsilon; // learning rate
         double* hidBiases; // bias of feature j
         double* visBiases; // bias of rating k for movie i
+        double* hidProbs; // hidden probabilities
         std::bitset<N_USERS * N_FACTORS> *hidVars;
         // We declare this so we don't have to reallocate memory each time
-        std::bitset<N_MOVIES * MAX_RATING> *V; // specific to a user
+        std::bitset<N_MOVIES * MAX_RATING> *V;
 };
 #endif // RBM_HPP
