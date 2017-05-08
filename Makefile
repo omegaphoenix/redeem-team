@@ -5,10 +5,10 @@ RBM_PROG = rbm
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
 NAIVE_SVD_CV_FILES = $(addprefix src/, validate_naive_svd.cpp naive_svd.cpp model.cpp)
 RBM_FILES = $(addprefix src/, rbm.cpp model.cpp)
-BASELINE_FILES = $(addprefix src/, baseline.cpp model.cpp)
+# BASELINE_FILES = $(addprefix src/, baseline.cpp model.cpp)
 
 
-all: init naive_svd validate_naive_svd baseline
+all: init naive_svd validate_naive_svd
 
 init:
 	mkdir -p bin log out model model/naive_svd
@@ -17,8 +17,8 @@ then \
 	sed 's/0$$/1/' data/um/5.dta > data/um/5-1.dta; \
 fi
 
-baseline: $(BASELINE_FILES:.cpp=.o)
-	$(CXX) $(CFLAGS) -o bin/$@ $^
+# baseline: $(BASELINE_FILES:.cpp=.o)
+	# $(CXX) $(CFLAGS) -o bin/$@ $^
 
 naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
