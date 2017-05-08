@@ -226,7 +226,7 @@ void Model::load(std::string dataFile) {
     double ms1 = diffclock(time1, time0);
     std::cout << "Loading took " << ms1 << " ms" << std::endl;
 }
-
+/*
 int main(int argc, char **argv) {
     Model* mod = new Model();
     mod->load("4.dta");
@@ -247,3 +247,4 @@ int main(int argc, char **argv) {
         std::cout << mod->murowIndex[i] << std::endl;
     }
 }
+*/

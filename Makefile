@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++11 -Wall -g
 PROG = naive_svd
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
 NAIVE_SVD_CV_FILES = $(addprefix src/, validate_naive_svd.cpp naive_svd.cpp model.cpp)
-MODEL_FILES = $(addprefix src/, model.cpp)
+# MODEL_FILES = $(addprefix src/, model.cpp)
 # BASELINE_FILES = $(addprefix src/, baseline.cpp model.cpp)
 
 
@@ -19,8 +19,8 @@ fi
 # baseline: $(BASELINE_FILES:.cpp=.o)
 	# $(CXX) $(CFLAGS) -o bin/$@ $^
 
-model: $(MODEL_FILES:.cpp=.o)
-	$(CXX) $(CFLAGS) -o bin/$@ $^
+# model: $(MODEL_FILES:.cpp=.o)
+	# $(CXX) $(CFLAGS) -o bin/$@ $^
 
 naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
