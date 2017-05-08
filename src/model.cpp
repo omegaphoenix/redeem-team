@@ -25,7 +25,7 @@ Model::Model() {
     sortStruct = new dataPoint[N_TRAINING];
     muratings = new int[N_TRAINING * DATA_POINT_SIZE];
     muvalues = new unsigned char[N_TRAINING];
-    mucolumns = new unsigned short[N_TRAINING];
+    mucolumns = new int[N_TRAINING];
     murowIndex = new int[N_MOVIES + 1];   
 }
 

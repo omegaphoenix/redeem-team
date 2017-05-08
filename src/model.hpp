@@ -61,7 +61,7 @@ class Model {
         // MU variables
         int* muratings; // COO format
         unsigned char* muvalues; // CSR values/ratings
-        unsigned short* mucolumns; // CSR columns/user
+        int* mucolumns; // CSR columns/user
         int* murowIndex; // CSR row index, where user i starts in values/columns
         dataPoint* sortStruct;     
 
