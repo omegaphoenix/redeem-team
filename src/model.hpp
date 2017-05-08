@@ -34,6 +34,13 @@ class Model {
         unsigned char* values; // CSR values/ratings
         unsigned short* columns; // CSR columns/movies
         int* rowIndex; // CSR row index, where user i starts in values/columns
+
+        // MU variables
+        int* muratings; // COO format
+        unsigned char* muvalues; // CSR values/ratings
+        unsigned short* mucolumns; // CSR columns/user
+        int* murowIndex; // CSR row index, where user i starts in values/columns        
+
         virtual ~Model();
         void loadFresh(std::string inFname, std::string outFname);
         void loadCSR(std::string fname);

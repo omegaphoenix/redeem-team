@@ -11,18 +11,77 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <algorithm>
+
+struct dataPoint {
+    int userID;
+    int movieID;
+    int date;
+    int value;
+
+    dataPoint(int a, int b, int c, int d) : userID(a), movieID(b), date(c), value(d) {
+    }
+
+    // Sort my movie
+    bool operator<(const struct dataPoint &other) const
+    {
+        return movieID < other.movieID;
+    }
+}
 
 // Initialize ratings.
 Model::Model() {
+    // UM 
     ratings = new int[N_TRAINING * DATA_POINT_SIZE];
     values = new unsigned char[N_TRAINING];
     columns = new unsigned short[N_TRAINING];
     rowIndex = new int[N_USERS + 1];
+
+    //MU
+    sortStruct = new dataPoint[N_TRAINING]
+    muratings = new int[N_TRAINING * DATA_POINT_SIZE];
+    muvalues = new unsigned char[N_TRAINING];
+    mucolumns = new unsigned short[N_TRAINING];
+    murowIndex = new int[N_MOVIES + 1];   
 }
 
 // Clean up ratings.
 Model::~Model() {
     free(ratings);
+    free(values);
+    free(columns);
+    free(rowIndex);
+
+    free(sortStruct);
+
+    free(muratings);
+    free(muvalues);
+    free(mucolumns);
+    free(murowIndex);
+}
+
+void Model::transposeMU() {
+    for (int i; i < numRatings; i++) {
+        int u = ratings[i * DATA_POINT_SIZE + USER_IDX];
+        int m = ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        int d = ratings[i * DATA_POINT_SIZE + TIME_IDX];
+        int r = ratings[i * DATA_POINT_SIZE + RATING_IDX];
+        sortStruct[i] = dataPoint(u, m, d, r);
+    }
+    std::sort(sortStruct, sortStruct + numRatings);
+
+    int current = 0; //CSR counter
+
+    for (int i; i < numRatings; i++) {
+        // COO Format
+        muratings[i * DATA_POINT_SIZE + USER_IDX] = sortStruct[i].userID;
+        muratings[i * DATA_POINT_SIZE + MOVIE_IDX] = sortStruct[i].movieID;
+        muratings[i * DATA_POINT_SIZE + TIME_IDX] = sortStruct[i].date;
+        muratings[i * DATA_POINT_SIZE + RATING_IDX] = sortStruct[i].value;
+
+        // CSR Format
+
+    }
 }
 
 // Load new ratings array into CSR format.
@@ -125,7 +184,7 @@ void Model::loadCSR(std::string fname) {
             ratings[ratings_idx + MOVIE_IDX] = movie;
             ratings[ratings_idx + RATING_IDX] = rating;
             values[idx] = rating;
-            columns[idx] = movie - 1;
+            columns[idx] = movie;
             idx++;
             ratings_idx += DATA_POINT_SIZE;
         }
