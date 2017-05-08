@@ -20,7 +20,7 @@ fi
 	# $(CXX) $(CFLAGS) -o bin/$@ $^
 
 model: $(MODEL_FILES:.cpp=.o)
-	# $(CXX) $(CFLAGS) -o bin/$@ $^
+	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^

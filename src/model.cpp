@@ -229,6 +229,21 @@ void Model::load(std::string dataFile) {
 
 int main(int argc, char **argv) {
     Model* mod = new Model();
-    mod->load("1.dta");
+    mod->load("4.dta");
+    std::cout << "Transpose" << std::endl;
     mod->transposeMU();
+    for (int i = 0; i < 100; i++) {
+        int users = mod->muratings[i * DATA_POINT_SIZE + USER_IDX];
+        int movies = mod->muratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        std::cout << movies <<  " : " << users << std::endl;
+    }
+    for (int i = 0; i < 100; i++) {
+        int users = mod->mucolumns[i];
+        int vals = mod->muvalues[i];
+        std::cout << users <<  " : " << vals << std::endl;
+    }
+
+    for (auto i = 0; i < 5; i++) {
+        std::cout << mod->murowIndex[i] << std::endl;
+    }
 }
