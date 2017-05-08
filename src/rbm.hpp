@@ -1,5 +1,6 @@
 #ifndef RBM_HPP
 #define RBM_HPP
+#include <bitset>
 #include "model.hpp"
 
 #define N_FACTORS 100
@@ -15,20 +16,23 @@ class RBM : public Model {
         void init();
         void loadSaved(std::string fname) {};
 
-        double sumOverFeatures(int movie, int rating, double* h);
-        double** pCalcV(int** V, double* h, int user);
-        void updateV(double** v, int user);
-        int** createV(int user);
-        void pCalcH(double* h, int** V, int user);
-        void updateH(double* h, int user, bool last, double threshold);
-        void createMinibatch();
-        void updateW(void);
-        void train(std::string saveFile);
+        void setHidVar(int nthHidVar, bool newVal);
+        bool getHidVar(int nthHidVar);
+        void setV(int i, int k, bool newVal);
+        bool getV(int i, int k);
+        void updateW();
+        double getActualVal(int i, int j, int k);
+        double getExpectVal(int i, int j, int k);
+        void train(std::string saveFile) {};
 
     private:
-        double*** W;
-        double** hidStates;
-        int* minibatch;
-        int* countUserRating; // number of movies rated
+        double* W;
+        double T;
+        double epsilon; // learning rate
+        double* hidBiases; // bias of feature j
+        double* visBiases; // bias of rating k for movie i
+        std::bitset<N_USERS * N_FACTORS> *hidVars;
+        // We declare this so we don't have to reallocate memory each time
+        std::bitset<N_MOVIES * MAX_RATING> *V; // specific to a user
 };
 #endif // RBM_HPP

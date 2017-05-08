@@ -4,6 +4,7 @@
 #include <float.h>
 #include <iostream>
 #include <math.h>
+#include <stdlib.h>
 #include <time.h>
 using namespace std;
 
@@ -12,72 +13,151 @@ RBM::RBM() {
     clock_t time0 = clock();
     printf("Initializing RBM...\n");
 
+    // Initial learning rate
+    this->epsilon  = 0.01;
+
     // Initialize W
-    this->W = new double**[N_MOVIES];
-    for (unsigned int i = 0; i < N_MOVIES; ++i) {
-        this->W[i] = new double*[N_FACTORS];
-        for (unsigned int j = 0; j < N_FACTORS; ++j) {
-            this->W[i][j] = new double[MAX_RATING];
-            for (unsigned int k = 0; k < MAX_RATING; ++k) {
-                this->W[i][j][k] = normalRandom() * 0.1;
-            }
-        }
+    this->W = new double[N_MOVIES * N_FACTORS * MAX_RATING];
+    for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
+        this->W[i] = normalRandom() * 0.1;
     }
 
-    this->hidStates = new double*[N_USERS];
-    for (unsigned int i = 0; i < N_USERS; ++i) {
-        this->hidStates[i] = new double[N_FACTORS];
-        for (unsigned int j = 0; j < N_FACTORS; ++j) {
-            this->hidStates[i][j] = normalRandom() * 0.1;
-        }
+    // Initialize hidden units
+    this->hidVars = new std::bitset<N_USERS * N_FACTORS>(0);
+    for (unsigned int i = 0; i < N_USERS * N_FACTORS; ++i) {
+        setHidVar(i, rand() % 2);
     }
 
-    this->minibatch = new int[MINIBATCH_SIZE];
+    // Initialize feature biases
+    this->hidBiases = new double[N_FACTORS];
+    // TODO: Init visible biases to logs of respective base rates over all users
+    this->visBiases = new double[N_MOVIES * MAX_RATING];
 
-    this->countUserRating = new int[N_USERS];
-
+    // Initialize V
+    this->V = new std::bitset<N_MOVIES * MAX_RATING>(0);
     clock_t time1 = clock();
     double ms1 = diffclock(time1, time0);
     std::cout << "RBM initialization took " << ms1 << " ms" << std::endl;
 }
 
+// Free memory
 RBM::~RBM() {
-    delete[] this->minibatch;
-    delete[] this->countUserRating;
-
-    for(unsigned int i = 0; i < N_MOVIES; ++i) {
-        for (unsigned int j = 0; j < N_FACTORS; ++j) {
-            delete[] this->W[i][j];
-        }
-        delete[] this->W[i];
-    }
-
-    for (unsigned int i = 0; i < N_USERS; ++i) {
-        delete[] this->hidStates[i];
-    }
-
     delete[] this->W;
-	delete[] this->hidStates;
+    delete[] this->hidBiases;
+    delete[] this->visBiases;
+    delete this->hidVars;
+    delete this->V;
 }
 
+// Load data
 void RBM::init() {
     this->load("3.dta");
-    int userNumRatings = 0;
-    for (unsigned int i = 0; i < N_USERS; ++i) {
-        userNumRatings = rowIndex[i + 1] - rowIndex[i];
-        assert(userNumRatings >= 0 && userNumRatings <= N_MOVIES);
-        this->countUserRating[i] = userNumRatings;
+}
+
+// Set nth hidden variable to newVal
+void RBM::setHidVar(int nthHidVar, bool newVal) {
+    this->hidVars->set(nthHidVar, newVal);
+}
+
+// Get nth hidden variable
+bool RBM::getHidVar(int nthHidVar) {
+    // Need to get the 0th element first since it is a pointer
+    return (*this->hidVars)[nthHidVar];
+}
+
+// Set the user's kth rating for the ith movie
+void RBM::setV(int i, int k, bool newVal) {
+    this->V->set(i * MAX_RATING + k, newVal);
+}
+
+// Did the user rate the ith movie as k
+bool RBM::getV(int i, int k) {
+    // Need to get the 0th element first since it is a pointer
+    return (*this->V)[i * MAX_RATING + k];
+}
+
+// Update W using contrastive divergence
+void RBM::updateW() {
+    double dataVal, expectVal, dW;
+    int movIdx, facIdx, idx;
+    int movFac = N_FACTORS * MAX_RATING;
+    for (unsigned int i = 0; i < N_MOVIES; ++i) {
+        movIdx = i * movFac;
+        for (unsigned int j = 0; j < N_FACTORS; ++j) {
+            facIdx = j * MAX_RATING;
+            for (unsigned int k = 0; k < MAX_RATING; ++k) {
+                dataVal = getActualVal(i, j, k);
+                expectVal = getExpectVal(i, j, k);
+                // Equation 6 in RBM for CF, Salakhutdinov 2007
+                dW = this->epsilon * (dataVal - expectVal);
+                idx = movIdx + facIdx + k;
+                W[idx] += dW;
+            }
+        }
     }
+}
+
+// Frequency with which movie i with rating k and feature j are on together
+// when the features are being driven by the observed user-rating data from
+// the training set
+double RBM::getActualVal(int i, int j, int k) {
+    return 0;
+}
+
+// <v_i^k h_j>_{T} in equation 6
+// Expectation with respect to the distribution defined by the model
+double RBM::getExpectVal(int i, int j, int k) {
+    return 0;
+}
+
+/*
+double RBM::sumOverFeatures(int movie, int rating, double* h) {
+    double total = 0;
+    for (unsigned int i = 0; i < N_FACTORS; ++i) {
+        // ratings are indexed 0-4
+        total += h[i] * this->W[movie][i][rating - 1];
+    }
+    return total;
+}
+
+// Calculate visible binary rating matrix V given hidden user features h
+void RBM::calcProbV(int user) {
+    int idx = rowIndex[user];
+    int count = rowIndex[user + 1] - idx;
+    int movie;
+    double numer = 0;
+    double denom = 0;
+
+    // Calculate probabilities
+    double* numers = new double[count * MAX_RATING];
+    for (unsigned int i = 0; i < count; ++i) {
+        movie = columns[idx + i];
+        for (unsigned int j = 0; j < MAX_RATING; ++j) {
+            numers[i * MAX_RATING + j] = exp(sumOverFeatures(movie, j);
+        }
+    }
+    double* prob = new double*[count];
+
+    // Calculate expected rating for each movie
+    double eValue;
+    for (unsigned int i = 0; i < count; ++i) {
+        v[i] = new double[2];
+        v[i][0] = V[i][0];
+        eValue = temp[i][1] + (2*temp[i][2]) + (3*temp[i][3])+ (4*temp[i][4])+ (5*temp[i][5]);
+        v[i][1] = eValue;
+    }
+    delete[] temp;
+    return prob;
 }
 
 // movie is 0-indexed
 double RBM::sumOverFeatures(int movie, int rating, double* h) {
-	double total = 0;
+    double total = 0;
     for (unsigned int i = 0; i < N_FACTORS; ++i) {
-		// ratings are indexed 0-4
+        // ratings are indexed 0-4
         total += h[i] * this->W[movie][i][rating - 1];
     }
-	return total;
+    return total;
 }
 
 // Return expected value for user.
@@ -322,6 +402,7 @@ void RBM::train(std::string saveFile) {
         }
     }
 }
+*/
 
 int main() {
     // Speed up stdio operations
