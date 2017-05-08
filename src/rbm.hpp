@@ -34,8 +34,8 @@ class RBM : public Model {
         double* hidBiases; // bias of feature j
         double* visBiases; // bias of rating k for movie i
         double* hidProbs; // hidden probabilities
-        std::bitset<N_USERS * N_FACTORS> *hidVars;
+        std::bitset<N_USERS * N_FACTORS>* hidVars;
         // We declare this so we don't have to reallocate memory each time
-        std::bitset<N_MOVIES * MAX_RATING> *V;
+        std::bitset<N_MOVIES * MAX_RATING>* indicatorV;
 };
 #endif // RBM_HPP

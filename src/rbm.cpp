@@ -38,8 +38,10 @@ RBM::RBM() {
     this->visBiases = new double[N_MOVIES * MAX_RATING];
 
     // Initialize V
-    this->V = new std::bitset<N_MOVIES * MAX_RATING>(0);
-
+    this->indicatorV = new std::bitset<N_MOVIES * MAX_RATING>[N_USERS];
+    for (unsigned int i = 0; i < N_USERS; ++i) {
+        this->indicatorV[i] = std::bitset<N_MOVIES * MAX_RATING>(0);
+    }
 
     clock_t time1 = clock();
     double ms1 = diffclock(time1, time0);
@@ -54,7 +56,7 @@ RBM::~RBM() {
     delete[] this->hidProbs;
     delete[] this->hidBiases;
     delete[] this->visBiases;
-    delete this->V;
+    delete[] this->indicatorV;
 }
 
 // Load data
@@ -75,15 +77,15 @@ bool RBM::getHidVar(int nthHidVar) {
 
 // Set the nth user's kth rating for the ith movie
 void RBM::setV(int n, int i, int k, bool newVal) {
-    int idx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
-    this->V->set(idx, newVal);
+    int idx = i * MAX_RATING + k;
+    this->indicatorV[n].set(idx, newVal);
 }
 
 // Did the nth user rate the ith movie as k
 bool RBM::getV(int n, int i, int k) {
     // Need to get the 0th element first since it is a pointer
-    int idx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
-    return (*this->V)[idx];
+    int idx = i * MAX_RATING + k;
+    return this->indicatorV[n][idx];
 }
 
 // Update W using contrastive divergence
