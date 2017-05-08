@@ -19,6 +19,29 @@
 #define RATING_IDX 3
 #define DATA_POINT_SIZE 4
 
+struct dataPoint {
+    int userID;
+    int movieID;
+    int date;
+    int value;
+
+    dataPoint() {
+        userID = 0;
+        movieID = 0;
+        date = 0;
+        value = 0;
+    }
+
+    dataPoint(int a, int b, int c, int d) : userID(a), movieID(b), date(c), value(d) {
+    }
+
+    // Sort my movie
+    bool operator<(const struct dataPoint &other) const
+    {
+        return movieID < other.movieID;
+    }
+};
+
 // Returns the differences in ms.
 static double diffclock(clock_t clock1, clock_t clock2) {
     double diffticks = clock1 - clock2;
@@ -39,7 +62,8 @@ class Model {
         int* muratings; // COO format
         unsigned char* muvalues; // CSR values/ratings
         unsigned short* mucolumns; // CSR columns/user
-        int* murowIndex; // CSR row index, where user i starts in values/columns        
+        int* murowIndex; // CSR row index, where user i starts in values/columns
+        dataPoint* sortStruct;     
 
         virtual ~Model();
         void loadFresh(std::string inFname, std::string outFname);
@@ -48,6 +72,9 @@ class Model {
         virtual void train(std::string saveFile) = 0;
         void initLoad(std::string fname, std::string dataFile);
         void load(std::string dataFile);
+
+        void transposeMU();
+
     private:
         virtual void generateMissing(void);
 };

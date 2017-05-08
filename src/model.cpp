@@ -13,22 +13,6 @@
 #include <unistd.h>
 #include <algorithm>
 
-struct dataPoint {
-    int userID;
-    int movieID;
-    int date;
-    int value;
-
-    dataPoint(int a, int b, int c, int d) : userID(a), movieID(b), date(c), value(d) {
-    }
-
-    // Sort my movie
-    bool operator<(const struct dataPoint &other) const
-    {
-        return movieID < other.movieID;
-    }
-}
-
 // Initialize ratings.
 Model::Model() {
     // UM 
@@ -38,7 +22,7 @@ Model::Model() {
     rowIndex = new int[N_USERS + 1];
 
     //MU
-    sortStruct = new dataPoint[N_TRAINING]
+    sortStruct = new dataPoint[N_TRAINING];
     muratings = new int[N_TRAINING * DATA_POINT_SIZE];
     muvalues = new unsigned char[N_TRAINING];
     mucolumns = new unsigned short[N_TRAINING];
@@ -61,7 +45,7 @@ Model::~Model() {
 }
 
 void Model::transposeMU() {
-    for (int i; i < numRatings; i++) {
+    for (int i = 0; i < numRatings; i++) {
         int u = ratings[i * DATA_POINT_SIZE + USER_IDX];
         int m = ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
         int d = ratings[i * DATA_POINT_SIZE + TIME_IDX];
@@ -72,7 +56,7 @@ void Model::transposeMU() {
 
     int current = 0; //CSR counter
 
-    for (int i; i < numRatings; i++) {
+    for (int i = 0; i < numRatings; i++) {
         // COO Format
         muratings[i * DATA_POINT_SIZE + USER_IDX] = sortStruct[i].userID;
         muratings[i * DATA_POINT_SIZE + MOVIE_IDX] = sortStruct[i].movieID;
@@ -80,7 +64,14 @@ void Model::transposeMU() {
         muratings[i * DATA_POINT_SIZE + RATING_IDX] = sortStruct[i].value;
 
         // CSR Format
-
+        while (sortStruct[i].movieID > current) {
+            current++;
+            murowIndex[current] = i;
+        }
+        if (sortStruct[i].movieID == current) {
+            muvalues[i] = sortStruct[i].value;
+            mucolumns[i] = sortStruct[i].userID;
+        }
     }
 }
 
@@ -234,4 +225,10 @@ void Model::load(std::string dataFile) {
     // Output times.
     double ms1 = diffclock(time1, time0);
     std::cout << "Loading took " << ms1 << " ms" << std::endl;
+}
+
+int main(int argc, char **argv) {
+    Model* mod = new Model();
+    mod->load("1.dta");
+    mod->transposeMU();
 }
