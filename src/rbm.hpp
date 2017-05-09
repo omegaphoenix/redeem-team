@@ -18,10 +18,11 @@ class RBM : public Model {
         bool getHidVar(int nthHidVar);
         void setV(int n, int i, int k, bool newVal);
         bool getV(int n, int i, int k);
-        void resetDeltaW();
-        void contrastiveDiv();
+        void resetDeltas();
+        void calcGrad();
         void updateW();
         void updateH();
+        void calcHidProbsUsingData();
         double getActualVal(int n, int i, int j, int k);
         double getExpectVal(int n, int i, int j, int k);
         void train(std::string saveFile) {};
@@ -34,7 +35,9 @@ class RBM : public Model {
         double epsilonVB; // learning rate for biases of visible units
         double epsilonHB; // learning rate for biases of hidden units
         double* hidBiases; // bias of feature j
+        double* dHidBiases; // delta of bias of feature j
         double* visBiases; // bias of rating k for movie i
+        double* dVisBiases; // delta of bias of rating k for movie i
         double* hidProbs; // hidden probabilities
         std::bitset<N_USERS * N_FACTORS>* hidVars; // bitset
         std::bitset<N_MOVIES * MAX_RATING>* indicatorV; // array of bitsets

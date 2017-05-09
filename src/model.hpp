@@ -10,7 +10,7 @@ class Model {
     public:
         Model();
         int* ratings; // COO format, movies and users 0-indexed
-        int numRatings;
+        unsigned int numRatings;
         unsigned char* values; // CSR values/ratings
         unsigned short* columns; // CSR columns/movies, 0-indexed
         int* rowIndex; // CSR row index, where user i starts in values/columns, 0-indexed

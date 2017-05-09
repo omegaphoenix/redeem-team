@@ -14,39 +14,54 @@ RBM::RBM() {
     printf("Initializing RBM...\n");
 
     // Number of full steps to run Gibb's sampler
-    this->T = 1;
+    T = 1;
 
     // Initial learning rates
-    this->epsilonW = 0.1;
-    this->epsilonVB = 0.1;
-    this->epsilonHB = 0.1;
+    epsilonW = 0.02;
+    epsilonVB = 0.02;
+    epsilonHB = 0.02;
 
     // Initialize W
-    this->W = new double[N_MOVIES * N_FACTORS * MAX_RATING];
+    W = new double[N_MOVIES * N_FACTORS * MAX_RATING];
     for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
-        this->W[i] = normalRandom() * 0.1;
+        W[i] = normalRandom() * 0.1;
     }
 
-    this->dW = new double[N_MOVIES * N_FACTORS * MAX_RATING];
-
     // Initialize hidden units
-    this->hidVars = new std::bitset<N_USERS * N_FACTORS>(0);
-    this->hidProbs = new double[N_USERS * N_FACTORS];
+    hidVars = new std::bitset<N_USERS * N_FACTORS>(0);
+    hidProbs = new double[N_USERS * N_FACTORS];
     for (unsigned int i = 0; i < N_USERS * N_FACTORS; ++i) {
         setHidVar(i, rand() % 2);
         hidProbs[i] = uniform(0, 1);
     }
 
-    // Initialize feature biases
-    this->hidBiases = new double[N_FACTORS];
-    // TODO: Init visible biases to logs of respective base rates over all users
-    this->visBiases = new double[N_MOVIES * MAX_RATING];
-
     // Initialize V
-    this->indicatorV = new std::bitset<N_MOVIES * MAX_RATING>[N_USERS];
+    indicatorV = new std::bitset<N_MOVIES * MAX_RATING>[N_USERS];
     for (unsigned int i = 0; i < N_USERS; ++i) {
-        this->indicatorV[i] = std::bitset<N_MOVIES * MAX_RATING>(0);
+        indicatorV[i] = std::bitset<N_MOVIES * MAX_RATING>(0);
     }
+
+    // Initialize feature biases
+    hidBiases = new double[N_FACTORS];
+    for (unsigned int i = 0; i < N_FACTORS; ++i) {
+        hidBiases[i] = uniform(0, 1);
+    }
+    // Init visible biases to logs of respective base rates over all users
+    visBiases = new double[N_MOVIES * MAX_RATING];
+    unsigned int movie, rating;
+    for (unsigned int i = 0; i < numRatings; ++i) {
+        movie = columns[i];
+        rating = values[i];
+        (visBiases[movie * MAX_RATING + rating])++;
+    }
+    for (unsigned int i = 0; i < N_MOVIES * MAX_RATING; ++i) {
+        visBiases[i] = log(visBiases[i] / N_USERS);
+    }
+
+    // Initialize deltas
+    dW = new double[N_MOVIES * N_FACTORS * MAX_RATING];
+    dHidBiases = new double[N_FACTORS];
+    dVisBiases = new double[N_MOVIES * MAX_RATING];
 
     clock_t time1 = clock();
     double ms1 = diffclock(time1, time0);
@@ -55,72 +70,82 @@ RBM::RBM() {
 
 // Free memory
 RBM::~RBM() {
-    delete[] this->W;
-    delete[] this->dW;
-    delete this->hidVars;
-    delete[] this->hidProbs;
-    delete[] this->hidBiases;
-    delete[] this->visBiases;
-    delete[] this->indicatorV;
+    delete[] W;
+    delete[] dW;
+    delete hidVars;
+    delete[] hidProbs;
+    delete[] hidBiases;
+    delete[] visBiases;
+    delete[] indicatorV;
 }
 
 // Load data
 void RBM::init() {
-    this->load("3.dta");
+    load("3.dta");
 }
 
 // Set nth hidden variable to newVal
 void RBM::setHidVar(int nthHidVar, bool newVal) {
-    this->hidVars->set(nthHidVar, newVal);
+    hidVars->set(nthHidVar, newVal);
 }
 
 // Get nth hidden variable
 bool RBM::getHidVar(int nthHidVar) {
     // Need to get the 0th element first since it is a pointer
-    return (*this->hidVars)[nthHidVar];
+    return (*hidVars)[nthHidVar];
 }
 
 // Set the nth user's kth rating for the ith movie
 void RBM::setV(int n, int i, int k, bool newVal) {
     int idx = i * MAX_RATING + k;
-    this->indicatorV[n].set(idx, newVal);
+    indicatorV[n].set(idx, newVal);
 }
 
 // Did the nth user rate the ith movie as k
 bool RBM::getV(int n, int i, int k) {
     // Need to get the 0th element first since it is a pointer
     int idx = i * MAX_RATING + k;
-    return this->indicatorV[n][idx];
+    return indicatorV[n][idx];
 }
 
-// Set all dW to 0
+// Set all deltas to 0
 // TODO: Consider just creating a new array for speed
-void RBM::resetDeltaW() {
+void RBM::resetDeltas() {
     for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
-        this->dW[i] = 0;
+        dW[i] = 0;
+    }
+    for (unsigned int i = 0; i < N_FACTORS; ++i) {
+        dHidBiases[i] = 0;
+    }
+    for (unsigned int i = 0; i < N_MOVIES * MAX_RATING; ++i) {
+        dVisBiases[i] = 0;
     }
 }
 
-// Update W using contrastive divergence
+// Calculate the gradient averaged over all users
 // TODO: Add biases
 // TODO: Split into positive and negative steps
-void RBM::contrastiveDiv() {
+void RBM::calcGrad() {
     double dataVal, expectVal;
-    int movIdx, facIdx, idx;
+    unsigned int userStartIdx, userEndIdx, movIdx, facIdx, idx, i;
     int movFac = N_FACTORS * MAX_RATING;
-    resetDeltaW(); // set dW back to zeros
+    resetDeltas(); // set deltas back to zeros
 
     updateH();
     // First half of equation 6 in RBM for CF, Salakhutdinov 2007
     for (unsigned int n = 0; n < N_USERS; ++n) {
-        for (unsigned int i = 0; i < N_MOVIES; ++i) {
+        userStartIdx = rowIndex[n];
+        userEndIdx = rowIndex[n + 1];
+        for (unsigned int colIdx = userStartIdx; colIdx < userEndIdx;
+                colIdx++) {
+            i = (int) columns[colIdx];
             movIdx = i * movFac;
             for (unsigned int j = 0; j < N_FACTORS; ++j) {
                 facIdx = j * MAX_RATING;
                 for (unsigned int k = 0; k < MAX_RATING; ++k) {
                     dataVal = getActualVal(n, i, j, k);
                     idx = movIdx + facIdx + k;
-                    dW[idx] += this->epsilonW * dataVal / N_USERS;
+                    dW[idx] += epsilonW * dataVal / N_USERS;
                 }
             }
         }
@@ -130,7 +155,11 @@ void RBM::contrastiveDiv() {
     updateH();
     // Second half of equation 6 in RBM for CF, Salakhutdinov 2007
     for (unsigned int n = 0; n < N_USERS; ++n) {
-        for (unsigned int i = 0; i < N_MOVIES; ++i) {
+        userStartIdx = rowIndex[n];
+        userEndIdx = rowIndex[n + 1];
+        for (unsigned int colIdx = userStartIdx; colIdx < userEndIdx;
+                colIdx++) {
+            i = (int) columns[colIdx];
             movIdx = i * movFac;
             for (unsigned int j = 0; j < N_FACTORS; ++j) {
                 facIdx = j * MAX_RATING;
@@ -138,7 +167,7 @@ void RBM::contrastiveDiv() {
                     expectVal = getExpectVal(n, i, j, k);
                     // Equation 6 in RBM for CF, Salakhutdinov 2007
                     idx = movIdx + facIdx + k;
-                    dW[idx] -= this->epsilonW * expectVal / N_USERS;
+                    dW[idx] -= epsilonW * expectVal / N_USERS;
                 }
             }
         }
@@ -147,13 +176,12 @@ void RBM::contrastiveDiv() {
 }
 
 // Update W using contrastive divergence
-// TODO: Make more efficient by taking advantage of sparse matrix properties
 void RBM::updateW() {
-    contrastiveDiv();
+    calcGrad();
 
     // Update W
     for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
-        this->W[i] += this->dW[i];
+        W[i] += dW[i];
     }
 }
 
@@ -161,8 +189,38 @@ void RBM::updateW() {
 void RBM::updateH() {
     bool var;
     for (int i = 0; i < N_USERS * N_FACTORS; ++i) {
-        var = uniform(0, 1) > this->hidProbs[i];
+        var = uniform(0, 1) > hidProbs[i];
         setHidVar(i, var);
+    }
+}
+
+// Use training data to calculate hidden probabilities
+void RBM::calcHidProbsUsingData() {
+    // Reset hidProbs to b_j
+    unsigned int userStartIdx, userEndIdx, i, k, idx;
+    for (i = 0; i < N_USERS; ++i) {
+        userStartIdx = i * N_FACTORS;
+        std::copy(hidBiases, hidBiases + N_FACTORS, hidProbs + userStartIdx);
+    }
+
+    for (unsigned int n = 0; n < N_USERS; ++n) {
+        userStartIdx = rowIndex[n];
+        userEndIdx = rowIndex[n + 1];
+        for (unsigned int colIdx = userStartIdx; colIdx < userEndIdx;
+                colIdx++) {
+            i = (int) columns[colIdx]; // movie
+            k = values[colIdx]; // rating
+            for (unsigned int j = 0; j < N_FACTORS; ++j) {
+                idx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
+                hidProbs[n * N_FACTORS + j] += W[idx];
+            }
+        }
+    }
+
+    // Compute hidProbs
+    for (unsigned int j = 0; j < N_FACTORS; ++j) {
+        hidProbs[j] = sigmoid(hidProbs[j]);
+        assert(hidProbs[j] >= 0 && hidProbs[j] <= 1);
     }
 }
 
