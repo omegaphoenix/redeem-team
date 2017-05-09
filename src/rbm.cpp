@@ -30,6 +30,7 @@ RBM::RBM() {
     // Initialize hidden units
     hidVars = new std::bitset<N_USERS * N_FACTORS>(0);
     hidProbs = new double[N_USERS * N_FACTORS];
+    combinedHidProbs = new double[N_FACTORS];
     for (unsigned int i = 0; i < N_USERS * N_FACTORS; ++i) {
         setHidVar(i, rand() % 2);
         hidProbs[i] = uniform(0, 1);
@@ -218,9 +219,23 @@ void RBM::calcHidProbsUsingData() {
     }
 
     // Compute hidProbs
+    for (i = 0; i < N_USERS * N_FACTORS; ++i) {
+        hidProbs[i] = sigmoid(hidProbs[i]);
+        assert(hidProbs[i] >= 0 && hidProbs[i] <= 1);
+    }
+
+    // Split up for loops for speed of accessing hidProbs
     for (unsigned int j = 0; j < N_FACTORS; ++j) {
-        hidProbs[j] = sigmoid(hidProbs[j]);
-        assert(hidProbs[j] >= 0 && hidProbs[j] <= 1);
+        combinedHidProbs[j] = 0;
+    }
+    for (unsigned int n = 0; n < N_USERS; ++n ) {
+        for (unsigned int j = 0; j < N_FACTORS; ++j) {
+            idx = n * N_FACTORS + j;
+            combinedHidProbs[j] += hidProbs[idx];
+        }
+    }
+    for (unsigned int j = 0; j < N_FACTORS; ++j) {
+        combinedHidProbs[j] /= N_USERS;
     }
 }
 
