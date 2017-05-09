@@ -47,17 +47,7 @@ RBM::RBM() {
     for (unsigned int i = 0; i < N_FACTORS; ++i) {
         hidBiases[i] = uniform(0, 1);
     }
-    // Init visible biases to logs of respective base rates over all users
     visBiases = new double[N_MOVIES * MAX_RATING];
-    unsigned int movie, rating;
-    for (unsigned int i = 0; i < numRatings; ++i) {
-        movie = columns[i];
-        rating = values[i];
-        (visBiases[movie * MAX_RATING + rating])++;
-    }
-    for (unsigned int i = 0; i < N_MOVIES * MAX_RATING; ++i) {
-        visBiases[i] = log(visBiases[i] / N_USERS);
-    }
 
     // Initialize deltas
     dW = new double[N_MOVIES * N_FACTORS * MAX_RATING];
@@ -82,7 +72,17 @@ RBM::~RBM() {
 
 // Load data
 void RBM::init() {
-    load("3.dta");
+    load("1.dta");
+    // Init visible biases to logs of respective base rates over all users
+    unsigned int movie, rating;
+    for (unsigned int i = 0; i < numRatings; ++i) {
+        movie = columns[i];
+        rating = values[i];
+        (visBiases[movie * MAX_RATING + rating])++;
+    }
+    for (unsigned int i = 0; i < N_MOVIES * MAX_RATING; ++i) {
+        visBiases[i] = log(visBiases[i] / N_USERS);
+    }
 }
 
 // Set nth hidden variable to newVal
@@ -357,7 +357,12 @@ double RBM::getExpectVal(int n, int i, int j, int k) {
 
 void RBM::train(std::string saveFile) {
     for (unsigned int epoch = 0; epoch < RBM_EPOCHS; epoch++) {
+        std::cout << "Starting epoch " << epoch << std::endl;
+        clock_t time0 = clock();
         updateW();
+        clock_t time1 = clock();
+        double ms1 = diffclock(time1, time0);
+        std::cout << "Epoch " << epoch <<  " took " << ms1 << " ms" << std::endl;
     }
 }
 
