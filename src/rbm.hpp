@@ -39,7 +39,6 @@ class RBM : public Model {
         double* visBiases; // bias of rating k for movie i
         double* dVisBiases; // delta of bias of rating k for movie i
         double* hidProbs; // hidden probabilities
-        double* combinedHidProbs; // hidden probabilities
         std::bitset<N_USERS * N_FACTORS>* hidVars; // bitset
         std::bitset<N_MOVIES * MAX_RATING>* indicatorV; // array of bitsets
 };
