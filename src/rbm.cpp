@@ -355,6 +355,12 @@ double RBM::getExpectVal(int n, int i, int j, int k) {
     return prod;
 }
 
+void RBM::train(std::string saveFile) {
+    for (unsigned int epoch = 0; epoch < RBM_EPOCHS; epoch++) {
+        updateW();
+    }
+}
+
 int main() {
     // Speed up stdio operations
     std::ios_base::sync_with_stdio(false);

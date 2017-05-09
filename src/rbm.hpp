@@ -31,7 +31,7 @@ class RBM : public Model {
         double getActualVal(int n, int i, int j, int k);
         double getExpectVal(int n, int i, int j, int k);
         void runGibbsSampler();
-        void train(std::string saveFile) {};
+        void train(std::string saveFile);
 
     private:
         double* W;
