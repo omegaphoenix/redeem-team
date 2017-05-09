@@ -3,8 +3,8 @@
 #include <bitset>
 #include "model.hpp"
 
-#define N_FACTORS 100
-#define RBM_EPOCHS 100
+#define N_FACTORS 10
+#define RBM_EPOCHS 1
 
 class RBM : public Model {
 

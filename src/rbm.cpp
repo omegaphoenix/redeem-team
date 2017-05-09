@@ -11,7 +11,7 @@ using namespace std;
 // Initialize RBM variables.
 RBM::RBM() {
     clock_t time0 = clock();
-    printf("Initializing RBM...\n");
+    debugPrint("Initializing RBM...\n");
 
     // Number of full steps to run Gibb's sampler
     T = 1;
@@ -73,6 +73,9 @@ RBM::~RBM() {
 // Load data
 void RBM::init() {
     load("1.dta");
+    clock_t time0 = clock();
+    debugPrint("Initializing visible biases...\n");
+
     // Init visible biases to logs of respective base rates over all users
     unsigned int movie, rating;
     for (unsigned int i = 0; i < numRatings; ++i) {
@@ -80,9 +83,16 @@ void RBM::init() {
         rating = values[i];
         (visBiases[movie * MAX_RATING + rating])++;
     }
+    clock_t time1 = clock();
     for (unsigned int i = 0; i < N_MOVIES * MAX_RATING; ++i) {
         visBiases[i] = log(visBiases[i] / N_USERS);
     }
+    clock_t time2 = clock();
+
+    double ms1 = diffclock(time1, time0);
+    double ms2 = diffclock(time2, time1);
+    std::cout << "Adding visible biases took " << ms1 << " ms" << std::endl;
+    std::cout << "Logging biases took " << ms2 << " ms" << std::endl;
 }
 
 // Set nth hidden variable to newVal
@@ -112,6 +122,8 @@ bool RBM::getV(int n, int i, int k) {
 // Set all deltas to 0
 // TODO: Consider just creating a new array for speed
 void RBM::resetDeltas() {
+    debugPrint("Resetting deltas...\n");
+    clock_t time0 = clock();
     for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
         dW[i] = 0;
     }
@@ -121,19 +133,30 @@ void RBM::resetDeltas() {
     for (unsigned int i = 0; i < N_MOVIES * MAX_RATING; ++i) {
         dVisBiases[i] = 0;
     }
+    clock_t time1 = clock();
+
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Resetting deltas took " << ms1 << " ms" << std::endl;
 }
 
 // Calculate the gradient averaged over all users
 // TODO: Add biases
 // TODO: Split into positive and negative steps
 void RBM::calcGrad() {
+    debugPrint("Calculating gradient...\n");
+    clock_t time0 = clock();
     resetDeltas(); // set deltas back to zeros
     posStep(); // Calculate <vikhj>_data
     // TODO: Do we need to reset V?
     negStep(); // Calculate <vikhj>_T
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Calculating gradient took " << ms1 << " ms" << std::endl;
 }
 
 void RBM::posStep() {
+    debugPrint("Positive step...\n");
+    clock_t time0 = clock();
     double dataVal;
     unsigned int userStartIdx, userEndIdx, movIdx, facIdx, idx, i;
     int movFac = N_FACTORS * MAX_RATING;
@@ -158,9 +181,14 @@ void RBM::posStep() {
             }
         }
     }
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Positive step took " << ms1 << " ms" << std::endl;
 }
 
 void RBM::negStep() {
+    debugPrint("Negative step...\n");
+    clock_t time0 = clock();
     double expectVal;
     unsigned int userStartIdx, userEndIdx, movIdx, facIdx, idx, i;
     int movFac = N_FACTORS * MAX_RATING;
@@ -186,28 +214,43 @@ void RBM::negStep() {
             }
         }
     }
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Negative step took " << ms1 << " ms" << std::endl;
 }
 
 // Update W using contrastive divergence
 void RBM::updateW() {
+    debugPrint("Updating W...\n");
+    clock_t time0 = clock();
     calcGrad();
     // Update W
     for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
         W[i] += epsilonW * dW[i] / N_USERS;
     }
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Updating W took " << ms1 << " ms" << std::endl;
 }
 
 // Update binary hidden states
 void RBM::updateH() {
+    debugPrint("Updating H...\n");
+    clock_t time0 = clock();
     bool var;
     for (int i = 0; i < N_USERS * N_FACTORS; ++i) {
         var = uniform(0, 1) > hidProbs[i];
         setHidVar(i, var);
     }
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Updating H took " << ms1 << " ms" << std::endl;
 }
 
 // Update binary visible states
 void RBM::updateV() {
+    debugPrint("Updating V...\n");
+    clock_t time0 = clock();
     // TODO: Do we update all the V's or just the learned ones?
     bool var;
     unsigned int idx;
@@ -220,18 +263,28 @@ void RBM::updateV() {
             }
         }
     }
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Updating V took " << ms1 << " ms" << std::endl;
 }
 
 // Iteratively update V and h
 void RBM::runGibbsSampler() {
+    debugPrint("Running Gibbs sampler...\n");
+    clock_t time0 = clock();
     calcVisProbs();
     updateV();
     calcHidProbs();
     updateH();
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Updating Gibbs sampler took " << ms1 << " ms" << std::endl;
 }
 
 // Use training data to calculate hidden probabilities
 void RBM::calcHidProbsUsingData() {
+    debugPrint("Calculating hidden probabilities using data...\n");
+    clock_t time0 = clock();
     // Reset hidProbs to b_j
     unsigned int userStartIdx, userEndIdx, i, k, idx;
     for (i = 0; i < N_USERS; ++i) {
@@ -258,10 +311,15 @@ void RBM::calcHidProbsUsingData() {
         hidProbs[i] = sigmoid(hidProbs[i]);
         assert(hidProbs[i] >= 0 && hidProbs[i] <= 1);
     }
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Calculating hidden probs w/ data took " << ms1 << " ms" << std::endl;
 }
 
 // Use visible states to calculate hidden probabilities
 void RBM::calcHidProbs() {
+    debugPrint("Calculating hidden probabilities using visible states...\n");
+    clock_t time0 = clock();
     // Reset hidProbs to b_j
     unsigned int userStartIdx, i, k, idx;
     for (i = 0; i < N_USERS; ++i) {
@@ -288,10 +346,15 @@ void RBM::calcHidProbs() {
         hidProbs[i] = sigmoid(hidProbs[i]);
         assert(hidProbs[i] >= 0 && hidProbs[i] <= 1);
     }
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Calculating hidden probs w/ vis took " << ms1 << " ms" << std::endl;
 }
 
 // Use hidden states to calculate visible probabilities
 void RBM::calcVisProbs() {
+    debugPrint("Calculating visible probabilities...\n");
+    clock_t time0 = clock();
     // Reset visProbs to b_ik
     unsigned int n, i, j, k, idx, vIdx;
     for (n = 0; n < N_USERS; ++n) {
@@ -330,6 +393,9 @@ void RBM::calcVisProbs() {
             }
         }
     }
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Calculating vis probs took " << ms1 << " ms" << std::endl;
 }
 
 // Frequency with which movie i with rating k and feature j are on together
@@ -344,7 +410,7 @@ double RBM::getActualVal(int n, int i, int j, int k) {
     return prod;
 }
 
-// <v_i^k h_j>_{T} in equation 6
+// <v_i^k h_j>_T in equation 6
 // Expectation with respect to the distribution defined by the model
 double RBM::getExpectVal(int n, int i, int j, int k) {
     double prod = 0;
@@ -356,6 +422,8 @@ double RBM::getExpectVal(int n, int i, int j, int k) {
 }
 
 void RBM::train(std::string saveFile) {
+    debugPrint("Training...\n");
+    clock_t time0 = clock();
     for (unsigned int epoch = 0; epoch < RBM_EPOCHS; epoch++) {
         std::cout << "Starting epoch " << epoch << std::endl;
         clock_t time0 = clock();
@@ -364,6 +432,9 @@ void RBM::train(std::string saveFile) {
         double ms1 = diffclock(time1, time0);
         std::cout << "Epoch " << epoch <<  " took " << ms1 << " ms" << std::endl;
     }
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    std::cout << "Training took " << ms1 << " ms" << std::endl;
 }
 
 int main() {
@@ -382,12 +453,12 @@ int main() {
     rbm->train("data/um/rbm.save");
     clock_t time3 = clock();
     double ms1 = diffclock(time1, time0);
-    std::cout << "Initializing took " << ms1 << " ms" << std::endl;
     double ms2 = diffclock(time2, time1);
-    std::cout << "Total loading took " << ms2 << " ms" << std::endl;
     double ms3 = diffclock(time3, time2);
-    std::cout << "Training took " << ms3 << " ms" << std::endl;
     double total_ms = diffclock(time3, time0);
+    std::cout << "Initializing took " << ms1 << " ms" << std::endl;
+    std::cout << "Total loading took " << ms2 << " ms" << std::endl;
+    std::cout << "Training took " << ms3 << " ms" << std::endl;
     std::cout << "Total running time was " << total_ms << " ms" << std::endl;
     delete rbm;
     return 0;
