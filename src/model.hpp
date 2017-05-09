@@ -13,7 +13,7 @@ class Model {
         unsigned int numRatings;
         unsigned char* values; // CSR values/ratings
         unsigned short* columns; // CSR columns/movies, 0-indexed
-        int* rowIndex; // CSR row index, where user i starts in values/columns, 0-indexed
+        unsigned int* rowIndex; // CSR row index, where user i starts in values/columns, 0-indexed
         virtual ~Model();
         void loadFresh(std::string inFname, std::string outFname);
         void loadCSR(std::string fname);

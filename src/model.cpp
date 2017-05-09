@@ -17,7 +17,7 @@ Model::Model() {
     ratings = new int[N_TRAINING * DATA_POINT_SIZE];
     values = new unsigned char[N_TRAINING];
     columns = new unsigned short[N_TRAINING];
-    rowIndex = new int[N_USERS + 1];
+    rowIndex = new unsigned int[N_USERS + 1];
 }
 
 // Clean up ratings.

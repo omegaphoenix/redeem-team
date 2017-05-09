@@ -37,6 +37,7 @@ RBM::RBM() {
 
     // Initialize V
     indicatorV = new std::bitset<N_MOVIES * MAX_RATING>[N_USERS];
+    visProbs = new double[(long) N_USERS * N_MOVIES * MAX_RATING];
     for (unsigned int i = 0; i < N_USERS; ++i) {
         indicatorV[i] = std::bitset<N_MOVIES * MAX_RATING>(0);
     }
@@ -48,7 +49,6 @@ RBM::RBM() {
     }
     // Init visible biases to logs of respective base rates over all users
     visBiases = new double[N_MOVIES * MAX_RATING];
-    visProbs = new double[N_MOVIES * MAX_RATING];
     unsigned int movie, rating;
     for (unsigned int i = 0; i < numRatings; ++i) {
         movie = columns[i];
@@ -292,6 +292,44 @@ void RBM::calcHidProbs() {
 
 // Use hidden states to calculate visible probabilities
 void RBM::calcVisProbs() {
+    // Reset visProbs to b_ik
+    unsigned int n, i, j, k, idx, vIdx;
+    for (n = 0; n < N_USERS; ++n) {
+        idx = n * N_MOVIES * MAX_RATING;
+        std::copy(visBiases, visBiases + N_MOVIES * MAX_RATING, visProbs + idx);
+    }
+
+    for (n = 0; n < N_USERS; ++n) {
+        for (i = 0; i < N_MOVIES; ++i) {
+            for (k = 0; k < MAX_RATING; ++k) {
+                for (j = 0; j < N_FACTORS; ++j) {
+                    if (getHidVar(j)) {
+                        idx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
+                        vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
+                        visProbs[vIdx] += W[idx];
+                    }
+                }
+            }
+        }
+    }
+
+    // Compute visProbs
+    double denom = 0;
+    for (n = 0; n < N_USERS; ++n) {
+        for (i = 0; i < N_MOVIES; ++i) {
+            denom = 0;
+            for (k = 0 ; k < MAX_RATING; ++k) {
+                vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
+                visProbs[vIdx] = exp(visProbs[vIdx]);
+                denom += visProbs[vIdx];
+            }
+            for (k = 0 ; k < MAX_RATING; ++k) {
+                vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
+                visProbs[vIdx] = visProbs[vIdx] / denom;
+                assert (visProbs[vIdx] >= 0 && visProbs[vIdx] <= 1);
+            }
+        }
+    }
 }
 
 // Frequency with which movie i with rating k and feature j are on together
