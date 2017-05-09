@@ -98,24 +98,24 @@ void RBM::init() {
 }
 
 // Set nth hidden variable to newVal
-void RBM::setHidVar(int nthHidVar, bool newVal) {
+inline void RBM::setHidVar(int nthHidVar, bool newVal) {
     hidVars->set(nthHidVar, newVal);
 }
 
 // Get nth hidden variable
-bool RBM::getHidVar(int nthHidVar) {
+inline bool RBM::getHidVar(int nthHidVar) {
     // Need to get the 0th element first since it is a pointer
     return (*hidVars)[nthHidVar];
 }
 
 // Set the nth user's kth rating for the ith movie
-void RBM::setV(int n, int i, int k, bool newVal) {
+inline void RBM::setV(int n, int i, int k, bool newVal) {
     int idx = i * MAX_RATING + k;
     indicatorV[n].set(idx, newVal);
 }
 
 // Did the nth user rate the ith movie as k
-bool RBM::getV(int n, int i, int k) {
+inline bool RBM::getV(int n, int i, int k) {
     // Need to get the 0th element first since it is a pointer
     int idx = i * MAX_RATING + k;
     return indicatorV[n][idx];

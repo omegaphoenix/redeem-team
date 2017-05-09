@@ -149,7 +149,7 @@ void Model::loadSaved(std::string fname) {
 
 // Run this function once first to preprocess data.
 void Model::initLoad(std::string fname, std::string dataFile) {
-    debugPrint("Preprocessing...");
+    debugPrint("Preprocessing...\n");
     clock_t time0 = clock();
 
     // Load data from file.
@@ -169,7 +169,7 @@ void Model::load(std::string dataFile) {
         initLoad(fname, dataFile);
     }
 
-    debugPrint("Loading...");
+    debugPrint("Loading...\n");
     clock_t time0 = clock();
     // Load data from file.
     loadCSR(fname);
