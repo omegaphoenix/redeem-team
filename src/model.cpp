@@ -30,7 +30,7 @@ Model::~Model() {
 
 // Load new ratings array into CSR format.
 void Model::loadFresh(std::string inFname, std::string outFname) {
-    std::cout << "Opening " << inFname << std::endl;
+    printf("Opening %s\n", inFname.c_str());
 
     FILE* in = fopen(inFname.c_str(), "r");
     FILE* out = fopen((outFname).c_str(), "wb");
@@ -149,7 +149,7 @@ void Model::loadSaved(std::string fname) {
 
 // Run this function once first to preprocess data.
 void Model::initLoad(std::string fname, std::string dataFile) {
-    std::cout << "Preprocessing..." << std::endl;
+    debugPrint("Preprocessing...");
     clock_t time0 = clock();
 
     // Load data from file.
@@ -158,7 +158,7 @@ void Model::initLoad(std::string fname, std::string dataFile) {
 
     // Output times.
     double ms1 = diffclock(time1, time0);
-    std::cout << "Preprocessing took " << ms1 << " ms" << std::endl;
+    printf("Preproccessing took %f ms\n", ms1);
 }
 
 // Load the data.
@@ -169,7 +169,7 @@ void Model::load(std::string dataFile) {
         initLoad(fname, dataFile);
     }
 
-    std::cout << "Loading..." << std::endl;
+    debugPrint("Loading...");
     clock_t time0 = clock();
     // Load data from file.
     loadCSR(fname);
@@ -177,5 +177,5 @@ void Model::load(std::string dataFile) {
 
     // Output times.
     double ms1 = diffclock(time1, time0);
-    std::cout << "Loading took " << ms1 << " ms" << std::endl;
+    printf("Loading took %f ms\n", ms1);
 }
