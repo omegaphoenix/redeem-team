@@ -38,7 +38,12 @@ struct dataPoint {
     // Sort my movie
     bool operator<(const struct dataPoint &other) const
     {
-        return movieID < other.movieID;
+        if (movieID != other.movieID) {
+            return movieID < other.movieID;
+        }
+        else {
+            return userID < other.userID;
+        }
     }
 };
 
@@ -65,21 +70,15 @@ class Model {
         int* murowIndex; // CSR row index, where user i starts in values/columns
         dataPoint* sortStruct;     
 
-        // ~Model();
-        virtual ~Model();
+        ~Model();
         void loadFresh(std::string inFname, std::string outFname);
         void loadCSR(std::string fname);
-        virtual void loadSaved(std::string fname) = 0;
-        // void loadSaved(std::string fname);
-        virtual void train(std::string saveFile) = 0;
+        // virtual void loadSaved(std::string fname) = 0;
+        // virtual void train(std::string saveFile) = 0;
         void initLoad(std::string fname, std::string dataFile);
         void load(std::string dataFile);
 
         void transposeMU();
-
-    private:
-        virtual void generateMissing(void);
-        // void generateMissing(void);
 };
 
 #endif // MODEL_HPP
