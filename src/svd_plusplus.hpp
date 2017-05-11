@@ -50,6 +50,7 @@ class SVDPlus : public Model {
         float *C;
         float *W;
 
+        //std::vector<int> shuffler;
         bool validation_loaded;
 };
 

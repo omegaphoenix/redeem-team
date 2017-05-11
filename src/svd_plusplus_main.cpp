@@ -21,6 +21,15 @@ int main(int argc, char **argv) {
 
     // Load in COO format into ratings vector
     svd->load("1.dta");
+    /*
+    double sum = 0.0;
+    for (int i = 0; i < N_USERS; i++) {
+        float Nu = (float) svd->rowIndex[i + 1] - svd->rowIndex[i];
+        std::cout << "|N(u)| is " << Nu << std::endl;
+        sum += (double) Nu;
+    }
+    std::cout << "Average |N(u)| is " << (sum / (double) N_USERS);
+    */
 
     // Get baseline values.
     clock_t time2 = clock();

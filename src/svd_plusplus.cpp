@@ -15,6 +15,15 @@ SVDPlus::SVDPlus() : Model() {
     validation_loaded = false;
     U = NULL;
     V = NULL;
+
+    // Create a randomly shuffled order of entries to go through.
+    /* We won't use a shuffler because we can't save on
+    // y, c, w calculations with it.
+    std::vector<int> shuffler;
+    for (int i = 0; i < this->numRatings; i++) {
+        shuffler.push_back(i);
+    }
+    */
 }
 
 // Clean up U, V.
@@ -29,7 +38,7 @@ void SVDPlus::setParams(int K, float eta, float lambda,
     this->eta = eta;
     this->lambda = lambda;
 
-    this->MAX_EPOCHS = 120;
+    this->MAX_EPOCHS = 1;
     this->EPSILON = 0.0001;
 
     // Need to run a baseline model
@@ -78,32 +87,27 @@ void SVDPlus::train(std::string saveFile) {
         }
 
         // If the difference in error is less than epsilon, break
-        float delta_error = delta / delta0;
-        #ifdef DEBUG
-            std::cout << "ratio of curr_error / init_error is " << delta_error << std::endl;
-        #endif
-        if (delta_error < this->EPSILON) {
-            break;
-        }
+        //float delta_error = delta / delta0;
+        //#ifdef DEBUG
+        //    std::cout << "ratio of curr_error / init_error is " << delta_error << std::endl;
+        //#endif
+        //if (delta_error < this->EPSILON) {
+        //    break;
+        //}
     }
 
 }
 
 // Run one epoch of SGD, returning delta error.
 float SVDPlus::runEpoch() {
-    // Compute the initial error
+    /* Compute the initial error
     #ifdef DEBUG
         std::cout << "Computing initial error" << std::endl;
     #endif
-    float init_error = computeAllError();
+    //float init_error = computeAllError(); */
 
-    // Create a randomly shuffled order of entries to go through.
-    std::vector<int> shuffler;
-    for (int i = 0; i < this->numRatings; i++) {
-        shuffler.push_back(i);
-    }
-    std::shuffle(shuffler.begin(), shuffler.end(),
-        std::default_random_engine(0));
+    //std::shuffle(this->shuffler.begin(), this->shuffler.end(),
+    //    std::default_random_engine(0));
 
     // To minimize the amount of y, c, w updating operations,
     // we only update them once per unique user per epoch.
@@ -117,7 +121,8 @@ float SVDPlus::runEpoch() {
 
     // For each data point in the set
     for (int i = 0; i < this->numRatings; i++) {
-        int idx = shuffler[i];
+        int idx = i;
+        //int idx = this->shuffler[i];
 
         // Get the user, movie, rating
         int user = this->ratings[idx * DATA_POINT_SIZE + USER_IDX];
@@ -135,7 +140,7 @@ float SVDPlus::runEpoch() {
             std::fill(sum_y, sum_y + (this->K), 0);
 
             // Fill them with new values.
-            N = (float) this->rowIndex[user + 1] - this->rowIndex[user];
+            N = (float) this->rowIndex[user] - this->rowIndex[user - 1];
             N = 1.0 / std::sqrt(N);
 
             getPlusVariables(user, movie, N, sum_y, sum_w, sum_c);
@@ -151,16 +156,17 @@ float SVDPlus::runEpoch() {
         update(user, movie, rating, sum_y, e_ui, update_ycw);
     }
     // Compute the new error.
-    float new_error = computeAllError();
-    float delta_error = std::abs(new_error - init_error);
-    #ifdef DEBUG
-        std::cout << "error was " << new_error << std::endl;
-    #endif
+    //float new_error = computeAllError();
+    //float delta_error = std::abs(new_error - init_error);
+    //#ifdef DEBUG
+    //    std::cout << "error was " << new_error << std::endl;
+    //#endif
 
     delete sum_y;
 
     // Return the error
-    return delta_error;
+    //return delta_error;
+    return 0;
 
 }
 
@@ -171,10 +177,17 @@ void SVDPlus::update(int user, int movie, float rating,
     if (update_ycw) {
         // Update user-specific variables. We will do this only
         // once per user (to save time).
-        for (int j = rowIndex[user]; j < rowIndex[user + 1]; j++) {
+
+        int start = rowIndex[user - 1];
+        int end = rowIndex[user];
+        for (int j = start; j < end; j++) {
+
+            if (j - start > 10) {
+                break;
+            }
 
             // Quickly calculate the number of movies a user has rated.
-            float N = (float) this->rowIndex[user + 1] - this->rowIndex[user];
+            float N = (float) this->rowIndex[user] - this->rowIndex[user - 1];
             N = 1.0 / std::sqrt(N);
             // Get the ID of the movie the user rated.
             int movie_idx = this->columns[j];
@@ -189,8 +202,10 @@ void SVDPlus::update(int user, int movie, float rating,
             }
 
             // Updating w
-            float dw = (this->lambda * this->W[movie * N_MOVIES + movie_idx])
-                - (N * e_ui * (rating - getBias(user, movie)));
+            float w_ij = this->W[movie * N_MOVIES + movie_idx];
+            float rating_j = (float) this->values[j];
+            float dw = (this->lambda * w_ij)
+                - (N * e_ui * (rating_j - getBias(user, movie_idx)));
             this->W[movie * N_MOVIES + movie_idx] -= this->eta * dw;
 
             // Updating c
@@ -203,14 +218,13 @@ void SVDPlus::update(int user, int movie, float rating,
     for (int i = 0; i < this->K; i++) {
         // Multiply (Y - (U dot V)) with v_i
         // and subtract from (lambda * u_i) = du
-        float du = (this->lambda * this->U[user * this->K + i])
-            - (this->V[movie * this->K + i] * e_ui);
+        float P_uk = this->U[user * this->K + i];
+        float Q_ik = this->V[movie * this->K + i];
+        float du = (this->lambda * P_uk) - (Q_ik * e_ui);
 
         // Multiply (Y - (U dot V)) with u_i
         // and subtract from (lambda * v_i) = dv
-        float dv = (this->lambda * this->V[movie * this->K + i])
-            - ((this->U[user * this->K + i] + sum_y[i]) 
-            * e_ui);
+        float dv = (this->lambda * Q_ik) - ((P_uk + sum_y[i]) * e_ui);
 
         // Set u_i = u_i - (ETA * du)
         this->U[user * this->K + i] = this->eta * du;
@@ -222,8 +236,7 @@ void SVDPlus::update(int user, int movie, float rating,
 
 void SVDPlus::getPlusVariables(int user, int movie, float N, 
     float* sum_y, float &sum_w, float &sum_c) {
-    for (int j = rowIndex[user]; j < rowIndex[user + 1]; j++) {
-
+    for (int j = rowIndex[user - 1]; j < rowIndex[user]; j++) {
         int movie_j = this->columns[j];
         float rating = (float) this->values[j];
 
@@ -251,7 +264,6 @@ float SVDPlus::getBias(int user, int movie) {
 float SVDPlus::predictRating(int user, int movie, float* sum_y, 
     float sum_w, float sum_c) {
 
-    //std::cout << " Predicting rating for user " << user << " and movie " << movie << std::endl;
     // Get mu + b_u + b_i
     float b_ui = getBias(user, movie);
 
@@ -298,7 +310,7 @@ float SVDPlus::computeAllError() {
             #endif
 
             // Fill them with new values.
-            N = (float) this->rowIndex[user + 1] - this->rowIndex[user];
+            N = (float) this->rowIndex[user] - this->rowIndex[user - 1];
             N = 1.0 / std::sqrt(N);
 
             getPlusVariables(user, movie, N, sum_y, sum_w, sum_c);
@@ -347,10 +359,15 @@ float SVDPlus::validate(std::string valFile, std::string saveFile) {
 
 // Use <stdio.h> for binary writing.
 void SVDPlus::save(std::string fname) {
+    std::cout << "SVDPlus::save called" << std::endl;
     FILE *out = fopen(fname.c_str(), "wb");
+    if (out == NULL) {
+        std::cout << "shit man that file dont exist" << std::endl;
+    }
     int buf[1];
     buf[0] = numEpochs;
-    fwrite(buf, sizeof(int), 1, out);
+
+    fwrite(buf, sizeof(numEpochs), 1, out);
     fwrite(U, sizeof(float), N_USERS * K, out);
     fwrite(V, sizeof(float), N_MOVIES * K, out);
 

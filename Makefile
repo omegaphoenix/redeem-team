@@ -23,7 +23,7 @@ naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 svd_plus: $(SVD_PLUS_FILES:.cpp=.o)
-	$(CXX) $(CFLAGS) -o bin/$@ $^
+	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
 
 validate_naive_svd: $(NAIVE_SVD_CV_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
