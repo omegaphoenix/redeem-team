@@ -37,7 +37,7 @@ kNN::~kNN() {
     delete this->normalized_values;
 }
 
-void kNN::normalizeRatings(float average_array[], float stdev_array[]) {
+void kNN::normalizeRatings(double average_array[], double stdev_array[]) {
     int user = 0;
     int nan_count = 0;
     int stdev_count = 0;
@@ -50,9 +50,9 @@ void kNN::normalizeRatings(float average_array[], float stdev_array[]) {
     }
 }
 
-float kNN::denormalize(float normalized, int user) {
-    return (normalized * stdev_array[user]) + average_array[user];
-}
+// float kNN::denormalize(float normalized, int user) {
+//     return (normalized * stdev_array[user]) + average_array[user];
+// }
 
 void kNN::train(std::string saveFile) {
     std::cout << "Begin training: " << saveFile << std::endl;
