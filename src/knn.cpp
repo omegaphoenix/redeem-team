@@ -1,6 +1,3 @@
-/*
- * We are using USERS
- */
 #include "baseline.hpp"
 #include "knn.hpp"
 #include <algorithm>
@@ -85,7 +82,6 @@ float kNN::pearson(int i_start, int i_end, int j_start, int j_end) {
         movie_i = columns[i];
         movie_j = columns[j];
         if (movie_i == movie_j) {
-            // std::cout << "values[" << i << "] = " << int(values[i]) << "\n";
             ratings_i.push_back(values[i]);
             ratings_j.push_back(values[j]);
             x_i_ave += values[i];
@@ -136,11 +132,6 @@ void kNN::buildMatrix(std::string saveFile) {
     int N = N_USERS;
 
     // Initialize corrMatrix with three rows
-    // 0: correlation
-    // 1: user i
-    // 2: user j
-    // where i < j
-    // NEW FORMAT - CSR
     // 0: index at which user i's correlations begin (int)
     // 1: user j (int)
     // 2: correlation (float)
@@ -175,9 +166,6 @@ void kNN::buildMatrix(std::string saveFile) {
 
             float corr = pearson(rowIndex[i], rowIndex[i + 1], rowIndex[j], rowIndex[j + 1]);
             if (corr != 0) {
-                // corrMatrix[0].push_back(corr);
-                // corrMatrix[1].push_back(i);
-                // corrMatrix[2].push_back(j);
                 corrMatrix[1].push_back(j);
                 corrMatrix[2].push_back(corr);
                 num_correlations++;
@@ -231,22 +219,6 @@ float kNN::predict(int user, int movie) {
         }
     }
 
-    // for (int i = 0; i < num_correlations; i++) {
-    //     float c = corrMatrix[0][i];
-    //     // if (c == 1) {
-    //     //     count++;
-    //     // }
-    //     if (!isnan(c)) {
-    //         if (corrMatrix[1][i] == user) {
-    //             top_corr.push(corrUser(c, corrMatrix[2][i]));
-    //         }
-    //         else if (corrMatrix[2][i] == user) {
-    //             top_corr.push(corrUser(c, corrMatrix[1][i]));
-    //         }
-    //     }
-    // }
-    //std::cout << "number of 1s = " << count << std::endl;
-
     // get top K's average
     int K = 10;
     float total = 0;
@@ -257,7 +229,6 @@ float kNN::predict(int user, int movie) {
         if (top_corr.empty()) {
             break;
         }
-        // avg += corr.pop();
         corrUser top = top_corr.top();
         top_corr.pop();
 
@@ -347,7 +318,6 @@ float kNN::validate(std::string valid_file) {
     // load validation set
     load(valid_file);
 
-    float error = 0;
     float sum_sq_error = 0;
     // predict and calculate
     for (int i = 0; i < numRatings; i++) {
@@ -399,32 +369,24 @@ std::string kNN::getFilename(std::string data_file) {
 int main(int argc, char **argv) {
     clock_t time0 = clock();
     kNN* knn = new kNN();
-    Baseline* base = new Baseline();
-
+    // Baseline* base = new Baseline();
 
     std::string data_file = "4.dta";
 
     // Load data from file.
     knn->load(data_file);
     knn->baseline = 3; // TODO: figure out what to use
-    base->load(data_file);
 
-    base->train("unused variable");
-    /*
-    for (int i = 0; i < N_USERS ; i++) {
-        std::cout << "average " << base->average_array[i] << std::endl;
-        std::cout << "std " << base->stdev_array[i] << std::endl;
-    }*/
-
-    knn->normalizeRatings(base->average_array, base->stdev_array);
-
+    // Normalize ratings
+    // base->load(data_file);
+    // base->train("unused variable");
+    // knn->normalizeRatings(base->average_array, base->stdev_array);
 
     // Train by building correlation matrix
     knn->metric = kPearson;
     knn->shared_threshold = 2;
     knn->individual_threshold = 6;
     knn->K = 10;
-
     knn->train("model/knn/" + knn->getFilename(data_file) + ".save");
 
     clock_t time1 = clock();
