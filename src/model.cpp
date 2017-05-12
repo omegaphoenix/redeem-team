@@ -15,18 +15,18 @@
 
 // Initialize ratings.
 Model::Model() {
-    // UM 
+    // UM
     ratings = new int[N_TRAINING * DATA_POINT_SIZE];
     values = new unsigned char[N_TRAINING];
     columns = new unsigned short[N_TRAINING];
     rowIndex = new int[N_USERS + 1];
 
-    //MU
+    // MU
     sortStruct = new dataPoint[N_TRAINING];
     muratings = new int[N_TRAINING * DATA_POINT_SIZE];
     muvalues = new unsigned char[N_TRAINING];
     mucolumns = new int[N_TRAINING];
-    murowIndex = new int[N_MOVIES + 1];   
+    murowIndex = new int[N_MOVIES + 1];
 }
 
 // Clean up ratings.
