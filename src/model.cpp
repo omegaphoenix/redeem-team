@@ -11,13 +11,22 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <algorithm>
 
 // Initialize ratings.
 Model::Model() {
+    // UM
     ratings = new int[N_TRAINING * DATA_POINT_SIZE];
     values = new unsigned char[N_TRAINING];
     columns = new unsigned short[N_TRAINING];
     rowIndex = new unsigned int[N_USERS + 1];
+
+    // MU
+    sortStruct = new dataPoint[N_TRAINING];
+    muratings = new int[N_TRAINING * DATA_POINT_SIZE];
+    muvalues = new unsigned char[N_TRAINING];
+    mucolumns = new int[N_TRAINING];
+    murowIndex = new int[N_MOVIES + 1];
 }
 
 // Clean up ratings.
@@ -26,6 +35,48 @@ Model::~Model() {
     delete values;
     delete columns;
     delete rowIndex;
+
+    delete sortStruct;
+
+    delete muratings;
+    delete muvalues;
+    delete mucolumns;
+    delete murowIndex;
+}
+
+void Model::transposeMU() {
+    clock_t time0 = clock();
+    for (int i = 0; i < numRatings; i++) {
+        int u = ratings[i * DATA_POINT_SIZE + USER_IDX];
+        int m = ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        int d = ratings[i * DATA_POINT_SIZE + TIME_IDX];
+        int r = ratings[i * DATA_POINT_SIZE + RATING_IDX];
+        sortStruct[i] = dataPoint(u, m, d, r);
+    }
+    std::sort(sortStruct, sortStruct + numRatings);
+
+    int current = 0; //CSR counter
+
+    for (int i = 0; i < numRatings; i++) {
+        // COO Format
+        muratings[i * DATA_POINT_SIZE + USER_IDX] = sortStruct[i].userID;
+        muratings[i * DATA_POINT_SIZE + MOVIE_IDX] = sortStruct[i].movieID;
+        muratings[i * DATA_POINT_SIZE + TIME_IDX] = sortStruct[i].date;
+        muratings[i * DATA_POINT_SIZE + RATING_IDX] = sortStruct[i].value;
+
+        // CSR Format
+        while (sortStruct[i].movieID > current) {
+            current++;
+            murowIndex[current] = i;
+        }
+        muvalues[i] = sortStruct[i].value;
+        mucolumns[i] = sortStruct[i].userID;
+    }
+    murowIndex[N_MOVIES] = numRatings;
+    clock_t time1 = clock();
+
+    double ms1 = diffclock(time1, time0);
+    printf("Transposing took %f ms\n", ms1);;
 }
 
 // Load new ratings array into CSR format.
@@ -105,7 +156,7 @@ void Model::loadCSR(std::string fname) {
             p += sizeof(short);
             bytes -= sizeof(short);
             user++;
-            assert(user <= N_USERS);
+            assert (user <= N_USERS);
             rowIndex[user] = idx;
         }
         // We have number of zeroes and a rating
@@ -139,14 +190,6 @@ void Model::loadCSR(std::string fname) {
     munmap(buffer, size);
 }
 
-// Add in missing values.
-void Model::generateMissing(void) {
-}
-
-// Load ratings array for a model in progress.
-void Model::loadSaved(std::string fname) {
-}
-
 // Run this function once first to preprocess data.
 void Model::initLoad(std::string fname, std::string dataFile) {
     debugPrint("Preprocessing...\n");
@@ -178,4 +221,57 @@ void Model::load(std::string dataFile) {
     // Output times.
     double ms1 = diffclock(time1, time0);
     printf("Loading took %f ms\n", ms1);
+}
+
+void testTranspose() {
+    clock_t time0 = clock();
+    Model* mod = new Model();
+    clock_t time1 = clock();
+    mod->load("1.dta");
+    clock_t time2 = clock();
+    printf("Transpose\n");
+    mod->transposeMU();
+    clock_t time3 = clock();
+    int i;
+    for (i = 0; i < mod->numRatings - 1; i++) {
+        int j = i + 1;
+        // COO values
+        int user = mod->muratings[i * DATA_POINT_SIZE + USER_IDX];
+        int nextUser = mod->muratings[j * DATA_POINT_SIZE + USER_IDX];
+        int movie = mod->muratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        int nextMovie = mod->muratings[j * DATA_POINT_SIZE + MOVIE_IDX];
+
+        // CSR values
+        int csrUser = mod->mucolumns[i];
+        int csrRating = mod->muvalues[i];
+        assert (user == csrUser);
+
+        // Check order of COO
+        assert (movie <= nextMovie);
+        if (movie == nextMovie) {
+            assert (user <= nextUser);
+        }
+
+        // Check order of CSR
+        assert (csrRating > 0 && csrRating <= MAX_RATING);
+        if (i < N_MOVIES) {
+            int csrUserIdx = mod->murowIndex[i];
+            int csrNextUserIdx = mod->murowIndex[j];
+            assert (csrUserIdx <= csrNextUserIdx);
+        }
+    }
+
+    assert (mod->murowIndex[0] == 0);
+    assert (mod->murowIndex[N_MOVIES] == mod->numRatings);
+    clock_t time4 = clock();
+
+    double ms1 = diffclock(time1, time0);
+    double ms2 = diffclock(time2, time1);
+    double ms3 = diffclock(time3, time2);
+    double ms4 = diffclock(time4, time3);
+
+    printf("Initializing took %f ms\n", ms1);
+    printf("Total loading took %f ms\n", ms2);
+    printf("Transposing took %f ms\n", ms3);
+    printf("Testing took %f ms\n", ms4);
 }
