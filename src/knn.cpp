@@ -1,6 +1,7 @@
 #include "baseline.hpp"
 #include "knn.hpp"
 #include <algorithm>
+#include <assert.h>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -12,11 +13,12 @@
 #include <sys/stat.h>
 #include <queue>
 
-/* Stores correlation value and correlated user. */
+/* Stores correlation value and correlated user. Use in predict, when you have
+ * a specified user and specified movie. */
 struct corrUser {
     float corr;
-    int user;
-    int rating;
+    int user; // user that is correlated with specified user
+    int rating; // rating that user gave specified movie
 
     corrUser(float c, int u, int r) : corr(c), user(u), rating(r) {
     }
@@ -63,6 +65,19 @@ void kNN::train(std::string saveFile) {
         std::cout << "File does not exist. Building matrix...\n";
         buildMatrix(saveFile);
     }
+    // //sanity check corrMatrix
+    // std::cout << "corrMatrix - rowIndex\n";
+    // for (int i = 0; i < 300; i++) {
+    //     std::cout << corrMatrix[0][i] << " ";
+    // }
+    // std::cout << "\ncorrMatrix - other user\n";
+    // for (int i = 0; i < 10; i++) {
+    //     std::cout << corrMatrix[1][i] << " ";
+    // }
+    // std::cout << "\ncorrMatrix - correlations\n";
+    // for (int i = 0; i < 10; i++) {
+    //     std::cout << corrMatrix[2][i] << " ";
+    // }
 }
 
 // Calculates Pearson correlation for each item
@@ -129,12 +144,9 @@ float kNN::pearson(int i_start, int i_end, int j_start, int j_end) {
 void kNN::buildMatrix(std::string saveFile) {
     std::cout << "entered buildMatrix()\n";
 
-    // Number of items
-    int N = N_USERS;
-
     // Initialize corrMatrix with three rows
-    // 0: index at which user i's correlations begin (int)
-    // 1: user j (int)
+    // 0: index at which user i's correlations begin (int) 0-indexed
+    // 1: user j (int) 0-indexed
     // 2: correlation (float)
     for (int i = 0; i < 3; i++) {
         std::vector<float> row;
@@ -142,24 +154,21 @@ void kNN::buildMatrix(std::string saveFile) {
     }
 
     num_correlations = 0; // also acts as index
-    int curr_user = 0;
+    int debug_curr_user = 0;
     int num_users = 0;
 
     std::cout << "matrix initialized\n";
 
-    // initialize CSR
-    corrMatrix[0].push_back(-1);
-
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N_USERS; i++) {
         corrMatrix[0].push_back(num_correlations);
-        for (int j = i + 1; j < N; j++) {
+        for (int j = i + 1; j < N_USERS; j++) {
             // Don't bother if either user has too few movies
             if (rowIndex[i + 1] - rowIndex[i] < individual_threshold
                 || rowIndex[j + 1] - rowIndex[j] < individual_threshold) {
                 // print for debugging
-                if (i % 1000 == 0 && i != curr_user) {
-                    curr_user = i;
-                    std::cout << "user i = " << i << std::endl;
+                if (i % 1000 == 0 && i != debug_curr_user) {
+                    debug_curr_user = i;
+                    std::cout << "building matrix - user " << i << std::endl;
                 }
                 continue;
             }
@@ -199,38 +208,46 @@ void kNN::buildMatrix(std::string saveFile) {
 float kNN::predict(int user, int movie) {
     // TODO: get stats?
     std::priority_queue<corrUser> top_corr;
-    // Put correlations between specified user and any other user
-    // in a priority queue
-    for (int user_i = 0; user_i < N_USERS; user_i++) {
-        if (user_i > user) {
-            break; // user_j > user_i > user
+
+    int movie_start = murowIndex[movie];
+    int movie_end = murowIndex[movie + 1];
+
+    int other_user;
+    int first_user;
+    int second_user;
+
+    // Get each OTHER USER that has rated MOVIE
+    for (int movie_idx = movie_start; movie_idx < movie_end; movie_idx++) {
+        int other_user = mucolumns[movie_idx];
+
+        // to look up correlation, we need first_user < second_user
+        //assert(other_user != user);
+        if (other_user == user) {
+            // std::cout << "(317, 4498) --> " << ratings[];
+            std::cout << "user " << user << " already rated movie " << movie
+            << "! gave it a " << muvalues[movie_idx] << "\n";
+            exit(0);
         }
-        int start = corrMatrix[0][user_i];
-        int end = corrMatrix[0][user_i + 1];
-        for (int j = start; j < end; j++) {
-            int user_j = corrMatrix[1][j];
-            float c = corrMatrix[2][j];
-            if (!isnan(c)) {
-                int other_user = -1;
-                if (user_i == user) {
-                    other_user = user_j;
+        first_user = (user < other_user) ? user : other_user;
+        second_user = (user > other_user) ? user : other_user;
+
+        // std::cout << "first user = " << first_user << "\n";
+        // std::cout << "second user = " << second_user << "\n";
+
+        // Retrieve correlation from matrix
+        // TODO: consider binary search?
+        for (int i = corrMatrix[0][first_user];
+            i < corrMatrix[0][first_user + 1];
+            i++) {
+            if (corrMatrix[1][i] == second_user) {
+                // std::cout << "found nonzero correlation!\n";
+                // Retrieve movie rating by OTHER USER
+                int rating = getRatingCSR(other_user, movie);
+                if (rating > 0) {
+                    top_corr.push(corrUser(
+                        corrMatrix[2][i], other_user, float(rating)));
                 }
-                else if (user_j == user) {
-                    other_user = user_i;
-                }
-                if (other_user > 0) {
-                    // check if other_user has rated movie
-                    int start_index = rowIndex[other_user];
-                    int end_index = rowIndex[other_user + 1];
-                    for (int i = start_index; i < end_index; ++i) {
-                        if (columns[i] == movie) {
-                            top_corr.push(corrUser(c, other_user, values[i]));
-                        }
-                        else if (columns[i] > movie) {
-                            break;
-                        }
-                    }
-                }
+                break;
             }
         }
     }
@@ -317,16 +334,15 @@ void kNN::save(std::string fname) {
 }
 
 // rmse
-float kNN::validate(std::string valid_file) {
-    // load validation set
-    load(valid_file);
-
+float kNN::validate(int* valid_ratings, int valid_numRatings) {
     float sum_sq_error = 0;
     // predict and calculate
-    for (int i = 0; i < numRatings; i++) {
-        int user = ratings[i * DATA_POINT_SIZE + USER_IDX];
-        int movie = ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
-        int actual_rating = ratings[i * DATA_POINT_SIZE + RATING_IDX];
+    for (int i = 0; i < valid_numRatings; i++) {
+        int user = valid_ratings[i * DATA_POINT_SIZE + USER_IDX];
+        int movie = valid_ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        // std::cout << "valid // user = " << user << "\n";
+        // std::cout << "valid // movie = " << movie << "\n";
+        int actual_rating = valid_ratings[i * DATA_POINT_SIZE + RATING_IDX];
         float rating = predict(user, movie);
         if (rating < 1) {
             rating = 1;
@@ -338,7 +354,7 @@ float kNN::validate(std::string valid_file) {
         sum_sq_error += (rating - actual_rating) * (rating - actual_rating);
     }
 
-    return sqrt(sum_sq_error /= numRatings);
+    return sqrt(sum_sq_error /= valid_numRatings);
 }
 
 float kNN::rmse(float actual, float predicted) {
@@ -369,6 +385,20 @@ std::string kNN::getFilename(std::string data_file) {
     return fname;
 }
 
+// TODO: consider binary search?
+int kNN::getRatingCSR(int user, int movie) {
+    int start_index = rowIndex[user - 1];
+    int end_index = rowIndex[user];
+    for (int i = start_index; i < end_index; ++i) {
+        if (columns[i] == movie) {
+            return values[i];
+        }
+        else if (columns[i] > movie) {
+            return -1;
+        }
+    }
+}
+
 int main(int argc, char **argv) {
     clock_t time0 = clock();
     kNN* knn = new kNN();
@@ -378,7 +408,7 @@ int main(int argc, char **argv) {
 
     // Load data from file.
     knn->load(data_file);
-    knn->baseline = 3; // TODO: figure out what to use
+    knn->transposeMU();
 
     // Normalize ratings
     // base->load(data_file);
@@ -390,6 +420,7 @@ int main(int argc, char **argv) {
     knn->shared_threshold = 2;
     knn->individual_threshold = 6;
     knn->K = 10;
+    knn->baseline = 3; // TODO: figure out what to use
     knn->train("model/knn/" + knn->getFilename(data_file) + ".save");
 
     clock_t time1 = clock();
@@ -399,7 +430,9 @@ int main(int argc, char **argv) {
 
     // Validate
     std::cout << "Validating...\n";
-    std::cout << "RMSE = " << knn->validate("2.dta") << "\n";
+    kNN* valid = new kNN();
+    valid->load("2.dta");
+    std::cout << "RMSE = " << knn->validate(valid->ratings, valid->numRatings) << "\n";
     std::cout << "Validation DONE\n";
 
     clock_t time_valid = clock();
@@ -409,7 +442,7 @@ int main(int argc, char **argv) {
 
     // Predict ratings and write to file
     // Load qual data
-    knn->load(data_file); // can this be done more elegantly
+    // knn->load(data_file); // can this be done more elegantly
     std::cout << "PREDICTIONS:\n";
     kNN* qual = new kNN();
     qual->load("5-1.dta"); // is this how we're going to do things
@@ -422,6 +455,8 @@ int main(int argc, char **argv) {
     for (int i = 0; i < qual->numRatings; i++) {
         int user = qual->ratings[i * DATA_POINT_SIZE + USER_IDX];
         int movie = qual->ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        // std::cout << "qual // user = " << user << "\n";
+        // std::cout << "qual // movie = " << movie << "\n";
         float rating = knn->predict(user, movie);
         if (rating < 1) {
             rating = 1;
@@ -431,11 +466,6 @@ int main(int argc, char **argv) {
         }
 
         outputFile << rating << "\n";
-
-        // std::cout << "user " << user << " will rate movie " << movie << ": " << rating << "\n";
-        // if (user % 1000 == 0) {
-        //     std::cout << "predicting for user " << user << "\n";
-        // }
     }
     outputFile.close();
 

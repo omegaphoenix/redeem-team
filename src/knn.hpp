@@ -18,7 +18,7 @@ class kNN : public Model {
         void save(std::string fname);
         void normalizeRatings(double average_array[], double stdev_array[]);
         std::string getFilename(std::string data_file);
-        float validate(std::string valid_file);
+        float validate(int* valid_ratings, int valid_numRatings);
         int num_correlations;
         int baseline;
         CorrelationMetric metric;
@@ -32,6 +32,7 @@ class kNN : public Model {
         float denormalize(float normalized, int user);
         void buildMatrix(std::string saveFile);
         float rmse(float actual, float predicted);
+        int getRatingCSR(int user, int movie);
         std::vector<std::vector<float>> corrMatrix;
         float* normalized_values;
 };
