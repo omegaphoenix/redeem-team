@@ -29,7 +29,7 @@ class kNN : public Model {
         int K; // number of nearest neighbors
     private:
         float pearson(int i_start, int i_end, int j_start, int j_end);
-        float denormalize(float normalized, int user);
+        float denormalize(float normalized, double stdev, double ave);
         void buildMatrix(std::string saveFile);
         float rmse(float actual, float predicted);
         int getRatingCSR(int user, int movie);
