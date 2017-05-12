@@ -16,8 +16,9 @@
 struct corrUser {
     float corr;
     int user;
+    int rating;
 
-    corrUser(float c, int u) : corr(c), user(u) {
+    corrUser(float c, int u, int r) : corr(c), user(u), rating(r) {
     }
 
     bool operator<(const struct corrUser &other) const
@@ -196,9 +197,10 @@ void kNN::buildMatrix(std::string saveFile) {
 // Find "closest" users and average their ratings of given movie
 // Change this to: go through all users that have rated a certain movie
 float kNN::predict(int user, int movie) {
+    // TODO: get stats?
     std::priority_queue<corrUser> top_corr;
-    // int count = 0;
-    // put correlations in a priority queue
+    // Put correlations between specified user and any other user
+    // in a priority queue
     for (int user_i = 0; user_i < N_USERS; user_i++) {
         if (user_i > user) {
             break; // user_j > user_i > user
@@ -209,11 +211,25 @@ float kNN::predict(int user, int movie) {
             int user_j = corrMatrix[1][j];
             float c = corrMatrix[2][j];
             if (!isnan(c)) {
+                int other_user = -1;
                 if (user_i == user) {
-                    top_corr.push(corrUser(c, user_i));
+                    other_user = user_j;
                 }
                 else if (user_j == user) {
-                    top_corr.push(corrUser(c, user_j));
+                    other_user = user_i;
+                }
+                if (other_user > 0) {
+                    // check if other_user has rated movie
+                    int start_index = rowIndex[other_user];
+                    int end_index = rowIndex[other_user + 1];
+                    for (int i = start_index; i < end_index; ++i) {
+                        if (columns[i] == movie) {
+                            top_corr.push(corrUser(c, other_user, values[i]));
+                        }
+                        else if (columns[i] > movie) {
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -239,21 +255,8 @@ float kNN::predict(int user, int movie) {
 
         // std::cout << actualK << " top corr value = " << top.corr << " with user " << top.user << std::endl;
 
-        // check if correlated user has rated movie
-        int start_index = rowIndex[top.user];
-        int end_index = rowIndex[top.user + 1];
-        for (int i = start_index; i < end_index; ++i) {
-            if (columns[i] == movie) {
-                // TODO: implement weighted average of rankings
-                total += values[i];
-                weighted_total += top.corr * values[i];
-                sum_weights += std::abs(top.corr);
-                ++actualK;
-            }
-            else if (columns[i] > movie) {
-                break;
-            }
-        }
+        total += float(top.rating);
+        ++actualK;
     }
 
     if (actualK <= 0) {
@@ -266,7 +269,7 @@ float kNN::predict(int user, int movie) {
     //     std::cout << "actualK = " << actualK << "\n";
     //     std::cout << "got a value!! rating = " << total / actualK << std::endl;
     // }
-    if (user % 1000 == 0) {
+    if (user % 10 == 0) {
         std::cout << "predicting for user " << user << "\n";
     }
 
@@ -282,7 +285,7 @@ void kNN::loadSaved(std::string fname) {
     num_correlations = buf[1];
 
     if (num_correlations == 0) {
-        // special case
+        // TODO: handle special case
     }
 
     // Initialize correlation matrix
@@ -391,12 +394,18 @@ int main(int argc, char **argv) {
 
     clock_t time1 = clock();
 
+    double kNN_ms = diffclock(time1, time0);
+    std::cout << "kNN training took " << kNN_ms << " ms" << std::endl;
+
     // Validate
     std::cout << "Validating...\n";
     std::cout << "RMSE = " << knn->validate("2.dta") << "\n";
     std::cout << "Validation DONE\n";
 
     clock_t time_valid = clock();
+
+    double valid_ms = diffclock(time_valid, time1);
+    std::cout << "kNN validation took " << valid_ms << " ms" << std::endl;
 
     // Predict ratings and write to file
     // Load qual data
@@ -433,9 +442,7 @@ int main(int argc, char **argv) {
     clock_t time2 = clock();
 
     // Output times.
-    double kNN_ms = diffclock(time1, time0);
     std::cout << "kNN training took " << kNN_ms << " ms" << std::endl;
-    double valid_ms = diffclock(time_valid, time1);
     std::cout << "kNN validation took " << valid_ms << " ms" << std::endl;
     double predict_ms = diffclock(time2, time_valid);
     std::cout << "kNN prediction took " << predict_ms << " ms" << std::endl;
