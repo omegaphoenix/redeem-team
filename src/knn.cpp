@@ -20,13 +20,24 @@ struct corrUser {
     int user; // user that is correlated with specified user
     int rating; // rating that user gave specified movie
 
-    corrUser(float c, int u, int r) : corr(c), user(u), rating(r) {
-    }
+    corrUser(float c, int u, int r) : corr(c), user(u), rating(r) {}
 
     bool operator<(const struct corrUser &other) const
     {
         return corr < other.corr;
     }
+};
+
+struct pearsonIntermediate {
+    // for all movies rated by both user i and user j
+    float i; // sum of ratings by user i
+    float j; // sum of ratings by user j
+    float ij; // sum of product of rating by user i and user j for each movie
+    float ii; // sum of square of ratings by user i
+    float jj; // sum of square of ratings by user j
+    unsigned int count; // number of movies rated by both users
+
+    pearsonIntermediate() : i(0), j(0), ij(0), ii(0), jj(0), count(0) {}
 };
 
 kNN::kNN() : Model() {
@@ -154,40 +165,81 @@ void kNN::buildMatrix(std::string saveFile) {
     }
 
     num_correlations = 0; // also acts as index
-    int debug_curr_user = 0;
     int num_users = 0;
+    int nan_coeff = 0;
 
-    std::cout << "matrix initialized\n";
+    for (int user_i = 0; user_i < N_USERS; user_i++) {
+        if (user_i % 10000 == 0) {
+            std::cout << "calculating correlations for user " << user_i << "\n";
+        }
+        if (rowIndex[user_i + 1] - rowIndex[user_i] < individual_threshold) {
+            corrMatrix[0].push_back(num_correlations);
+            continue;
+        }
+        pearsonIntermediate* arr = new pearsonIntermediate[N_USERS];
 
-    for (int i = 0; i < N_USERS; i++) {
-        corrMatrix[0].push_back(num_correlations);
-        for (int j = i + 1; j < N_USERS; j++) {
-            // Don't bother if either user has too few movies
-            if (rowIndex[i + 1] - rowIndex[i] < individual_threshold
-                || rowIndex[j + 1] - rowIndex[j] < individual_threshold) {
-                // print for debugging
-                if (i % 1000 == 0 && i != debug_curr_user) {
-                    debug_curr_user = i;
-                    std::cout << "building matrix - user " << i << std::endl;
+        // for each movie rated by i
+        for (int m = rowIndex[user_i]; m < rowIndex[user_i + 1]; m++) {
+            int movie = columns[m];
+            int rating_i = values[m];
+
+            // for each j who also rated the movie
+            for (int j = murowIndex[movie]; j < murowIndex[movie + 1]; j++) {
+                int user_j = mucolumns[j];
+
+                if (user_j <= user_i) {
+                    continue;
                 }
-                continue;
-            }
-            num_users++;
 
-            float corr = pearson(rowIndex[i], rowIndex[i + 1], rowIndex[j], rowIndex[j + 1]);
-            if (corr != 0) {
-                corrMatrix[1].push_back(j);
-                corrMatrix[2].push_back(corr);
-                num_correlations++;
-                if (num_correlations % 1000 == 0) {
-                    std::cout << "num_correlations = " << num_correlations << std::endl;
-                    std::cout << "current user i = " << i << std::endl;
+                if (rowIndex[user_j + 1] - rowIndex[user_j] >= individual_threshold) {
+                    int rating_j = muvalues[j];
+
+                    arr[user_j].i += rating_i;
+                    arr[user_j].j += rating_j;
+                    arr[user_j].ij += rating_i * rating_j;
+                    arr[user_j].ii += rating_i * rating_i;
+                    arr[user_j].jj += rating_j * rating_j;
+                    arr[user_j].count++;
                 }
             }
         }
+
+        // Go through arr and calculate correlations
+        corrMatrix[0].push_back(num_correlations);
+        for (int j = 0; j < N_USERS; j++) {
+            if (arr[j].count >= shared_threshold) {
+                float pearson = (arr[j].ij / arr[j].count
+                    - (arr[j].i / arr[j].count) * (arr[j].j / arr[j].count))
+                / sqrt(
+                    ((arr[j].ii / arr[j].count)
+                        - (arr[j].i / arr[j].count) * (arr[j].i / arr[j].count))
+                    * ((arr[j].jj / arr[j].count)
+                        - (arr[j].j / arr[j].count) * (arr[j].j / arr[j].count))
+                    );
+                if (pearson == 0) {
+                    // std::cout << "pearson coeff is 0\n";
+                    continue;
+                }
+                else if (isnan(pearson)) {
+                    // std::cout << "pearson coeff is nan\n";
+                    nan_coeff++;
+                    continue;
+                }
+                else {
+                    corrMatrix[1].push_back(j);
+                    corrMatrix[2].push_back(pearson);
+                    num_correlations++;
+                    if (num_correlations % 10000 == 0) {
+                        std::cout << "number of correlations: " << num_correlations << "\n";
+                    }
+                }
+            }
+        }
+        delete[] arr;
     }
     corrMatrix[0].push_back(num_correlations);
 
+    std::cout<< "Number of nan coeffs = " << nan_coeff << "\n";
     std::cout << "size of corrMatrix[0] (should be 1 greater than N_USERS) = "
         << corrMatrix[0].size() << "\n";
 
@@ -305,6 +357,7 @@ void kNN::loadSaved(std::string fname) {
         // TODO: handle special case
     }
 
+    std::cout << "Reading file...\n";
     // Initialize correlation matrix
     for (int i = 0; i < 3; i++) {
         std::cout << "buf[" << i << "]" << " = " << buf[i] << "\n";
@@ -404,7 +457,7 @@ int main(int argc, char **argv) {
     kNN* knn = new kNN();
     // Baseline* base = new Baseline();
 
-    std::string data_file = "4.dta";
+    std::string data_file = "1.dta";
 
     // Load data from file.
     knn->load(data_file);
@@ -417,8 +470,8 @@ int main(int argc, char **argv) {
 
     // Train by building correlation matrix
     knn->metric = kPearson;
-    knn->shared_threshold = 2;
-    knn->individual_threshold = 6;
+    knn->shared_threshold = 6;
+    knn->individual_threshold = 1800;
     knn->K = 10;
     knn->baseline = 3; // TODO: figure out what to use
     knn->train("model/knn/" + knn->getFilename(data_file) + ".save");
