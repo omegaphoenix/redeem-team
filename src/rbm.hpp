@@ -14,10 +14,10 @@ class RBM : public Model {
         void init();
         void loadSaved(std::string fname) {};
 
-        inline void setHidVar(int nthHidVar, bool newVal);
-        inline bool getHidVar(int nthHidVar);
-        inline void setV(int n, int i, int k, bool newVal);
-        inline bool getV(int n, int i, int k);
+        void setHidVar(int nthHidVar, bool newVal);
+        bool getHidVar(int nthHidVar);
+        void setV(int n, int i, int k, bool newVal);
+        bool getV(int n, int i, int k);
         void resetDeltas();
         void calcGrad();
         void posStep();

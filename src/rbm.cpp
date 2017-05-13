@@ -100,24 +100,24 @@ void RBM::init() {
 }
 
 // Set nth hidden variable to newVal
-inline void RBM::setHidVar(int nthHidVar, bool newVal) {
+void RBM::setHidVar(int nthHidVar, bool newVal) {
     hidVars->set(nthHidVar, newVal);
 }
 
 // Get nth hidden variable
-inline bool RBM::getHidVar(int nthHidVar) {
+bool RBM::getHidVar(int nthHidVar) {
     // Need to get the 0th element first since it is a pointer
     return (*hidVars)[nthHidVar];
 }
 
 // Set the nth user's kth rating for the ith movie
-inline void RBM::setV(int n, int i, int k, bool newVal) {
+void RBM::setV(int n, int i, int k, bool newVal) {
     int idx = i * MAX_RATING + k;
     indicatorV[n].set(idx, newVal);
 }
 
 // Did the nth user rate the ith movie as k
-inline bool RBM::getV(int n, int i, int k) {
+bool RBM::getV(int n, int i, int k) {
     // Need to get the 0th element first since it is a pointer
     int idx = i * MAX_RATING + k;
     return indicatorV[n][idx];
@@ -260,9 +260,13 @@ void RBM::updateV() {
     clock_t time0 = clock();
     // TODO: Do we update all the V's or just the learned ones?
     bool var;
-    unsigned int idx, n, i, k;
+    unsigned int idx, n, i, k, userStartIdx, userEndIdx, colIdx;
     for (n = 0; n < N_USERS; ++n) {
-        for (i = 0; i < N_MOVIES; ++i) {
+        userStartIdx = rowIndex[n];
+        userEndIdx = rowIndex[n + 1];
+        for (colIdx = userStartIdx; colIdx < userEndIdx;
+                colIdx++) {
+            i = (int) columns[colIdx]; // movie
             for (k = 0; k < MAX_RATING; ++k) {
                 idx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
                 var = uniform(0, 1) > hidProbs[idx];
@@ -322,18 +326,21 @@ void RBM::calcHidProbs() {
     debugPrint("Calculating hidden probabilities using visible states...\n");
     clock_t time0 = clock();
     // Reset hidProbs to b_j
-    unsigned int n, i, k, j, idx;
+    unsigned int n, i, k, j, idx, userStartIdx, userEndIdx, colIdx;
     resetHidProbs();
 
     for (n = 0; n < N_USERS; ++n) {
-        for (i = 0; i < N_MOVIES; ++i) {
-            for (k = 0; k < MAX_RATING; ++k) {
-                // Add v_i^k W_ij^k
-                if (getV(n, i, k)) {
-                    for (j = 0; j < N_FACTORS; ++j) {
-                        idx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
-                        hidProbs[n * N_FACTORS + j] += W[idx];
-                    }
+        userStartIdx = rowIndex[n];
+        userEndIdx = rowIndex[n + 1];
+        for (colIdx = userStartIdx; colIdx < userEndIdx;
+                colIdx++) {
+            i = (int) columns[colIdx]; // movie
+            k = values[colIdx]; // rating
+            // Add v_i^k W_ij^k
+            if (getV(n, i, k)) {
+                for (j = 0; j < N_FACTORS; ++j) {
+                    idx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
+                    hidProbs[n * N_FACTORS + j] += W[idx];
                 }
             }
         }
@@ -472,7 +479,7 @@ void RBM::sumToVisProbs() {
 float RBM::getActualVal(int n, int i, int j, int k) {
     float prod = 0;
     if (getV(n, i, k)) {
-        int idx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
+        int idx = n * N_FACTORS + j;
         prod = hidProbs[idx];
     }
     return prod;
@@ -483,7 +490,7 @@ float RBM::getActualVal(int n, int i, int j, int k) {
 float RBM::getExpectVal(int n, int i, int j, int k) {
     float prod = 0;
     if (getV(n, i, k)) {
-        int idx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
+        int idx = n * N_FACTORS + j;
         prod = hidProbs[idx];
     }
     return prod;
@@ -491,7 +498,7 @@ float RBM::getExpectVal(int n, int i, int j, int k) {
 
 void RBM::train(std::string saveFile) {
     debugPrint("Training...\n");
-    clock_t time0 = clock();
+    clock_t timeStart = clock();
     for (unsigned int epoch = 0; epoch < RBM_EPOCHS; epoch++) {
         printf("Starting epoch %d\n", epoch);
         clock_t time0 = clock();
@@ -500,9 +507,9 @@ void RBM::train(std::string saveFile) {
         float ms1 = diffclock(time1, time0);
         printf("Epoch %d took %f ms\n", epoch, ms1);
     }
-    clock_t time1 = clock();
-    float ms1 = diffclock(time1, time0);
-    printf("Training took %f ms\n", ms1);
+    clock_t timeEnd = clock();
+    float msTotal = diffclock(timeEnd, timeStart);
+    printf("Training took %f ms\n", msTotal);
 }
 
 int main() {

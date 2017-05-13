@@ -72,7 +72,7 @@ static inline int binomial(int n, float p) {
 
 // Returns sigmoid of x.
 static inline float sigmoid(float x) {
-    return 1.0 / (1.0 + exp(-x));
+    return 1.0 / (1.0 + exp(-1.0 * x));
 }
 
 // bounds the prediction to between 1 and 5
