@@ -128,6 +128,7 @@ bool RBM::getV(int n, int i, int k) {
 void RBM::resetDeltas() {
     debugPrint("Resetting deltas...\n");
     clock_t time0 = clock();
+
     unsigned int i;
     for (i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
         dW[i] = 0;
@@ -138,8 +139,8 @@ void RBM::resetDeltas() {
     for (i = 0; i < N_MOVIES * MAX_RATING; ++i) {
         dVisBiases[i] = 0;
     }
-    clock_t time1 = clock();
 
+    clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Resetting deltas took %f ms\n", ms1);
 }
@@ -149,10 +150,12 @@ void RBM::resetDeltas() {
 void RBM::calcGrad() {
     debugPrint("Calculating gradient...\n");
     clock_t time0 = clock();
+
     resetDeltas(); // set deltas back to zeros
     posStep(); // Calculate <vikhj>_data
     // TODO: Do we need to reset V?
     negStep(); // Calculate <vikhj>_T
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Calculating gradient took %f ms\n", ms1);
@@ -161,6 +164,7 @@ void RBM::calcGrad() {
 void RBM::posStep() {
     debugPrint("Positive step...\n");
     clock_t time0 = clock();
+
     float dataVal;
     unsigned int userStartIdx, userEndIdx, movIdx, facIdx, idx, i, j, k, n, colIdx;
     int movFac = N_FACTORS * MAX_RATING;
@@ -185,6 +189,7 @@ void RBM::posStep() {
             }
         }
     }
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Positive step took %f ms\n", ms1);
@@ -193,6 +198,7 @@ void RBM::posStep() {
 void RBM::negStep() {
     debugPrint("Negative step...\n");
     clock_t time0 = clock();
+
     float expectVal;
     unsigned int userStartIdx, userEndIdx, movIdx, facIdx, idx, i, j, k, n, colIdx;
     int movFac = N_FACTORS * MAX_RATING;
@@ -220,6 +226,7 @@ void RBM::negStep() {
             }
         }
     }
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Negative step took %f ms\n", ms1);
@@ -229,11 +236,13 @@ void RBM::negStep() {
 void RBM::updateW() {
     debugPrint("Updating W...\n");
     clock_t time0 = clock();
+
     calcGrad();
     // Update W
     for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
         W[i] += epsilonW * dW[i] / N_USERS;
     }
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Updating W took %f ms\n", ms1);
@@ -243,12 +252,14 @@ void RBM::updateW() {
 void RBM::updateH() {
     debugPrint("Updating H...\n");
     clock_t time0 = clock();
+
     bool var;
     unsigned int i;
     for (i = 0; i < N_USERS * N_FACTORS; ++i) {
         var = uniform(0, 1) > hidProbs[i];
         setHidVar(i, var);
     }
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Updating H took %f ms\n", ms1);
@@ -258,6 +269,7 @@ void RBM::updateH() {
 void RBM::updateV() {
     debugPrint("Updating V...\n");
     clock_t time0 = clock();
+
     // TODO: Do we update all the V's or just the learned ones?
     bool var;
     unsigned int idx, n, i, k, userStartIdx, userEndIdx, colIdx;
@@ -274,6 +286,7 @@ void RBM::updateV() {
             }
         }
     }
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Updating V took %f ms\n", ms1);
@@ -283,10 +296,12 @@ void RBM::updateV() {
 void RBM::runGibbsSampler() {
     debugPrint("Running Gibbs sampler...\n");
     clock_t time0 = clock();
+
     calcVisProbs();
     updateV();
     calcHidProbs();
     updateH();
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Running Gibbs sampler took %f ms\n", ms1);
@@ -296,6 +311,7 @@ void RBM::runGibbsSampler() {
 void RBM::calcHidProbsUsingData() {
     debugPrint("Calculating hidden probabilities using data...\n");
     clock_t time0 = clock();
+
     // Reset hidProbs to b_j
     unsigned int userStartIdx, userEndIdx, n, i, k, j, idx, colIdx;
     resetHidProbs();
@@ -316,6 +332,7 @@ void RBM::calcHidProbsUsingData() {
 
     // Compute hidProbs by taking sigmoid
     compHidProbs();
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Calculating hidden probs w/ data took %f ms\n", ms1);
@@ -325,6 +342,7 @@ void RBM::calcHidProbsUsingData() {
 void RBM::calcHidProbs() {
     debugPrint("Calculating hidden probabilities using visible states...\n");
     clock_t time0 = clock();
+
     // Reset hidProbs to b_j
     unsigned int n, i, k, j, idx, userStartIdx, userEndIdx, colIdx;
     resetHidProbs();
@@ -348,6 +366,7 @@ void RBM::calcHidProbs() {
 
     // Compute hidProbs by taking sigmoid
     compHidProbs();
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Calculating hidden probs w/ vis took %f ms\n", ms1);
@@ -357,12 +376,14 @@ void RBM::calcHidProbs() {
 void RBM::resetHidProbs() {
     debugPrint("Resetting hidden probabilities to biases...\n");
     clock_t time0 = clock();
+
     unsigned int userStartIdx, i;
     float* hidBiasesEnd = hidBiases + N_FACTORS;
     for (i = 0; i < N_USERS; ++i) {
         userStartIdx = i * N_FACTORS;
         std::copy(hidBiases, hidBiasesEnd, hidProbs + userStartIdx);
     }
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Resetting hid probs took %f ms\n", ms1);
@@ -372,11 +393,13 @@ void RBM::resetHidProbs() {
 void RBM::compHidProbs() {
     debugPrint("Sigmoiding hidden probabilities...\n");
     clock_t time0 = clock();
+
     unsigned int i;
     for (i = 0; i < N_USERS * N_FACTORS; ++i) {
         hidProbs[i] = sigmoid(hidProbs[i]);
         assert(hidProbs[i] >= 0 && hidProbs[i] <= 1);
     }
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Sigmoiding hid probs took %f ms\n", ms1);
@@ -386,6 +409,7 @@ void RBM::compHidProbs() {
 void RBM::calcVisProbs() {
     debugPrint("Calculating visible probabilities...\n");
     clock_t time0 = clock();
+
     // Reset visProbs to b_ik
     resetVisProbs();
 
@@ -394,6 +418,7 @@ void RBM::calcVisProbs() {
 
     // Compute visProbs
     sumToVisProbs();
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Calculating vis probs took %f ms\n", ms1);
@@ -403,6 +428,7 @@ void RBM::calcVisProbs() {
 void RBM::resetVisProbs() {
     debugPrint("Resetting visible probabilities to biases...\n");
     clock_t time0 = clock();
+
     unsigned int n, idx;
     unsigned int movieRatings = N_MOVIES * MAX_RATING;
     float *visBiasesEnd = visBiases + movieRatings;
@@ -410,6 +436,7 @@ void RBM::resetVisProbs() {
         idx = n * movieRatings;
         std::copy(visBiases, visBiasesEnd, visProbs + idx);
     }
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Resetting vis probs took %f ms\n", ms1);
@@ -419,6 +446,7 @@ void RBM::resetVisProbs() {
 void RBM::sumVisProbs() {
     debugPrint("Summing weights for visible probabilities...\n");
     clock_t time0 = clock();
+
     unsigned int userStartIdx, userEndIdx, n, i, j, k, idx, vIdx, colIdx;
     for (n = 0; n < N_USERS; ++n) {
         userStartIdx = rowIndex[n];
@@ -438,6 +466,7 @@ void RBM::sumVisProbs() {
             }
         }
     }
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Summing weights for vis probs took %f ms\n", ms1);
@@ -447,27 +476,32 @@ void RBM::sumVisProbs() {
 void RBM::sumToVisProbs() {
     debugPrint("Exponentiating visible probabilities...\n");
     clock_t time0 = clock();
-    unsigned int userStartIdx, userEndIdx, n, i, k, vIdx, colIdx;
+
+    unsigned int userStartIdx, userEndIdx, n, i, k, vIdx, colIdx, vIdxBase;
     float denom = 0;
+    vIdxBase = 0;
     for (n = 0; n < N_USERS; ++n) {
         userStartIdx = rowIndex[n];
         userEndIdx = rowIndex[n + 1];
+        vIdxBase += N_MOVIES * MAX_RATING;
         for (colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = (int) columns[colIdx]; // movie
             denom = 0;
+            vIdx = vIdxBase + i * MAX_RATING;
             for (k = 0 ; k < MAX_RATING; ++k) {
-                vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
                 visProbs[vIdx] = exp(visProbs[vIdx]);
                 denom += visProbs[vIdx];
+                vIdx++;
             }
             for (k = 0 ; k < MAX_RATING; ++k) {
-                vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
+                vIdx--;
                 visProbs[vIdx] = visProbs[vIdx] / denom;
                 assert (visProbs[vIdx] >= 0 && visProbs[vIdx] <= 1);
             }
         }
     }
+
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Exponentiating vis probs took %f ms\n", ms1);
@@ -499,6 +533,7 @@ float RBM::getExpectVal(int n, int i, int j, int k) {
 void RBM::train(std::string saveFile) {
     debugPrint("Training...\n");
     clock_t timeStart = clock();
+
     for (unsigned int epoch = 0; epoch < RBM_EPOCHS; epoch++) {
         printf("Starting epoch %d\n", epoch);
         clock_t time0 = clock();
@@ -507,6 +542,7 @@ void RBM::train(std::string saveFile) {
         float ms1 = diffclock(time1, time0);
         printf("Epoch %d took %f ms\n", epoch, ms1);
     }
+
     clock_t timeEnd = clock();
     float msTotal = diffclock(timeEnd, timeStart);
     printf("Training took %f ms\n", msTotal);
@@ -527,14 +563,17 @@ int main() {
     // Learn parameters
     rbm->train("data/um/rbm.save");
     clock_t time3 = clock();
+
     float ms1 = diffclock(time1, time0);
     float ms2 = diffclock(time2, time1);
     float ms3 = diffclock(time3, time2);
     float total_ms = diffclock(time3, time0);
+
     printf("Initialization took %f ms\n", ms1);
     printf("Total loading took %f ms\n", ms2);
     printf("Training took %f ms\n", ms3);
     printf("Total running time was %f ms\n", total_ms);
+
     delete rbm;
     return 0;
 }
