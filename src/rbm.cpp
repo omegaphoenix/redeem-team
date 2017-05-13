@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>
+
 using namespace std;
 
 // Initialize RBM variables.
@@ -143,7 +144,6 @@ void RBM::resetDeltas() {
 
 // Calculate the gradient averaged over all users
 // TODO: Add biases
-// TODO: Split into positive and negative steps
 void RBM::calcGrad() {
     debugPrint("Calculating gradient...\n");
     clock_t time0 = clock();
@@ -289,10 +289,7 @@ void RBM::calcHidProbsUsingData() {
     clock_t time0 = clock();
     // Reset hidProbs to b_j
     unsigned int userStartIdx, userEndIdx, i, k, idx;
-    for (i = 0; i < N_USERS; ++i) {
-        userStartIdx = i * N_FACTORS;
-        std::copy(hidBiases, hidBiases + N_FACTORS, hidProbs + userStartIdx);
-    }
+    resetHidProbs();
 
     for (unsigned int n = 0; n < N_USERS; ++n) {
         userStartIdx = rowIndex[n];
@@ -308,11 +305,8 @@ void RBM::calcHidProbsUsingData() {
         }
     }
 
-    // Compute hidProbs
-    for (i = 0; i < N_USERS * N_FACTORS; ++i) {
-        hidProbs[i] = sigmoid(hidProbs[i]);
-        assert(hidProbs[i] >= 0 && hidProbs[i] <= 1);
-    }
+    // Compute hidProbs by taking sigmoid
+    compHidProbs();
     clock_t time1 = clock();
     double ms1 = diffclock(time1, time0);
     printf("Calculating hidden probs w/ data took %f ms\n", ms1);
@@ -323,11 +317,8 @@ void RBM::calcHidProbs() {
     debugPrint("Calculating hidden probabilities using visible states...\n");
     clock_t time0 = clock();
     // Reset hidProbs to b_j
-    unsigned int userStartIdx, i, k, idx;
-    for (i = 0; i < N_USERS; ++i) {
-        userStartIdx = i * N_FACTORS;
-        std::copy(hidBiases, hidBiases + N_FACTORS, hidProbs + userStartIdx);
-    }
+    unsigned int i, k, idx;
+    resetHidProbs();
 
     for (unsigned int n = 0; n < N_USERS; ++n) {
         for (i = 0; i < N_MOVIES; ++i) {
@@ -343,14 +334,39 @@ void RBM::calcHidProbs() {
         }
     }
 
-    // Compute hidProbs
+    // Compute hidProbs by taking sigmoid
+    compHidProbs();
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    printf("Calculating hidden probs w/ vis took %f ms\n", ms1);
+}
+
+// Reset hidProbs to b_j
+void RBM::resetHidProbs() {
+    debugPrint("Resetting hidden probabilities to biases...\n");
+    clock_t time0 = clock();
+    unsigned int userStartIdx, i;
+    for (i = 0; i < N_USERS; ++i) {
+        userStartIdx = i * N_FACTORS;
+        std::copy(hidBiases, hidBiases + N_FACTORS, hidProbs + userStartIdx);
+    }
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    printf("Resetting hid probs took %f ms\n", ms1);
+}
+
+// Take sigmoid function to get probability
+void RBM::compHidProbs() {
+    debugPrint("Sigmoiding hidden probabilities...\n");
+    clock_t time0 = clock();
+    unsigned int i;
     for (i = 0; i < N_USERS * N_FACTORS; ++i) {
         hidProbs[i] = sigmoid(hidProbs[i]);
         assert(hidProbs[i] >= 0 && hidProbs[i] <= 1);
     }
     clock_t time1 = clock();
     double ms1 = diffclock(time1, time0);
-    printf("Calculating hidden probs w/ vis took %f ms\n", ms1);
+    printf("Sigmoiding hid probs took %f ms\n", ms1);
 }
 
 // Use hidden states to calculate visible probabilities
@@ -358,12 +374,37 @@ void RBM::calcVisProbs() {
     debugPrint("Calculating visible probabilities...\n");
     clock_t time0 = clock();
     // Reset visProbs to b_ik
-    unsigned int n, i, j, k, idx, vIdx;
+    resetVisProbs();
+
+    // Get sum of W's
+    sumVisProbs();
+
+    // Compute visProbs
+    sumToVisProbs();
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    printf("Calculating vis probs took %f ms\n", ms1);
+}
+
+// Reset visProbs to b_ik
+void RBM::resetVisProbs() {
+    debugPrint("Resetting visible probabilities to biases...\n");
+    clock_t time0 = clock();
+    unsigned int n, idx;
     for (n = 0; n < N_USERS; ++n) {
         idx = n * N_MOVIES * MAX_RATING;
         std::copy(visBiases, visBiases + N_MOVIES * MAX_RATING, visProbs + idx);
     }
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    printf("Resetting vis probs took %f ms\n", ms1);
+}
 
+// Do summation for visible probability calculation
+void RBM::sumVisProbs() {
+    debugPrint("Summing weights for visible probabilities...\n");
+    clock_t time0 = clock();
+    unsigned int n, i, j, k, idx, vIdx;
     for (n = 0; n < N_USERS; ++n) {
         for (i = 0; i < N_MOVIES; ++i) {
             for (k = 0; k < MAX_RATING; ++k) {
@@ -377,8 +418,16 @@ void RBM::calcVisProbs() {
             }
         }
     }
+    clock_t time1 = clock();
+    double ms1 = diffclock(time1, time0);
+    printf("Summing weights for vis probs took %f ms\n", ms1);
+}
 
-    // Compute visProbs
+// Take exponent and then calculate probability using ratios
+void RBM::sumToVisProbs() {
+    debugPrint("Exponentiating visible probabilities...\n");
+    clock_t time0 = clock();
+    unsigned int n, i, k, vIdx;
     double denom = 0;
     for (n = 0; n < N_USERS; ++n) {
         for (i = 0; i < N_MOVIES; ++i) {
@@ -397,7 +446,7 @@ void RBM::calcVisProbs() {
     }
     clock_t time1 = clock();
     double ms1 = diffclock(time1, time0);
-    printf("Calculating vis probs took %f ms\n", ms1);
+    printf("Exponentiating vis probs took %f ms\n", ms1);
 }
 
 // Frequency with which movie i with rating k and feature j are on together

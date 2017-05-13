@@ -27,7 +27,12 @@ class RBM : public Model {
         void updateV();
         void calcHidProbsUsingData();
         void calcHidProbs();
+        void resetHidProbs();
+        void compHidProbs();
         void calcVisProbs();
+        void resetVisProbs();
+        void sumVisProbs();
+        void sumToVisProbs();
         double getActualVal(int n, int i, int j, int k);
         double getExpectVal(int n, int i, int j, int k);
         void runGibbsSampler();
