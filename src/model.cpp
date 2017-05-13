@@ -75,7 +75,7 @@ void Model::transposeMU() {
     murowIndex[N_MOVIES] = numRatings;
     clock_t time1 = clock();
 
-    double ms1 = diffclock(time1, time0);
+    float ms1 = diffclock(time1, time0);
     printf("Transposing took %f ms\n", ms1);;
 }
 
@@ -200,7 +200,7 @@ void Model::initLoad(std::string fname, std::string dataFile) {
     clock_t time1 = clock();
 
     // Output times.
-    double ms1 = diffclock(time1, time0);
+    float ms1 = diffclock(time1, time0);
     printf("Preproccessing took %f ms\n", ms1);
 }
 
@@ -219,7 +219,7 @@ void Model::load(std::string dataFile) {
     clock_t time1 = clock();
 
     // Output times.
-    double ms1 = diffclock(time1, time0);
+    float ms1 = diffclock(time1, time0);
     printf("Loading took %f ms\n", ms1);
 }
 
@@ -265,10 +265,10 @@ void testTranspose() {
     assert (mod->murowIndex[N_MOVIES] == mod->numRatings);
     clock_t time4 = clock();
 
-    double ms1 = diffclock(time1, time0);
-    double ms2 = diffclock(time2, time1);
-    double ms3 = diffclock(time3, time2);
-    double ms4 = diffclock(time4, time3);
+    float ms1 = diffclock(time1, time0);
+    float ms2 = diffclock(time2, time1);
+    float ms3 = diffclock(time3, time2);
+    float ms4 = diffclock(time4, time3);
 
     printf("Initializing took %f ms\n", ms1);
     printf("Total loading took %f ms\n", ms2);

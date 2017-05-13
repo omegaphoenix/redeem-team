@@ -32,35 +32,35 @@ static inline void debugPrint(const char* statement) {
 }
 
 // Returns a uniformly distributed random number
-static inline double uniformRandom() {
-  return ( (double)(rand()) + 1. )/( (double)(RAND_MAX) + 1. );
+static inline float uniformRandom() {
+  return ( (float)(rand()) + 1. )/( (float)(RAND_MAX) + 1. );
 }
 
 // Returns a normally distributed random number
-static inline double normalRandom() {
-  double u1=uniformRandom();
-  double u2=uniformRandom();
+static inline float normalRandom() {
+  float u1=uniformRandom();
+  float u2=uniformRandom();
   return cos(8.*atan(1.)*u2)*sqrt(-2.*log(u1));
 }
 
 // Returns the differences in ms.
-static inline double diffclock(clock_t clock1, clock_t clock2) {
-    double diffticks = clock1 - clock2;
-    double diffms = (diffticks) / (CLOCKS_PER_SEC / 1000);
+static inline float diffclock(clock_t clock1, clock_t clock2) {
+    float diffticks = clock1 - clock2;
+    float diffms = (diffticks) / (CLOCKS_PER_SEC / 1000);
     return diffms;
 }
 
 // Returns random value from uniform distribution.
-static inline double uniform(double min, double max) {
+static inline float uniform(float min, float max) {
     return rand() / (RAND_MAX + 1.0) * (max - min) + min;
 }
 
 // Returns binomial coefficient.
-static inline int binomial(int n, double p) {
+static inline int binomial(int n, float p) {
     if(p < 0 || p > 1) return 0;
 
     int c = 0;
-    double r;
+    float r;
 
     for(int i=0; i<n; i++) {
         r = rand() / (RAND_MAX + 1.0);
@@ -71,12 +71,12 @@ static inline int binomial(int n, double p) {
 }
 
 // Returns sigmoid of x.
-static inline double sigmoid(double x) {
+static inline float sigmoid(float x) {
     return 1.0 / (1.0 + exp(-x));
 }
 
 // bounds the prediction to between 1 and 5
-static inline double bound(double x) {
+static inline float bound(float x) {
     if (x > 5) return 5;
     if (x < 1) return 1;
     return x;
@@ -98,15 +98,15 @@ static inline unsigned int minibatchRandom(void) {
     return (unsigned int) (z % N_USERS);
 }
 
-// Returns positive random double between 0 and 1
-static inline double oneRand() {
+// Returns positive random float between 0 and 1
+static inline float oneRand() {
     int num = ((int) rand()) % 100;
     return num / 100.0;
 }
 
-// Matrix subtraction of two double matrices
+// Matrix subtraction of two float matrices
 // Sign will be positive 1 if we're adding and -1 for subtraction
-static inline void matrixAdd(double ** mat1, double ** mat2, unsigned int r, unsigned int c, int sign) {
+static inline void matrixAdd(float ** mat1, float ** mat2, unsigned int r, unsigned int c, int sign) {
     for (unsigned int i = 0; i < r; ++i) {
         for (unsigned int j = 0; j < c; ++j) {
             mat1[i][j] = mat1[i][j] - (sign * mat2[i][j]);
@@ -114,9 +114,9 @@ static inline void matrixAdd(double ** mat1, double ** mat2, unsigned int r, uns
     }
 }
 
-// Matrix subtraction of two 3d double matrices
+// Matrix subtraction of two 3d float matrices
 // Sign will be positive 1 if we're adding and -1 for subtraction
-static inline void matrixAdd(double *** mat1, double *** mat2, unsigned int r, unsigned int c, unsigned int h, int sign) {
+static inline void matrixAdd(float *** mat1, float *** mat2, unsigned int r, unsigned int c, unsigned int h, int sign) {
     for (unsigned int i = 0; i < r; ++i) {
         for (unsigned int j = 0; j < c; ++j) {
             for(unsigned int k = 0; k < h; ++k) {
@@ -126,8 +126,8 @@ static inline void matrixAdd(double *** mat1, double *** mat2, unsigned int r, u
     }
 }
 
-// Scalar multiplication of a double 3d matrix
-static inline void matrixScalarMult(double *** mat1, double scalar, unsigned int r, unsigned int c, unsigned int h) {
+// Scalar multiplication of a float 3d matrix
+static inline void matrixScalarMult(float *** mat1, float scalar, unsigned int r, unsigned int c, unsigned int h) {
     for (unsigned int i = 0; i < r; ++i) {
         for (unsigned int j = 0; j < c; ++j) {
             for(unsigned int k = 0; k < h; ++k) {
