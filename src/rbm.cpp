@@ -166,9 +166,10 @@ void RBM::posStep() {
     debugPrint("Positive step...\n");
     clock_t time0 = clock();
 
-    float dataVal;
-    unsigned int userStartIdx, userEndIdx, movIdx, facIdx, idx, i, j, k, n, colIdx;
+    unsigned int userStartIdx, userEndIdx, movIdx, facIdx, i, j, k, n, colIdx;
+    unsigned int wIdx, vBiasIdx, hIdx;
     int movFac = N_FACTORS * MAX_RATING;
+    float prod;
 
     calcHidProbsUsingData();
     // updateH();
@@ -183,9 +184,19 @@ void RBM::posStep() {
             for (j = 0; j < N_FACTORS; ++j) {
                 facIdx = j * MAX_RATING;
                 for (k = 0; k < MAX_RATING; ++k) {
-                    idx = movIdx + facIdx + k;
-                    dataVal = getActualVal(n, i, j, k);
-                    dW[idx] += dataVal;
+                    prod = 0;
+                    if (getV(n, i, k)) {
+                        hIdx = n * N_FACTORS + j;
+                        prod = hidProbs[hIdx];
+
+                        wIdx = movIdx + facIdx + k;
+                        dW[wIdx] += prod;
+
+                        dHidBiases[j] += prod;
+
+                        vBiasIdx = i * MAX_RATING + k;
+                        dVisBiases[vBiasIdx] += 1;
+                    }
                 }
             }
         }
@@ -200,8 +211,10 @@ void RBM::negStep() {
     debugPrint("Negative step...\n");
     clock_t time0 = clock();
 
-    float expectVal;
-    unsigned int userStartIdx, userEndIdx, movIdx, facIdx, idx, i, j, k, n, colIdx;
+    unsigned int userStartIdx, userEndIdx, movIdx, facIdx, i, j, k, n, colIdx;
+    unsigned int vBiasIdx, wIdx, hIdx;
+    unsigned long vIdx;
+    float v, h;
     int movFac = N_FACTORS * MAX_RATING;
 
     // Update H and V several times
@@ -220,9 +233,17 @@ void RBM::negStep() {
             for (j = 0; j < N_FACTORS; ++j) {
                 facIdx = j * MAX_RATING;
                 for (k = 0; k < MAX_RATING; ++k) {
-                    idx = movIdx + facIdx + k;
-                    expectVal = getExpectVal(n, i, j, k);
-                    dW[idx] -= expectVal;
+                    vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
+                    v = visProbs[vIdx];
+
+                    hIdx = n * N_FACTORS + j;
+                    h = hidProbs[hIdx];
+
+                    wIdx = movIdx + facIdx + k;
+                    dW[wIdx] -= v * h;
+                    dHidBiases[j] -= h;
+                    vBiasIdx = i * MAX_RATING + k;
+                    dVisBiases[vBiasIdx] -= v;
                 }
             }
         }
@@ -450,12 +471,11 @@ void RBM::sumVisProbs() {
         for (colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = columns[colIdx]; // movie
-            k = values[colIdx]; // rating
-            for (k = 0 ; k < MAX_RATING; ++k) {
-                for (j = 0; j < N_FACTORS; ++j) {
+            for (j = 0; j < N_FACTORS; ++j) {
+                hIdx = n * N_FACTORS + j;
+                for (k = 0 ; k < MAX_RATING; ++k) {
                     idx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
                     vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
-                    hIdx = n * N_FACTORS + j;
                     visProbs[vIdx] += hidProbs[hIdx] * W[idx];
                 }
             }
