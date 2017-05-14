@@ -645,7 +645,46 @@ float RBM::validate(std::string valFile) {
 
 // Return the predicted rating for user n, movie i
 float RBM::predict(int n, int i) {
-    return 1;
+    // Calculate probabilities
+    unsigned int hIdx, wIdx, vBiasIdx;
+    float prob[5];
+    for (int k = 0; k < MAX_RATING; k++) {
+        prob[k] = 0;
+        assert(prob[k] == 0);
+    }
+    for (int j = 0; j < N_FACTORS; j++) {
+        hIdx = n * N_FACTORS + j;
+        for (int k = 0; k < MAX_RATING; k++) {
+            wIdx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
+            prob[k] += hidProbs[hIdx] * W[wIdx];
+        }
+    }
+    float denom = 0;
+    for (int k = 0; k < MAX_RATING; k++) {
+        vBiasIdx = i * MAX_RATING + k;
+        prob[k] += visBiases[vBiasIdx];
+        prob[k] = exp(prob[k]);
+        assert(prob[k] >= 0);
+        if (isinf(prob[k])) {
+            printf("prob was inf\n");
+            return k + 1;
+        }
+        denom += prob[k];
+        assert(denom >= 0);
+    }
+    if (denom == 0) {
+        printf("denom was 0\n");
+        return 3;
+    }
+    float expVal = 0;
+    for (int k = 0; k < MAX_RATING; k++) {
+        prob[k] /= denom;
+        assert(prob[k] >= 0);
+        assert(prob[k] <= 1);
+        expVal += prob[k] * (k + 1);
+    }
+    assert(expVal >= 1 && expVal <= 5);
+    return expVal;
 }
 
 int main() {
