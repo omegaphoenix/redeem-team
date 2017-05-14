@@ -49,7 +49,7 @@ RBM::RBM() {
     // Initialize feature biases
     hidBiases = new float[N_FACTORS];
     for (i = 0; i < N_FACTORS; ++i) {
-        hidBiases[i] = uniform(0, 1);
+        hidBiases[i] = normalRandom() * 0.1;
     }
     visBiases = new float[N_MOVIES * MAX_RATING];
 
@@ -601,6 +601,9 @@ void RBM::train(std::string saveFile) {
     clock_t timeStart = clock();
 
     FILE *validateFile = fopen("out/rbm/scores.txt", "a");
+    fprintf(validateFile, "New run\n");
+    fclose(validateFile);
+
     for (unsigned int epoch = 0; epoch < RBM_EPOCHS; epoch++) {
         if ((epoch + 1) % 10 == 0) {
             T += 2;
@@ -617,8 +620,10 @@ void RBM::train(std::string saveFile) {
         printf("Validation score was %f\n", valScore);
         float oracleScore = validate("4.dta");
         printf("Oracle score was %f\n", oracleScore);
+        FILE *validateFile = fopen("out/rbm/scores.txt", "a");
         fprintf(validateFile, "Epoch: %d Val: %f Probe: %f\n", epoch,
                 valScore, oracleScore);
+        fclose(validateFile);
         output("out/rbm/naive_rbm_factors" + std::to_string(N_FACTORS)
                 + "_epoch_" + std::to_string(epoch) + "_T_" +
                 std::to_string(T) + ".txt");
@@ -654,7 +659,9 @@ float RBM::validate(std::string valFile) {
     clock_t timeEnd = clock();
     float msTotal = diffclock(timeEnd, timeStart);
     printf("Validation took %f ms\n", msTotal);
-    return sqrt(squareError / validator->numRatings);
+    float RMSE = sqrt(squareError / validator->numRatings);
+    delete validator;
+    return RMSE;
 }
 
 // Output submission
@@ -686,6 +693,7 @@ void RBM::output(std::string saveFile) {
     float msTotal = diffclock(timeEnd, timeStart);
     printf("Outputing took %f ms\n", msTotal);
 
+    delete validator;
 }
 
 // Return the predicted rating for user n, movie i
