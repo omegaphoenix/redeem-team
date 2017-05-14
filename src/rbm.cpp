@@ -604,11 +604,48 @@ void RBM::train(std::string saveFile) {
         clock_t time1 = clock();
         float ms1 = diffclock(time1, time0);
         printf("Epoch %d took %f ms\n", epoch, ms1);
+        float valScore = validate("2.dta");
+        printf("Validation score was %f\n", valScore);
+        float oracleScore = validate("4.dta");
+        printf("Oracle score was %f\n", oracleScore);
     }
 
     clock_t timeEnd = clock();
     float msTotal = diffclock(timeEnd, timeStart);
     printf("Training took %f ms\n", msTotal);
+}
+
+// Return RMSE on validation file
+float RBM::validate(std::string valFile) {
+    debugPrint("Validating...\n");
+    clock_t timeStart = clock();
+    Model *validator = new Model();
+    validator->load(valFile);
+    unsigned int userStartIdx, userEndIdx, n, i, k, colIdx;
+    float prediction, error;
+    float squareError = 0;
+    for (n = 0; n < N_USERS; ++n) {
+        userStartIdx = validator->rowIndex[n];
+        userEndIdx = validator->rowIndex[n + 1];
+        for (colIdx = userStartIdx; colIdx < userEndIdx;
+                colIdx++) {
+            i = validator->columns[colIdx]; // movie
+            k = validator->values[colIdx]; // rating
+            prediction = predict(n, i);
+            error = prediction - k;
+            squareError += error * error;
+            assert(squareError >= 0);
+        }
+    }
+    clock_t timeEnd = clock();
+    float msTotal = diffclock(timeEnd, timeStart);
+    printf("Validation took %f ms\n", msTotal);
+    return sqrt(squareError / validator->numRatings);
+}
+
+// Return the predicted rating for user n, movie i
+float RBM::predict(int n, int i) {
+    return 1;
 }
 
 int main() {
@@ -618,7 +655,7 @@ int main() {
 
     clock_t time0 = clock();
     // Initialize
-    RBM *rbm = new RBM();
+    RBM* rbm = new RBM();
     clock_t time1 = clock();
     rbm->init();
     clock_t time2 = clock();

@@ -39,6 +39,8 @@ class RBM : public Model {
         float getExpectVal(int n, int i, int j, int k);
         void runGibbsSampler();
         void train(std::string saveFile);
+        float validate(std::string valFile);
+        float predict(int n, int i);
 
     private:
         float* W;
