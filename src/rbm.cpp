@@ -351,7 +351,7 @@ void RBM::runGibbsSampler() {
 
     calcVisProbs();
 
-    for (int t = 0; t < T; t++) {
+    for (int t = 1; t < T; t++) {
         calcHidProbs();
         calcVisProbs();
     }
@@ -602,6 +602,9 @@ void RBM::train(std::string saveFile) {
 
     FILE *validateFile = fopen("out/rbm/scores.txt", "a");
     for (unsigned int epoch = 0; epoch < RBM_EPOCHS; epoch++) {
+        if ((epoch + 1) % 10 == 0) {
+            T += 2;
+        }
         printf("Starting epoch %d\n", epoch);
         clock_t time0 = clock();
         updateW();
@@ -617,7 +620,8 @@ void RBM::train(std::string saveFile) {
         fprintf(validateFile, "Epoch: %d Val: %f Probe: %f\n", epoch,
                 valScore, oracleScore);
         output("out/rbm/naive_rbm_factors" + std::to_string(N_FACTORS)
-                + "_epoch_" + std::to_string(epoch) + ".txt");
+                + "_epoch_" + std::to_string(epoch) + "_T_" +
+                std::to_string(T) + ".txt");
     }
 
     clock_t timeEnd = clock();
