@@ -21,7 +21,7 @@ class SVDPlus : public Model {
     private:
         float runEpoch();
         virtual void update(int user, int movie, float rating, 
-            float* sum_y, float e_ui, bool update_yw);
+            float N, float* sum_y, float e_ui, bool update_yw);
         float computeAllError();
         float dotProduct(int user, int movie);
         // TODO: write these functions
