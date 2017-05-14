@@ -270,6 +270,36 @@ void RBM::updateW() {
     printf("Updating W took %f ms\n", ms1);
 }
 
+// Update hidden biases
+void RBM::updateHidBias() {
+    debugPrint("Updating hidden biases...\n");
+    clock_t time0 = clock();
+
+    // Update
+    for (unsigned int i = 0; i < N_FACTORS; ++i) {
+        hidBiases[i] += epsilonHB * dHidBiases[i] / N_USERS;
+    }
+
+    clock_t time1 = clock();
+    float ms1 = diffclock(time1, time0);
+    printf("Updating hidden biases took %f ms\n", ms1);
+}
+
+// Update visible biases
+void RBM::updateVisBias() {
+    debugPrint("Updating visible biases...\n");
+    clock_t time0 = clock();
+
+    // Update
+    for (unsigned int i = 0; i < N_MOVIES * MAX_RATING; ++i) {
+        visBiases[i] += epsilonVB * dVisBiases[i] / N_USERS;
+    }
+
+    clock_t time1 = clock();
+    float ms1 = diffclock(time1, time0);
+    printf("Updating visible biases took %f ms\n", ms1);
+}
+
 // Update binary hidden states
 void RBM::updateH() {
     debugPrint("Updating H...\n");
@@ -569,6 +599,8 @@ void RBM::train(std::string saveFile) {
         printf("Starting epoch %d\n", epoch);
         clock_t time0 = clock();
         updateW();
+        updateHidBias();
+        updateVisBias();
         clock_t time1 = clock();
         float ms1 = diffclock(time1, time0);
         printf("Epoch %d took %f ms\n", epoch, ms1);

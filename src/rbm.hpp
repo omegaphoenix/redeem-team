@@ -23,6 +23,8 @@ class RBM : public Model {
         void posStep();
         void negStep();
         void updateW();
+        void updateHidBias();
+        void updateVisBias();
         void updateH();
         void updateV();
         void calcHidProbsUsingData();
