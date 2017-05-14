@@ -46,7 +46,7 @@ Model::~Model() {
 
 void Model::transposeMU() {
     clock_t time0 = clock();
-    for (int i = 0; i < numRatings; i++) {
+    for (unsigned int i = 0; i < numRatings; i++) {
         int u = ratings[i * DATA_POINT_SIZE + USER_IDX];
         int m = ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
         int d = ratings[i * DATA_POINT_SIZE + TIME_IDX];
@@ -57,7 +57,7 @@ void Model::transposeMU() {
 
     int current = 0; //CSR counter
 
-    for (int i = 0; i < numRatings; i++) {
+    for (unsigned int i = 0; i < numRatings; i++) {
         // COO Format
         muratings[i * DATA_POINT_SIZE + USER_IDX] = sortStruct[i].userID;
         muratings[i * DATA_POINT_SIZE + MOVIE_IDX] = sortStruct[i].movieID;
@@ -232,7 +232,7 @@ void testTranspose() {
     printf("Transpose\n");
     mod->transposeMU();
     clock_t time3 = clock();
-    int i;
+    unsigned int i;
     for (i = 0; i < mod->numRatings - 1; i++) {
         int j = i + 1;
         // COO values
@@ -262,7 +262,7 @@ void testTranspose() {
     }
 
     assert (mod->murowIndex[0] == 0);
-    assert (mod->murowIndex[N_MOVIES] == mod->numRatings);
+    assert (mod->murowIndex[N_MOVIES] == (int) mod->numRatings);
     clock_t time4 = clock();
 
     float ms1 = diffclock(time1, time0);

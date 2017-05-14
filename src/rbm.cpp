@@ -5,6 +5,7 @@
 #include <iostream>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h> // memset
 #include <time.h>
 
 using namespace std;
@@ -429,6 +430,9 @@ void RBM::resetVisProbs() {
     debugPrint("Resetting visible probabilities to biases...\n");
     clock_t time0 = clock();
 
+    memset(visProbs, 0, N_USERS * N_FACTORS * sizeof(*visProbs));
+
+    /*
     unsigned int n, idx;
     unsigned int movieRatings = N_MOVIES * MAX_RATING;
     float *visBiasesEnd = visBiases + movieRatings;
@@ -436,6 +440,7 @@ void RBM::resetVisProbs() {
         idx = n * movieRatings;
         std::copy(visBiases, visBiasesEnd, visProbs + idx);
     }
+    */
 
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
@@ -477,7 +482,7 @@ void RBM::sumToVisProbs() {
     debugPrint("Exponentiating visible probabilities...\n");
     clock_t time0 = clock();
 
-    unsigned int userStartIdx, userEndIdx, n, i, k, vIdx, colIdx, vIdxBase;
+    unsigned int userStartIdx, userEndIdx, n, i, k, vIdx, colIdx, vIdxBase, bIdx;
     float denom = 0;
     vIdxBase = 0;
     for (n = 0; n < N_USERS; ++n) {
@@ -489,10 +494,12 @@ void RBM::sumToVisProbs() {
             i = (int) columns[colIdx]; // movie
             denom = 0;
             vIdx = vIdxBase + i * MAX_RATING;
+            bIdx = i * MAX_RATING;
             for (k = 0 ; k < MAX_RATING; ++k) {
-                visProbs[vIdx] = exp(visProbs[vIdx]);
+                visProbs[vIdx] = exp(visBiases[bIdx] + visProbs[vIdx]);
                 denom += visProbs[vIdx];
                 vIdx++;
+                bIdx++;
             }
             for (k = 0 ; k < MAX_RATING; ++k) {
                 vIdx--;
