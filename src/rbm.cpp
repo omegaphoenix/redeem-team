@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <cmath>
 #include <float.h>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <math.h>
 #include <stdlib.h>
@@ -218,9 +220,7 @@ void RBM::negStep() {
     int movFac = N_FACTORS * MAX_RATING;
 
     // Update H and V several times
-    for (unsigned int t = 0; t < T; t++) {
-        runGibbsSampler();
-    }
+    runGibbsSampler();
 
     // Second half of equation 6 in RBM for CF, Salakhutdinov 2007
     for (n = 0; n < N_USERS; ++n) {
@@ -350,9 +350,11 @@ void RBM::runGibbsSampler() {
     clock_t time0 = clock();
 
     calcVisProbs();
-    // updateV();
-    // calcHidProbs();
-    // updateH();
+
+    for (int t = 0; t < T; t++) {
+        calcHidProbs();
+        calcVisProbs();
+    }
 
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
@@ -396,7 +398,9 @@ void RBM::calcHidProbs() {
     clock_t time0 = clock();
 
     // Reset hidProbs to b_j
-    unsigned int n, i, k, j, idx, userStartIdx, userEndIdx, colIdx;
+    unsigned int n, i, k, j, userStartIdx, userEndIdx, colIdx;
+    unsigned int wIdx, hIdx;
+    unsigned long vIdx;
     resetHidProbs();
 
     for (n = 0; n < N_USERS; ++n) {
@@ -405,12 +409,13 @@ void RBM::calcHidProbs() {
         for (colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = columns[colIdx]; // movie
-            k = values[colIdx]; // rating
             // Add v_i^k W_ij^k
-            if (getV(n, i, k)) {
-                for (j = 0; j < N_FACTORS; ++j) {
-                    idx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
-                    hidProbs[n * N_FACTORS + j] += W[idx];
+            for (j = 0; j < N_FACTORS; ++j) {
+                for (k = 0; k < MAX_RATING; k++) {
+                    wIdx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
+                    hIdx = n * N_FACTORS + j;
+                    vIdx = n * N_MOVIES * MAX_RATING + j * MAX_RATING + k;
+                    hidProbs[hIdx] += W[wIdx] * visProbs[vIdx];
                 }
             }
         }
@@ -595,6 +600,7 @@ void RBM::train(std::string saveFile) {
     debugPrint("Training...\n");
     clock_t timeStart = clock();
 
+    FILE *validateFile = fopen("out/rbm/scores.txt", "a");
     for (unsigned int epoch = 0; epoch < RBM_EPOCHS; epoch++) {
         printf("Starting epoch %d\n", epoch);
         clock_t time0 = clock();
@@ -608,6 +614,10 @@ void RBM::train(std::string saveFile) {
         printf("Validation score was %f\n", valScore);
         float oracleScore = validate("4.dta");
         printf("Oracle score was %f\n", oracleScore);
+        fprintf(validateFile, "Epoch: %d Val: %f Probe: %f\n", epoch,
+                valScore, oracleScore);
+        output("out/rbm/naive_rbm_factors" + std::to_string(N_FACTORS)
+                + "_epoch_" + std::to_string(epoch) + ".txt");
     }
 
     clock_t timeEnd = clock();
@@ -641,6 +651,37 @@ float RBM::validate(std::string valFile) {
     float msTotal = diffclock(timeEnd, timeStart);
     printf("Validation took %f ms\n", msTotal);
     return sqrt(squareError / validator->numRatings);
+}
+
+// Output submission
+void RBM::output(std::string saveFile) {
+    debugPrint("Outputing...\n");
+    clock_t timeStart = clock();
+    Model *validator = new Model();
+    validator->load("5-1.dta");
+    unsigned int userStartIdx, userEndIdx, n, i, colIdx;
+    float prediction;
+
+    // Open file
+    std::ofstream outputFile;
+    outputFile << std::setprecision(3);
+    outputFile.open(saveFile);
+    for (n = 0; n < N_USERS; ++n) {
+        userStartIdx = validator->rowIndex[n];
+        userEndIdx = validator->rowIndex[n + 1];
+        for (colIdx = userStartIdx; colIdx < userEndIdx;
+                colIdx++) {
+            i = validator->columns[colIdx]; // movie
+            prediction = predict(n, i);
+            outputFile << prediction << "\n";
+        }
+    }
+    outputFile.close();
+
+    clock_t timeEnd = clock();
+    float msTotal = diffclock(timeEnd, timeStart);
+    printf("Outputing took %f ms\n", msTotal);
+
 }
 
 // Return the predicted rating for user n, movie i

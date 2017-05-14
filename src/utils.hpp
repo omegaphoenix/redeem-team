@@ -12,7 +12,7 @@ using namespace std;
 // Disable assertions
 // #define NDEBUG
 // Uncomment this if you want to print debug statements
-#define PRINT
+// #define PRINT
 
 #define N_MOVIES 17770
 #define N_USERS 458293

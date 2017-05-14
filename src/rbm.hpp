@@ -3,8 +3,8 @@
 #include <bitset>
 #include "model.hpp"
 
-#define N_FACTORS 10
-#define RBM_EPOCHS 1
+#define N_FACTORS 100
+#define RBM_EPOCHS 50
 
 class RBM : public Model {
 
@@ -40,6 +40,7 @@ class RBM : public Model {
         void runGibbsSampler();
         void train(std::string saveFile);
         float validate(std::string valFile);
+        void output(std::string saveFile);
         float predict(int n, int i);
 
     private:
