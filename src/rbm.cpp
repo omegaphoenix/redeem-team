@@ -442,7 +442,7 @@ void RBM::sumVisProbs() {
     debugPrint("Summing weights for visible probabilities...\n");
     clock_t time0 = clock();
 
-    unsigned int userStartIdx, userEndIdx, n, i, j, k, idx, colIdx;
+    unsigned int userStartIdx, userEndIdx, n, i, j, k, idx, colIdx, hIdx;
     unsigned long vIdx;
     for (n = 0; n < N_USERS; ++n) {
         userStartIdx = rowIndex[n];
@@ -453,11 +453,10 @@ void RBM::sumVisProbs() {
             k = values[colIdx]; // rating
             for (k = 0 ; k < MAX_RATING; ++k) {
                 for (j = 0; j < N_FACTORS; ++j) {
-                    if (getHidVar(j)) {
-                        idx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
-                        vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
-                        visProbs[vIdx] += W[idx];
-                    }
+                    idx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
+                    vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
+                    hIdx = n * N_FACTORS + j;
+                    visProbs[vIdx] += hidProbs[hIdx] * W[idx];
                 }
             }
         }
@@ -476,11 +475,11 @@ void RBM::sumToVisProbs() {
     unsigned int userStartIdx, userEndIdx, n, i, k, colIdx, bIdx;
     unsigned long vIdx;
     float denom = 0;
-    unsigned long vIdxBase = 0;
+    // unsigned long vIdxBase = 0;
     for (n = 0; n < N_USERS; ++n) {
         userStartIdx = rowIndex[n];
         userEndIdx = rowIndex[n + 1];
-        assert (vIdxBase % MAX_RATING == 0);
+        // assert (vIdxBase % MAX_RATING == 0);
         for (colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = columns[colIdx]; // movie
