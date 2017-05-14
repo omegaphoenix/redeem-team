@@ -430,17 +430,7 @@ void RBM::resetVisProbs() {
     debugPrint("Resetting visible probabilities to biases...\n");
     clock_t time0 = clock();
 
-    memset(visProbs, 0, N_USERS * N_FACTORS * sizeof(*visProbs));
-
-    /*
-    unsigned int n, idx;
-    unsigned int movieRatings = N_MOVIES * MAX_RATING;
-    float *visBiasesEnd = visBiases + movieRatings;
-    for (n = 0; n < N_USERS; ++n) {
-        idx = n * movieRatings;
-        std::copy(visBiases, visBiasesEnd, visProbs + idx);
-    }
-    */
+    std::fill(visProbs, visProbs + N_USERS * N_MOVIES * MAX_RATING, 0);
 
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
