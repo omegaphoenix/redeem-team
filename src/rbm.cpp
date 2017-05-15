@@ -51,7 +51,10 @@ RBM::RBM() {
     for (i = 0; i < N_FACTORS; ++i) {
         hidBiases[i] = normalRandom() * 0.1;
     }
-    visBiases = new float[N_MOVIES * MAX_RATING]();
+    visBiases = new float[N_MOVIES * MAX_RATING];
+    for (i = 0; i < N_MOVIES * MAX_RATING; ++i) {
+        visBiases[i] = 0;
+    }
 
     // Initialize deltas
     dW = new float[N_MOVIES * N_FACTORS * MAX_RATING];
@@ -84,17 +87,22 @@ void RBM::init() {
     debugPrint("Initializing visible biases...\n");
 
     // Init visible biases to logs of respective base rates over all users
-    unsigned int movie, rating, i;
+    unsigned int movie, rating, i, k, vBiasIdx;
+    int movCount[N_MOVIES] = {0};
     for (i = 0; i < numRatings; ++i) {
         movie = columns[i];
         assert (movie >= 0 && movie < N_MOVIES);
         rating = values[i] - 1;
         assert (rating >= 0 && rating < MAX_RATING);
-        visBiases[movie * MAX_RATING + rating - 1] += 1;
+        movCount[movie] += 1;
+        visBiases[movie * MAX_RATING + rating] += 1;
     }
     clock_t time1 = clock();
-    for (i = 0; i < N_MOVIES * MAX_RATING; ++i) {
-        visBiases[i] = log(visBiases[i] / N_USERS);
+    for (i = 0; i < N_MOVIES; ++i) {
+        for (k = 0; k < MAX_RATING; ++k) {
+            vBiasIdx = i * MAX_RATING + k;
+            visBiases[vBiasIdx] = log(visBiases[vBiasIdx] / movCount[i]);
+        }
     }
     clock_t time2 = clock();
 
