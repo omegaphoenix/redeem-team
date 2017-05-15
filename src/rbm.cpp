@@ -51,7 +51,7 @@ RBM::RBM() {
     for (i = 0; i < N_FACTORS; ++i) {
         hidBiases[i] = normalRandom() * 0.1;
     }
-    visBiases = new float[N_MOVIES * MAX_RATING];
+    visBiases = new float[N_MOVIES * MAX_RATING]();
 
     // Initialize deltas
     dW = new float[N_MOVIES * N_FACTORS * MAX_RATING];
@@ -87,8 +87,10 @@ void RBM::init() {
     unsigned int movie, rating, i;
     for (i = 0; i < numRatings; ++i) {
         movie = columns[i];
-        rating = values[i];
-        (visBiases[movie * MAX_RATING + rating])++;
+        assert (movie >= 0 && movie < N_MOVIES);
+        rating = values[i] - 1;
+        assert (rating >= 0 && rating < MAX_RATING);
+        visBiases[movie * MAX_RATING + rating - 1] += 1;
     }
     clock_t time1 = clock();
     for (i = 0; i < N_MOVIES * MAX_RATING; ++i) {
@@ -376,7 +378,8 @@ void RBM::calcHidProbsUsingData() {
         for (colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = columns[colIdx]; // movie
-            k = values[colIdx]; // rating
+            k = values[colIdx] - 1; // rating
+            assert (k >= 0 && k < MAX_RATING);
             for (j = 0; j < N_FACTORS; ++j) {
                 idx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
                 hidProbs[n * N_FACTORS + j] += W[idx];
@@ -454,7 +457,7 @@ void RBM::compHidProbs() {
     unsigned int i;
     for (i = 0; i < N_USERS * N_FACTORS; ++i) {
         hidProbs[i] = sigmoid(hidProbs[i]);
-        assert(hidProbs[i] >= 0 && hidProbs[i] <= 1);
+        assert (hidProbs[i] >= 0 && hidProbs[i] <= 1);
     }
 
     clock_t time1 = clock();
@@ -474,7 +477,7 @@ void RBM::calcVisProbs() {
     sumVisProbs();
 
     // Compute visProbs
-    sumToVisProbs();
+    sumToVisProbs(); // jump
 
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
@@ -554,7 +557,7 @@ void RBM::sumToVisProbs() {
                 // vIdx--;
                 vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
                 visProbs[vIdx] = visProbs[vIdx] / denom;
-                assert (visProbs[vIdx] >= 0 && visProbs[vIdx] <= 1);
+                assert (visProbs[vIdx] >= 0 && visProbs[vIdx] <= 1); // jump
             }
             // assert (vIdx % MAX_RATING == 0);
 #ifndef NDEBUG
@@ -564,7 +567,7 @@ void RBM::sumToVisProbs() {
                 denom += visProbs[vIdx];
                 // vIdx++;
             }
-            assert (denom >= 0.999 && denom <= 1.001);
+            assert (denom >= 0.999 && denom <= 1.001); // jump
 #endif
         }
         // vIdxBase += N_MOVIES * MAX_RATING;
@@ -620,7 +623,7 @@ void RBM::train(std::string saveFile) {
         printf("Validation score was %f\n", valScore);
         float oracleScore = validate("4.dta");
         printf("Oracle score was %f\n", oracleScore);
-        FILE *validateFile = fopen("out/rbm/scores.txt", "a");
+        validateFile = fopen("out/rbm/scores.txt", "a");
         fprintf(validateFile, "Epoch: %d Val: %f Probe: %f\n", epoch,
                 valScore, oracleScore);
         fclose(validateFile);
@@ -634,6 +637,50 @@ void RBM::train(std::string saveFile) {
     printf("Training took %f ms\n", msTotal);
 }
 
+// Return the predicted rating for user n, movie i
+float RBM::predict(int n, int i) {
+    // Calculate probabilities
+    unsigned int hIdx, wIdx, vBiasIdx;
+    float prob[5];
+    for (int k = 0; k < MAX_RATING; k++) {
+        prob[k] = 0;
+        assert (prob[k] == 0.0);
+    }
+    for (int j = 0; j < N_FACTORS; j++) {
+        hIdx = n * N_FACTORS + j;
+        for (int k = 0; k < MAX_RATING; k++) {
+            wIdx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
+            prob[k] += hidProbs[hIdx] * W[wIdx];
+        }
+    }
+    float denom = 0.0;
+    for (int k = 0; k < MAX_RATING; k++) {
+        vBiasIdx = i * MAX_RATING + k;
+        prob[k] += visBiases[vBiasIdx];
+        prob[k] = expf(prob[k]);
+        assert (prob[k] >= 0.0); // jump
+        if (isinf(prob[k])) { // jump
+            printf("prob was inf\n");
+            return k + 1;
+        }
+        denom += prob[k];
+        assert (denom >= 0.0); // jump
+    }
+    if (denom == 0.0) { // jump
+        printf("denom was 0\n");
+        return 3;
+    }
+    float expVal = 0.0;
+    for (int k = 0; k < MAX_RATING; k++) {
+        prob[k] /= denom;
+        assert (prob[k] >= 0.0); // jump
+        assert (prob[k] <= 1.0); // jump
+        expVal += prob[k] * (k + 1.0);
+    }
+    assert (expVal >= 1.0 && expVal <= 5.0); // jump
+    return expVal;
+}
+
 // Return RMSE on validation file
 float RBM::validate(std::string valFile) {
     debugPrint("Validating...\n");
@@ -641,19 +688,19 @@ float RBM::validate(std::string valFile) {
     Model *validator = new Model();
     validator->load(valFile);
     unsigned int userStartIdx, userEndIdx, n, i, k, colIdx;
-    float prediction, error;
-    float squareError = 0;
+    float squareError = 0.0;
     for (n = 0; n < N_USERS; ++n) {
         userStartIdx = validator->rowIndex[n];
         userEndIdx = validator->rowIndex[n + 1];
-        for (colIdx = userStartIdx; colIdx < userEndIdx;
-                colIdx++) {
+        for (colIdx = userStartIdx; colIdx < userEndIdx; colIdx++) {
             i = validator->columns[colIdx]; // movie
             k = validator->values[colIdx]; // rating
-            prediction = predict(n, i);
-            error = prediction - k;
+            assert (i >= 0 && i < N_MOVIES);
+            assert (k > 0 && k <= MAX_RATING);
+            float prediction = predict(n, i); // jump
+            float error = prediction - (float) k;
             squareError += error * error;
-            assert(squareError >= 0);
+            assert (squareError >= 0); // jump
         }
     }
     clock_t timeEnd = clock();
@@ -671,7 +718,6 @@ void RBM::output(std::string saveFile) {
     Model *validator = new Model();
     validator->load("5-1.dta");
     unsigned int userStartIdx, userEndIdx, n, i, colIdx;
-    float prediction;
 
     // Open file
     std::ofstream outputFile;
@@ -683,8 +729,8 @@ void RBM::output(std::string saveFile) {
         for (colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = validator->columns[colIdx]; // movie
-            prediction = predict(n, i);
-            outputFile << prediction << "\n";
+            float prediction = predict(n, i); // jump
+            outputFile << prediction << "\n"; // jump
         }
     }
     outputFile.close();
@@ -694,50 +740,6 @@ void RBM::output(std::string saveFile) {
     printf("Outputing took %f ms\n", msTotal);
 
     delete validator;
-}
-
-// Return the predicted rating for user n, movie i
-float RBM::predict(int n, int i) {
-    // Calculate probabilities
-    unsigned int hIdx, wIdx, vBiasIdx;
-    float prob[5];
-    for (int k = 0; k < MAX_RATING; k++) {
-        prob[k] = 0;
-        assert(prob[k] == 0);
-    }
-    for (int j = 0; j < N_FACTORS; j++) {
-        hIdx = n * N_FACTORS + j;
-        for (int k = 0; k < MAX_RATING; k++) {
-            wIdx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
-            prob[k] += hidProbs[hIdx] * W[wIdx];
-        }
-    }
-    float denom = 0;
-    for (int k = 0; k < MAX_RATING; k++) {
-        vBiasIdx = i * MAX_RATING + k;
-        prob[k] += visBiases[vBiasIdx];
-        prob[k] = exp(prob[k]);
-        assert(prob[k] >= 0);
-        if (isinf(prob[k])) {
-            printf("prob was inf\n");
-            return k + 1;
-        }
-        denom += prob[k];
-        assert(denom >= 0);
-    }
-    if (denom == 0) {
-        printf("denom was 0\n");
-        return 3;
-    }
-    float expVal = 0;
-    for (int k = 0; k < MAX_RATING; k++) {
-        prob[k] /= denom;
-        assert(prob[k] >= 0);
-        assert(prob[k] <= 1);
-        expVal += prob[k] * (k + 1);
-    }
-    assert(expVal >= 1 && expVal <= 5);
-    return expVal;
 }
 
 int main() {

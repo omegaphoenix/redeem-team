@@ -37,6 +37,6 @@ rbm: $(RBM_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/rbm $^
 
 clean:
-	rm -f bin/* src/*.o
+	rm -f -R bin/* src/*.o
 
 .PHONY: all clean init
