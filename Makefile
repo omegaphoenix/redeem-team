@@ -12,7 +12,7 @@ RBM_FILES = $(addprefix src/, rbm.cpp model.cpp)
 all: init naive_svd validate_naive_svd
 
 init:
-	mkdir -p bin log out model model/naive_svd
+	mkdir -p bin log out model out/rbm model/naive_svd model/rbm
 	if [ ! -f "data/um/5-1.dta" ]; \
 then \
 	sed 's/0$$/1/' data/um/5.dta > data/um/5-1.dta; \
