@@ -5,6 +5,8 @@
 
 #define N_FACTORS 100
 #define RBM_EPOCHS 50
+#define STD_DEV 0.01
+#define BATCH_SIZE 1000
 
 class RBM : public Model {
 
@@ -19,12 +21,12 @@ class RBM : public Model {
         void setV(int n, int i, int k, bool newVal);
         bool getV(int n, int i, int k);
         void resetDeltas();
-        void calcGrad();
+        void calcGrad(int startUser, int endUser);
         void posStep();
         void negStep();
-        void updateW();
-        void updateHidBias();
-        void updateVisBias();
+        void updateW(int startUser, int endUser);
+        void updateHidBias(int startUser, int endUser);
+        void updateVisBias(int startUser, int endUser);
         void updateH();
         void updateV();
         void calcHidProbsUsingData();
@@ -40,6 +42,7 @@ class RBM : public Model {
         void runGibbsSampler();
         void train(std::string saveFile);
         float predict(int n, int i);
+        float trainingError();
         float validate(std::string valFile);
         void output(std::string saveFile);
 
@@ -47,9 +50,9 @@ class RBM : public Model {
         float* W;
         float* dW; // So we don't have to reallocate each time.
         unsigned int T; // See equation 6 in RBM for CF, Salakhutdinov 2007
-        float epsilonW; // learning rate for weights
-        float epsilonVB; // learning rate for biases of visible units
-        float epsilonHB; // learning rate for biases of hidden units
+        float eta; // momentum
+        float epsilon; // learning rate
+        float lambda; // weight decay
         float* hidBiases; // bias of feature j
         float* dHidBiases; // delta of bias of feature j
         float* visBiases; // bias of rating k for movie i

@@ -22,14 +22,14 @@ RBM::RBM() {
     T = 1;
 
     // Initial learning rates
-    epsilonW = 0.02;
-    epsilonVB = 0.02;
-    epsilonHB = 0.02;
+    eta = 0.1;
+    epsilon = 0.02;
+    lambda = 0.0001;
 
     // Initialize W
     W = new float[N_MOVIES * N_FACTORS * MAX_RATING];
     for (i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
-        W[i] = normalRandom() * 0.1;
+        W[i] = normalRandom() * STD_DEV;
     }
 
     // Initialize hidden units
@@ -49,7 +49,7 @@ RBM::RBM() {
     // Initialize feature biases
     hidBiases = new float[N_FACTORS];
     for (i = 0; i < N_FACTORS; ++i) {
-        hidBiases[i] = normalRandom() * 0.1;
+        hidBiases[i] = normalRandom() * STD_DEV;
     }
     visBiases = new float[N_MOVIES * MAX_RATING];
     for (i = 0; i < N_MOVIES * MAX_RATING; ++i) {
@@ -160,7 +160,7 @@ void RBM::resetDeltas() {
 
 // Calculate the gradient averaged over all users
 // TODO: Add biases
-void RBM::calcGrad() {
+void RBM::calcGrad(int startUser, int endUser) {
     debugPrint("Calculating gradient...\n");
     clock_t time0 = clock();
 
@@ -265,14 +265,14 @@ void RBM::negStep() {
 }
 
 // Update W using contrastive divergence
-void RBM::updateW() {
+void RBM::updateW(int startUser, int endUser) {
     debugPrint("Updating W...\n");
     clock_t time0 = clock();
 
-    calcGrad();
+    calcGrad(startUser, endUser);
     // Update W
     for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
-        W[i] += epsilonW * dW[i] / N_USERS;
+        W[i] += epsilon * dW[i] / (endUser - startUser);
     }
 
     clock_t time1 = clock();
@@ -281,13 +281,13 @@ void RBM::updateW() {
 }
 
 // Update hidden biases
-void RBM::updateHidBias() {
+void RBM::updateHidBias(int startUser, int endUser) {
     debugPrint("Updating hidden biases...\n");
     clock_t time0 = clock();
 
     // Update
     for (unsigned int i = 0; i < N_FACTORS; ++i) {
-        hidBiases[i] += epsilonHB * dHidBiases[i] / N_USERS;
+        hidBiases[i] += epsilon * dHidBiases[i] / (endUser - startUser);
     }
 
     clock_t time1 = clock();
@@ -296,13 +296,13 @@ void RBM::updateHidBias() {
 }
 
 // Update visible biases
-void RBM::updateVisBias() {
+void RBM::updateVisBias(int startUser, int endUser) {
     debugPrint("Updating visible biases...\n");
     clock_t time0 = clock();
 
     // Update
     for (unsigned int i = 0; i < N_MOVIES * MAX_RATING; ++i) {
-        visBiases[i] += epsilonVB * dVisBiases[i] / N_USERS;
+        visBiases[i] += epsilon * dVisBiases[i] / (endUser - startUser);
     }
 
     clock_t time1 = clock();
@@ -621,19 +621,23 @@ void RBM::train(std::string saveFile) {
         }
         printf("Starting epoch %d\n", epoch);
         clock_t time0 = clock();
-        updateW();
-        updateHidBias();
-        updateVisBias();
+        unsigned int startUser = 0;
+        unsigned int endUser = N_USERS;
+        updateW(startUser, endUser);
+        updateHidBias(startUser, endUser);
+        updateVisBias(startUser, endUser);
         clock_t time1 = clock();
         float ms1 = diffclock(time1, time0);
         printf("Epoch %d took %f ms\n", epoch, ms1);
+        float eIn = trainingError();
+        printf("Training error was %f\n", eIn);
         float valScore = validate("2.dta");
         printf("Validation score was %f\n", valScore);
         float oracleScore = validate("4.dta");
         printf("Oracle score was %f\n", oracleScore);
         validateFile = fopen("out/rbm/scores.txt", "a");
-        fprintf(validateFile, "Epoch: %d Val: %f Probe: %f\n", epoch,
-                valScore, oracleScore);
+        fprintf(validateFile, "Epoch: %d EIn: %f Val: %f Probe: %f\n", epoch,
+                eIn, valScore, oracleScore);
         fclose(validateFile);
         output("out/rbm/naive_rbm_factors" + std::to_string(N_FACTORS)
                 + "_epoch_" + std::to_string(epoch) + "_T_" +
@@ -688,6 +692,34 @@ float RBM::predict(int n, int i) {
     assert (expVal >= 1.0 && expVal <= 5.0); // jump
     return expVal;
 }
+
+// Return RMSE on validation file
+float RBM::trainingError() {
+    debugPrint("Calculating training error...\n");
+    clock_t timeStart = clock();
+    unsigned int userStartIdx, userEndIdx, n, i, k, colIdx;
+    float squareError = 0.0;
+    for (n = 0; n < N_USERS; ++n) {
+        userStartIdx = rowIndex[n];
+        userEndIdx = rowIndex[n + 1];
+        for (colIdx = userStartIdx; colIdx < userEndIdx; colIdx++) {
+            i = columns[colIdx]; // movie
+            k = values[colIdx]; // rating
+            assert (i >= 0 && i < N_MOVIES);
+            assert (k > 0 && k <= MAX_RATING);
+            float prediction = predict(n, i);
+            float error = prediction - (float) k;
+            squareError += error * error;
+            assert (squareError >= 0);
+        }
+    }
+    clock_t timeEnd = clock();
+    float msTotal = diffclock(timeEnd, timeStart);
+    printf("Calculating training error took %f ms\n", msTotal);
+    float RMSE = sqrt(squareError / numRatings);
+    return RMSE;
+}
+
 
 // Return RMSE on validation file
 float RBM::validate(std::string valFile) {
