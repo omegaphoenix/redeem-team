@@ -19,7 +19,7 @@ Model::Model() {
     ratings = new int[N_TRAINING * DATA_POINT_SIZE];
     values = new unsigned char[N_TRAINING];
     columns = new unsigned short[N_TRAINING];
-    rowIndex = new int[N_USERS + 1];
+    rowIndex = new unsigned int[N_USERS + 1];
 
     // MU
     sortStruct = new dataPoint[N_TRAINING];
@@ -31,22 +31,22 @@ Model::Model() {
 
 // Clean up ratings.
 Model::~Model() {
-    free(ratings);
-    free(values);
-    free(columns);
-    free(rowIndex);
+    delete ratings;
+    delete values;
+    delete columns;
+    delete rowIndex;
 
-    free(sortStruct);
+    delete sortStruct;
 
-    free(muratings);
-    free(muvalues);
-    free(mucolumns);
-    free(murowIndex);
+    delete muratings;
+    delete muvalues;
+    delete mucolumns;
+    delete murowIndex;
 }
 
 void Model::transposeMU() {
     clock_t time0 = clock();
-    for (int i = 0; i < numRatings; i++) {
+    for (unsigned int i = 0; i < numRatings; i++) {
         int u = ratings[i * DATA_POINT_SIZE + USER_IDX];
         int m = ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
         int d = ratings[i * DATA_POINT_SIZE + TIME_IDX];
@@ -57,7 +57,7 @@ void Model::transposeMU() {
 
     int current = 0; //CSR counter
 
-    for (int i = 0; i < numRatings; i++) {
+    for (unsigned int i = 0; i < numRatings; i++) {
         // COO Format
         muratings[i * DATA_POINT_SIZE + USER_IDX] = sortStruct[i].userID;
         muratings[i * DATA_POINT_SIZE + MOVIE_IDX] = sortStruct[i].movieID;
@@ -75,13 +75,13 @@ void Model::transposeMU() {
     murowIndex[N_MOVIES] = numRatings;
     clock_t time1 = clock();
 
-    double ms1 = diffclock(time1, time0);
+    float ms1 = diffclock(time1, time0);
     printf("Transposing took %f ms\n", ms1);;
 }
 
 // Load new ratings array into CSR format.
 void Model::loadFresh(std::string inFname, std::string outFname) {
-    std::cout << "Opening " << inFname << std::endl;
+    printf("Opening %s\n", inFname.c_str());
 
     FILE* in = fopen(inFname.c_str(), "r");
     FILE* out = fopen((outFname).c_str(), "wb");
@@ -192,7 +192,7 @@ void Model::loadCSR(std::string fname) {
 
 // Run this function once first to preprocess data.
 void Model::initLoad(std::string fname, std::string dataFile) {
-    std::cout << "Preprocessing..." << std::endl;
+    debugPrint("Preprocessing...\n");
     clock_t time0 = clock();
 
     // Load data from file.
@@ -200,8 +200,8 @@ void Model::initLoad(std::string fname, std::string dataFile) {
     clock_t time1 = clock();
 
     // Output times.
-    double ms1 = diffclock(time1, time0);
-    std::cout << "Preprocessing took " << ms1 << " ms" << std::endl;
+    float ms1 = diffclock(time1, time0);
+    printf("Preproccessing took %f ms\n", ms1);
 }
 
 // Load the data.
@@ -212,16 +212,15 @@ void Model::load(std::string dataFile) {
         initLoad(fname, dataFile);
     }
 
-    std::cout << "Loading..." << std::endl;
+    debugPrint("Loading...\n");
     clock_t time0 = clock();
     // Load data from file.
     loadCSR(fname);
     clock_t time1 = clock();
 
     // Output times.
-    double ms1 = diffclock(time1, time0);
-    std::cout << "Loading took " << ms1 << " ms" << std::endl;
-    printf("Loading took %f ms\n", ms1);;
+    float ms1 = diffclock(time1, time0);
+    printf("Loading took %f ms\n", ms1);
 }
 
 void testTranspose() {
@@ -233,7 +232,7 @@ void testTranspose() {
     printf("Transpose\n");
     mod->transposeMU();
     clock_t time3 = clock();
-    int i;
+    unsigned int i;
     for (i = 0; i < mod->numRatings - 1; i++) {
         int j = i + 1;
         // COO values
@@ -263,13 +262,13 @@ void testTranspose() {
     }
 
     assert (mod->murowIndex[0] == 0);
-    assert (mod->murowIndex[N_MOVIES] == mod->numRatings);
+    assert (mod->murowIndex[N_MOVIES] == (int) mod->numRatings);
     clock_t time4 = clock();
 
-    double ms1 = diffclock(time1, time0);
-    double ms2 = diffclock(time2, time1);
-    double ms3 = diffclock(time3, time2);
-    double ms4 = diffclock(time4, time3);
+    float ms1 = diffclock(time1, time0);
+    float ms2 = diffclock(time2, time1);
+    float ms3 = diffclock(time3, time2);
+    float ms4 = diffclock(time4, time3);
 
     printf("Initializing took %f ms\n", ms1);
     printf("Total loading took %f ms\n", ms2);
