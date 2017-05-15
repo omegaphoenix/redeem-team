@@ -42,17 +42,10 @@ class RBM : public Model {
         void runGibbsSampler();
         void train(std::string saveFile);
         float predict(int n, int i);
-        float trainingError();
-        float validate(std::string valFile);
-        void output(std::string saveFile);
 
     private:
         float* W;
         float* dW; // So we don't have to reallocate each time.
-        unsigned int T; // See equation 6 in RBM for CF, Salakhutdinov 2007
-        float eta; // momentum
-        float epsilon; // learning rate
-        float lambda; // weight decay
         float* hidBiases; // bias of feature j
         float* dHidBiases; // delta of bias of feature j
         float* visBiases; // bias of rating k for movie i
@@ -61,5 +54,9 @@ class RBM : public Model {
         float* visProbs; // visible probabilities
         std::bitset<N_USERS * N_FACTORS>* hidVars; // bitset
         std::bitset<N_MOVIES * MAX_RATING>* indicatorV; // array of bitsets
+        float eta; // momentum
+        float epsilon; // learning rate
+        float lambda; // weight decay
+        unsigned int T; // See equation 6 in RBM for CF, Salakhutdinov 2007
 };
 #endif // RBM_HPP

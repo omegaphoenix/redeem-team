@@ -10,9 +10,9 @@
 using namespace std;
 
 // Disable assertions
-// #define NDEBUG
+#define NDEBUG
 // Uncomment this if you want to print debug statements
-// #define PRINT
+#define PRINT
 
 #define N_MOVIES 17770
 #define N_USERS 458293
@@ -24,6 +24,36 @@ using namespace std;
 #define TIME_IDX 2
 #define RATING_IDX 3
 #define DATA_POINT_SIZE 4
+
+struct dataPoint {
+    int userID;
+    int movieID;
+    int date;
+    int value;
+
+    dataPoint() {
+        userID = 0;
+        movieID = 0;
+        date = 0;
+        value = 0;
+    }
+
+    dataPoint(int a, int b, int c, int d) :
+        userID(a), movieID(b), date(c), value(d) {
+    }
+
+    // Sort my movie
+    bool operator<(const struct dataPoint &other) const
+    {
+        if (movieID != other.movieID) {
+            return movieID < other.movieID;
+        }
+        else {
+            return userID < other.userID;
+        }
+    }
+};
+
 
 static inline void debugPrint(const char* statement) {
 #ifdef PRINT

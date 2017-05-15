@@ -3,7 +3,6 @@
 #include <cmath>
 #include <float.h>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <math.h>
 #include <stdlib.h>
@@ -693,98 +692,8 @@ float RBM::predict(int n, int i) {
     return expVal;
 }
 
-// Return RMSE on validation file
-float RBM::trainingError() {
-    debugPrint("Calculating training error...\n");
-    clock_t timeStart = clock();
-    unsigned int userStartIdx, userEndIdx, n, i, k, colIdx;
-    float squareError = 0.0;
-    for (n = 0; n < N_USERS; ++n) {
-        userStartIdx = rowIndex[n];
-        userEndIdx = rowIndex[n + 1];
-        for (colIdx = userStartIdx; colIdx < userEndIdx; colIdx++) {
-            i = columns[colIdx]; // movie
-            k = values[colIdx]; // rating
-            assert (i >= 0 && i < N_MOVIES);
-            assert (k > 0 && k <= MAX_RATING);
-            float prediction = predict(n, i);
-            float error = prediction - (float) k;
-            squareError += error * error;
-            assert (squareError >= 0);
-        }
-    }
-    clock_t timeEnd = clock();
-    float msTotal = diffclock(timeEnd, timeStart);
-    printf("Calculating training error took %f ms\n", msTotal);
-    float RMSE = sqrt(squareError / numRatings);
-    return RMSE;
-}
-
-
-// Return RMSE on validation file
-float RBM::validate(std::string valFile) {
-    debugPrint("Validating...\n");
-    clock_t timeStart = clock();
-    Model *validator = new Model();
-    validator->load(valFile);
-    unsigned int userStartIdx, userEndIdx, n, i, k, colIdx;
-    float squareError = 0.0;
-    for (n = 0; n < N_USERS; ++n) {
-        userStartIdx = validator->rowIndex[n];
-        userEndIdx = validator->rowIndex[n + 1];
-        for (colIdx = userStartIdx; colIdx < userEndIdx; colIdx++) {
-            i = validator->columns[colIdx]; // movie
-            k = validator->values[colIdx]; // rating
-            assert (i >= 0 && i < N_MOVIES);
-            assert (k > 0 && k <= MAX_RATING);
-            float prediction = predict(n, i); // jump
-            float error = prediction - (float) k;
-            squareError += error * error;
-            assert (squareError >= 0); // jump
-        }
-    }
-    clock_t timeEnd = clock();
-    float msTotal = diffclock(timeEnd, timeStart);
-    printf("Validation took %f ms\n", msTotal);
-    float RMSE = sqrt(squareError / validator->numRatings);
-    delete validator;
-    return RMSE;
-}
-
-// Output submission
-void RBM::output(std::string saveFile) {
-    debugPrint("Outputing...\n");
-    clock_t timeStart = clock();
-    Model *validator = new Model();
-    validator->load("5-1.dta");
-    unsigned int userStartIdx, userEndIdx, n, i, colIdx;
-
-    // Open file
-    std::ofstream outputFile;
-    outputFile << std::setprecision(3);
-    outputFile.open(saveFile);
-    for (n = 0; n < N_USERS; ++n) {
-        userStartIdx = validator->rowIndex[n];
-        userEndIdx = validator->rowIndex[n + 1];
-        for (colIdx = userStartIdx; colIdx < userEndIdx;
-                colIdx++) {
-            i = validator->columns[colIdx]; // movie
-            float prediction = predict(n, i); // jump
-            outputFile << prediction << "\n"; // jump
-        }
-    }
-    outputFile.close();
-
-    clock_t timeEnd = clock();
-    float msTotal = diffclock(timeEnd, timeStart);
-    printf("Outputing took %f ms\n", msTotal);
-
-    delete validator;
-}
-
 int main() {
     // Speed up stdio operations
-    std::ios_base::sync_with_stdio(false);
     srand(0);
 
     clock_t time0 = clock();
