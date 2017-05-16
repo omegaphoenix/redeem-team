@@ -87,7 +87,8 @@ void RBM::train(std::string saveFile) {
     ZERO(hidbiasinc);
     int tSteps = 1;
 
-    FILE *validateFile = fopen("out/rbm/scores.txt", "a");
+    std::string scoreFileName = "out/rbm/scores.txt";
+    FILE *validateFile = fopen(scoreFileName.c_str(), "a");
     fprintf(validateFile, "New run\n");
     fclose(validateFile);
 
@@ -413,7 +414,7 @@ void RBM::train(std::string saveFile) {
 
         clock_t time1 = clock();
         float ms1 = diffclock(time1, time0);
-        validateFile = fopen("out/rbm/scores.txt", "a");
+        validateFile = fopen(scoreFileName.c_str(), "a");
         printf("nrmse: %f vrmse: %f prmse: %f time: %f ms\n", nrmse, vrmse, prmse, ms1);
         fprintf(validateFile, "nrmse: %f vrmse: %f prmse: %f time: %f ms\n", nrmse, vrmse, prmse, ms1);
         fclose(validateFile);
