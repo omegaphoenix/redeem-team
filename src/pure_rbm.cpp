@@ -267,7 +267,6 @@ void RBM::train(std::string saveFile) {
                         nrmse += (vdelta * vdelta);
                     }
                     ntrain += count;
-
                 }
 
                 // If looping again, load the curposvisstates
@@ -371,11 +370,14 @@ void RBM::train(std::string saveFile) {
         }
 
         nrmse = sqrt(nrmse / ntrain);
-        prmse = sqrt(s / n);
+        prmse = validate("4.dta");
 
         clock_t time1 = clock();
         float ms1 = diffclock(time1, time0);
         printf("nrmse: %f\t prmse: %f time: %f ms\n", nrmse, prmse, ms1);
+        output("out/rbm/pure_rbm_factors" + std::to_string(TOTAL_FEATURES)
+                + "_epoch_" + std::to_string(loopcount) + "_T_" +
+                std::to_string(tSteps) + ".txt");
 
         if (TOTAL_FEATURES == 200) {
             if (loopcount > 6) {
