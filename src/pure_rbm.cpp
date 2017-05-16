@@ -86,6 +86,38 @@ void RBM::train(std::string saveFile) {
         ZERO(negvisact);
         ZERO(moviecount);
 
+        for (int u = 0; u < N_USERS; ++u) {
+
+            // Clear summations for probabilities
+            ZERO(negvisprobs);
+            ZERO(nvp2);
+
+            // perform steps 1 to 8
+            int userEnd = rowIndex[u + 1];
+            int userStart = rowIndex[u];
+
+            // For all rated movies, accumulate contributions to hidden units
+            double sumW[TOTAL_FEATURES];
+            ZERO(sumW);
+            for (int j = userStart; j < userEnd; ++j) {
+                int m = columns[j];
+                moviecount[m]++;
+
+                // 1. get one data point from data set.
+                // 2. use values of this data point to set state of visible neurons Si
+                int r = values[j];
+
+                // Add to the bias contribution for set visible units
+                posvisact[m][r] += 1.0;
+
+                // for all hidden units h:
+                for (int h = 0; h < TOTAL_FEATURES; ++h) {
+                    // sum_j(W[i][j] * v[0][j]))
+                    sumW[h]  += vishid[m][r][h];
+                }
+            }
+
+        }
 
         nrmse = sqrt(nrmse / ntrain);
         prmse = sqrt(s / n);

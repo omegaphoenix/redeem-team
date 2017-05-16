@@ -25,6 +25,8 @@ using namespace std;
 #define RATING_IDX 3
 #define DATA_POINT_SIZE 4
 
+#define ZERO(v) memset(v,0,sizeof(v))
+
 struct dataPoint {
     int userID;
     int movieID;

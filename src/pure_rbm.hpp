@@ -7,10 +7,9 @@
 #define EPSILONW        0.001   // Learning rate for weights
 #define EPSILONVB       0.008   // Learning rate for biases of visible units
 #define EPSILONHB       0.0006  // Learning rate for biases of hidden units
-#define weightcost      0.0001
+#define WEIGHTCOST      0.0001
 #define MOMENTUM        0.8
 #define FINAL_MOMENTUM   0.9
-#define ZERO(v) memset(v,0,sizeof(v))
 #define E  (0.00002) // stop condition
 
 class RBM : public Model {
