@@ -6,28 +6,83 @@
 #include <cstring>
 #include <fcntl.h>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <algorithm>
 
 // Initialize ratings.
 Model::Model() {
+    // UM
     ratings = new int[N_TRAINING * DATA_POINT_SIZE];
     values = new unsigned char[N_TRAINING];
     columns = new unsigned short[N_TRAINING];
-    rowIndex = new int[N_USERS + 1];
+    rowIndex = new unsigned int[N_USERS + 1];
+
+    // MU
+    sortStruct = new dataPoint[N_TRAINING];
+    muratings = new int[N_TRAINING * DATA_POINT_SIZE];
+    muvalues = new unsigned char[N_TRAINING];
+    mucolumns = new int[N_TRAINING];
+    murowIndex = new int[N_MOVIES + 1];
 }
 
 // Clean up ratings.
 Model::~Model() {
-    free(ratings);
+    delete ratings;
+    delete values;
+    delete columns;
+    delete rowIndex;
+
+    delete sortStruct;
+
+    delete muratings;
+    delete muvalues;
+    delete mucolumns;
+    delete murowIndex;
+}
+
+void Model::transposeMU() {
+    clock_t time0 = clock();
+    for (unsigned int i = 0; i < numRatings; i++) {
+        int u = ratings[i * DATA_POINT_SIZE + USER_IDX];
+        int m = ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        int d = ratings[i * DATA_POINT_SIZE + TIME_IDX];
+        int r = ratings[i * DATA_POINT_SIZE + RATING_IDX];
+        sortStruct[i] = dataPoint(u, m, d, r);
+    }
+    std::sort(sortStruct, sortStruct + numRatings);
+
+    int current = 0; //CSR counter
+
+    for (unsigned int i = 0; i < numRatings; i++) {
+        // COO Format
+        muratings[i * DATA_POINT_SIZE + USER_IDX] = sortStruct[i].userID;
+        muratings[i * DATA_POINT_SIZE + MOVIE_IDX] = sortStruct[i].movieID;
+        muratings[i * DATA_POINT_SIZE + TIME_IDX] = sortStruct[i].date;
+        muratings[i * DATA_POINT_SIZE + RATING_IDX] = sortStruct[i].value;
+
+        // CSR Format
+        while (sortStruct[i].movieID > current) {
+            current++;
+            murowIndex[current] = i;
+        }
+        muvalues[i] = sortStruct[i].value;
+        mucolumns[i] = sortStruct[i].userID;
+    }
+    murowIndex[N_MOVIES] = numRatings;
+    clock_t time1 = clock();
+
+    float ms1 = diffclock(time1, time0);
+    printf("Transposing took %f ms\n", ms1);;
 }
 
 // Load new ratings array into CSR format.
 void Model::loadFresh(std::string inFname, std::string outFname) {
-    std::cout << "Opening " << inFname << std::endl;
+    printf("Opening %s\n", inFname.c_str());
 
     FILE* in = fopen(inFname.c_str(), "r");
     FILE* out = fopen((outFname).c_str(), "wb");
@@ -90,9 +145,11 @@ void Model::loadCSR(std::string fname) {
     int idx = 0;
     rowIndex[user] = idx;
     // short for end of user marker, short + char per data point
+#ifndef NDEBUG
     int numPoints = (bytes - N_USERS * sizeof(short))
                     / (sizeof(short) + sizeof(char));
     assert (numPoints <= N_TRAINING);
+#endif
     unsigned char* p = buffer;
     while (bytes > 0) {
         // Reached end of line/user if two bytes are 0xff and 0xff
@@ -102,7 +159,7 @@ void Model::loadCSR(std::string fname) {
             p += sizeof(short);
             bytes -= sizeof(short);
             user++;
-            assert(user <= N_USERS);
+            assert (user <= N_USERS);
             rowIndex[user] = idx;
         }
         // We have number of zeroes and a rating
@@ -136,17 +193,9 @@ void Model::loadCSR(std::string fname) {
     munmap(buffer, size);
 }
 
-// Add in missing values.
-void Model::generateMissing(void) {
-}
-
-// Load ratings array for a model in progress.
-void Model::loadSaved(std::string fname) {
-}
-
 // Run this function once first to preprocess data.
 void Model::initLoad(std::string fname, std::string dataFile) {
-    std::cout << "Preprocessing..." << std::endl;
+    debugPrint("Preprocessing...\n");
     clock_t time0 = clock();
 
     // Load data from file.
@@ -154,8 +203,8 @@ void Model::initLoad(std::string fname, std::string dataFile) {
     clock_t time1 = clock();
 
     // Output times.
-    double ms1 = diffclock(time1, time0);
-    std::cout << "Preprocessing took " << ms1 << " ms" << std::endl;
+    float ms1 = diffclock(time1, time0);
+    printf("Preproccessing took %f ms\n", ms1);
 }
 
 // Load the data.
@@ -166,13 +215,164 @@ void Model::load(std::string dataFile) {
         initLoad(fname, dataFile);
     }
 
-    std::cout << "Loading..." << std::endl;
+    debugPrint("Loading...\n");
     clock_t time0 = clock();
     // Load data from file.
     loadCSR(fname);
     clock_t time1 = clock();
 
     // Output times.
-    double ms1 = diffclock(time1, time0);
-    std::cout << "Loading took " << ms1 << " ms" << std::endl;
+    float ms1 = diffclock(time1, time0);
+    printf("Loading took %f ms\n", ms1);
+}
+
+// Return RMSE on validation file
+float Model::validate(std::string valFile) {
+    debugPrint("Validating...\n");
+    clock_t timeStart = clock();
+    Model *validator = new Model();
+    validator->load(valFile);
+    unsigned int userStartIdx, userEndIdx, n, i, k, colIdx;
+    float squareError = 0.0;
+    for (n = 0; n < N_USERS; ++n) {
+        userStartIdx = validator->rowIndex[n];
+        userEndIdx = validator->rowIndex[n + 1];
+        for (colIdx = userStartIdx; colIdx < userEndIdx; colIdx++) {
+            i = validator->columns[colIdx]; // movie
+            k = validator->values[colIdx]; // rating
+            assert (i >= 0 && i < N_MOVIES);
+            assert (k > 0 && k <= MAX_RATING);
+            float prediction = predict(n, i); // jump
+            float error = prediction - (float) k;
+            squareError += error * error;
+            assert (squareError >= 0); // jump
+        }
+    }
+    clock_t timeEnd = clock();
+    float msTotal = diffclock(timeEnd, timeStart);
+    printf("Validation took %f ms\n", msTotal);
+    float RMSE = sqrt(squareError / validator->numRatings);
+    delete validator;
+    return RMSE;
+}
+
+// Return RMSE on validation file
+float Model::trainingError() {
+    debugPrint("Calculating training error...\n");
+    clock_t timeStart = clock();
+    unsigned int userStartIdx, userEndIdx, n, i, k, colIdx;
+    float squareError = 0.0;
+    for (n = 0; n < N_USERS; ++n) {
+        userStartIdx = rowIndex[n];
+        userEndIdx = rowIndex[n + 1];
+        for (colIdx = userStartIdx; colIdx < userEndIdx; colIdx++) {
+            i = columns[colIdx]; // movie
+            k = values[colIdx]; // rating
+            assert (i >= 0 && i < N_MOVIES);
+            assert (k > 0 && k <= MAX_RATING);
+            float prediction = predict(n, i);
+            float error = prediction - (float) k;
+            squareError += error * error;
+            assert (squareError >= 0);
+        }
+    }
+    clock_t timeEnd = clock();
+    float msTotal = diffclock(timeEnd, timeStart);
+    printf("Calculating training error took %f ms\n", msTotal);
+    float RMSE = sqrt(squareError / numRatings);
+    return RMSE;
+}
+
+
+// Output submission
+void Model::output(std::string saveFile) {
+    debugPrint("Outputing...\n");
+    clock_t timeStart = clock();
+    Model *validator = new Model();
+    validator->load("5-1.dta");
+    unsigned int userStartIdx, userEndIdx, n, i, colIdx;
+
+    // Open file
+    std::ofstream outputFile;
+    outputFile << std::setprecision(3);
+    outputFile.open(saveFile);
+    for (n = 0; n < N_USERS; ++n) {
+        userStartIdx = validator->rowIndex[n];
+        userEndIdx = validator->rowIndex[n + 1];
+        for (colIdx = userStartIdx; colIdx < userEndIdx;
+                colIdx++) {
+            i = validator->columns[colIdx]; // movie
+            float prediction = predict(n, i); // jump
+            outputFile << prediction << "\n"; // jump
+        }
+    }
+    outputFile.close();
+
+    clock_t timeEnd = clock();
+    float msTotal = diffclock(timeEnd, timeStart);
+    printf("Outputing took %f ms\n", msTotal);
+
+    delete validator;
+}
+
+void Model::train(std::string saveFile) {
+}
+
+float Model::predict(int n, int i) {
+    return 0.0;
+}
+
+void testTranspose() {
+#ifndef NDEBUG
+    clock_t time0 = clock();
+    Model* mod = new Model();
+    clock_t time1 = clock();
+    mod->load("1.dta");
+    clock_t time2 = clock();
+    printf("Transpose\n");
+    mod->transposeMU();
+    clock_t time3 = clock();
+    unsigned int i;
+    for (i = 0; i < mod->numRatings - 1; i++) {
+        int j = i + 1;
+        // COO values
+        int user = mod->muratings[i * DATA_POINT_SIZE + USER_IDX];
+        int nextUser = mod->muratings[j * DATA_POINT_SIZE + USER_IDX];
+        int movie = mod->muratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        int nextMovie = mod->muratings[j * DATA_POINT_SIZE + MOVIE_IDX];
+
+        // CSR values
+        int csrUser = mod->mucolumns[i];
+        int csrRating = mod->muvalues[i];
+        assert (user == csrUser);
+
+        // Check order of COO
+        assert (movie <= nextMovie);
+        if (movie == nextMovie) {
+            assert (user <= nextUser);
+        }
+
+        // Check order of CSR
+        assert (csrRating > 0 && csrRating <= MAX_RATING);
+        if (i < N_MOVIES) {
+            int csrUserIdx = mod->murowIndex[i];
+            int csrNextUserIdx = mod->murowIndex[j];
+            assert (csrUserIdx <= csrNextUserIdx);
+        }
+    }
+
+    assert (mod->murowIndex[0] == 0);
+    assert (mod->murowIndex[N_MOVIES] == (int) mod->numRatings);
+    clock_t time4 = clock();
+
+    float ms1 = diffclock(time1, time0);
+    float ms2 = diffclock(time2, time1);
+    float ms3 = diffclock(time3, time2);
+    float ms4 = diffclock(time4, time3);
+
+    printf("Initializing took %f ms\n", ms1);
+    printf("Total loading took %f ms\n", ms2);
+    printf("Transposing took %f ms\n", ms3);
+    printf("Testing took %f ms\n", ms4);
+#endif
 }
