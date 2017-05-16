@@ -86,6 +86,41 @@ void RBM::train(std::string saveFile) {
         ZERO(negvisact);
         ZERO(moviecount);
 
+
+        nrmse = sqrt(nrmse/ntrain);
+        prmse = sqrt(s/n);
+
+        printf("%f\t%f\t%f\n",nrmse,prmse,(clock()-t0)/(double)CLOCKS_PER_SEC);
+
+        if (TOTAL_FEATURES == 200) {
+            if (loopcount > 6) {
+                epsilonW  *= 0.90;
+                epsilonVB *= 0.90;
+                epsilonHB *= 0.90;
+            } else if (loopcount > 5) {  // With 200 hidden variables, you need to slow things down a little more
+                epsilonW  *= 0.50; // This could probably use some more optimization
+                epsilonVB *= 0.50;
+                epsilonHB *= 0.50;
+            } else if (loopcount > 2) {
+                epsilonW  *= 0.70;
+                epsilonVB *= 0.70;
+                epsilonHB *= 0.70;
+            }
+        } else {  // The 100 hidden variable case
+            if ( loopcount > 8 ) {
+                epsilonW  *= 0.92;
+                epsilonVB *= 0.92;
+                epsilonHB *= 0.92;
+            } else if ( loopcount > 6 ) {
+                epsilonW  *= 0.90;
+                epsilonVB *= 0.90;
+                epsilonHB *= 0.90;
+            } else if ( loopcount > 2 ) {
+                epsilonW  *= 0.78;
+                epsilonVB *= 0.78;
+                epsilonHB *= 0.78;
+            }
+        }
     }
 }
 
