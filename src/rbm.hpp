@@ -4,7 +4,7 @@
 #include "model.hpp"
 
 #define N_FACTORS 100
-#define RBM_EPOCHS 50
+#define RBM_EPOCHS 2
 #define STD_DEV 0.01
 #define BATCH_SIZE 1000
 

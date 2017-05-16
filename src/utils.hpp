@@ -61,6 +61,10 @@ static inline void debugPrint(const char* statement) {
 #endif
 }
 
+double randn() {
+    return (rand()/(double)(RAND_MAX));
+}
+
 // Returns a uniformly distributed random number
 static inline float uniformRandom() {
   return ( (float)(rand()) + 1. )/( (float)(RAND_MAX) + 1. );
