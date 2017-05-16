@@ -210,7 +210,7 @@ void RBM::train(std::string saveFile) {
                     // Normalize probabilities
                     double tsum  = 0.0;
                     for (int k = 0; k < SOFTMAX; ++k) {
-                      tsum += negvisprobs[m][k];
+                        tsum += negvisprobs[m][k];
                     }
                     if (tsum != 0) {
                         for (int k = 0; k < SOFTMAX; ++k) {
@@ -224,7 +224,7 @@ void RBM::train(std::string saveFile) {
                         }
                         double tsum2  = 0.0;
                         for (int k = 0; k < SOFTMAX; ++k) {
-                          tsum2 += nvp2[m][k];
+                            tsum2 += nvp2[m][k];
                         }
                         if (tsum2 != 0) {
                             for (int k = 0; k < SOFTMAX; ++k) {
@@ -311,8 +311,8 @@ void RBM::train(std::string saveFile) {
                     ZERO(negvisprobs);
                 }
 
-              // 8. repeating multiple times steps 5,6 and 7 compute (Si.Sj)n. Where n is small number and can
-              //    increase with learning steps to achieve better accuracy.
+                // 8. repeating multiple times steps 5,6 and 7 compute (Si.Sj)n. Where n is small number and can
+                //    increase with learning steps to achieve better accuracy.
 
             } while (++stepT < tSteps);
 
@@ -456,54 +456,54 @@ void RBM::train(std::string saveFile) {
 
 // Return the predicted rating for user n, movie i
 float RBM::predict(int n, int i) {
-        ZERO(negvisprobs);
-        int userEnd = rowIndex[n + 1];
-        int userStart = rowIndex[n];
-        double sumW[TOTAL_FEATURES];
-        ZERO(sumW);
-        for (int j = userStart; j < userEnd; ++j) {
-            int m = columns[j];
-            int r = values[j] - 1;
-            assert(r >= 0 && r < SOFTMAX);
+    ZERO(negvisprobs);
+    int userEnd = rowIndex[n + 1];
+    int userStart = rowIndex[n];
+    double sumW[TOTAL_FEATURES];
+    ZERO(sumW);
+    for (int j = userStart; j < userEnd; ++j) {
+        int m = columns[j];
+        int r = values[j] - 1;
+        assert(r >= 0 && r < SOFTMAX);
 
-            for (int h = 0; h < TOTAL_FEATURES; ++h) {
-                sumW[h] += vishid[m][r][h];
-            }
-        }
-
-        // Compute hidden probabilities
         for (int h = 0; h < TOTAL_FEATURES; ++h) {
-            poshidprobs[h] = 1.0 / (1.0 + exp(-sumW[h] - hidbiases[h]));
+            sumW[h] += vishid[m][r][h];
+        }
+    }
+
+    // Compute hidden probabilities
+    for (int h = 0; h < TOTAL_FEATURES; ++h) {
+        poshidprobs[h] = 1.0 / (1.0 + exp(-sumW[h] - hidbiases[h]));
+    }
+
+    // for (int j = userStart; j < userEnd; ++j)
+    {
+        int m = i;
+        for (int h = 0; h < TOTAL_FEATURES; ++h) {
+            for (int k = 0; k < SOFTMAX; ++k) {
+                negvisprobs[m][k] += poshidprobs[h] * vishid[m][k][h];
+            }
         }
 
-        // for (int j = userStart; j < userEnd; ++j)
-        {
-            int m = i;
-            for (int h = 0; h < TOTAL_FEATURES; ++h) {
-                for (int k = 0; k < SOFTMAX; ++k) {
-                    negvisprobs[m][k] += poshidprobs[h] * vishid[m][k][h];
-                }
-            }
+        for (int k = 0; k < SOFTMAX; ++k) {
+            negvisprobs[m][k]  = 1./(1 + exp(-negvisprobs[m][k] - visbiases[m][k]));
+        }
 
+        double tsum = 0.0;
+        for (int k = 0; k < SOFTMAX; ++k) {
+            tsum += negvisprobs[m][k];
+        }
+
+        if (tsum != 0) {
             for (int k = 0; k < SOFTMAX; ++k) {
-                negvisprobs[m][k]  = 1./(1 + exp(-negvisprobs[m][k] - visbiases[m][k]));
-            }
-
-            double tsum = 0.0;
-            for (int k = 0; k < SOFTMAX; ++k) {
-                tsum += negvisprobs[m][k];
-            }
-
-            if (tsum != 0) {
-                for (int k = 0; k < SOFTMAX; ++k) {
-                    negvisprobs[m][k] /= tsum;
-                }
-            }
-            else {
-                printf("Oh nooooo\n");
-                return 3;
+                negvisprobs[m][k] /= tsum;
             }
         }
+        else {
+            printf("Oh nooooo\n");
+            return 3;
+        }
+    }
 
     double expVal = 0.0;
     for (int k = 0; k < SOFTMAX; ++k) {
