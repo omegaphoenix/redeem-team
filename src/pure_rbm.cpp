@@ -1,4 +1,7 @@
 #include "pure_rbm.hpp"
+
+#include "utils.hpp"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,13 +10,6 @@
 #include <time.h>
 
 RBM::RBM() {
-}
-
-RBM::~RBM() {
-}
-
-void RBM::init() {
-    load("1.dta");
     clock_t time0 = clock();
     debugPrint("Initializing...\n");
 
@@ -41,6 +37,39 @@ void RBM::init() {
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Initializing took %f ms\n", ms1);
+    prevUser = -1;
+}
+
+RBM::~RBM() {
+}
+
+void RBM::init() {
+    load("1.dta");
+    clock_t time0 = clock();
+    debugPrint("Initializing visible biases...\n");
+
+    // Init visible biases to logs of respective base rates over all users
+    unsigned int movCount[N_MOVIES] = {0};
+    for (unsigned int i = 0; i < numRatings; ++i) {
+        int movie = columns[i];
+        assert (movie >= 0 && movie < N_MOVIES);
+        int rating = values[i] - 1;
+        assert (rating >= 0 && rating < MAX_RATING);
+        movCount[movie] += 1;
+        // visbiases[movie][rating] += 1;
+    }
+    clock_t time1 = clock();
+    for (unsigned int m = 0; m < N_MOVIES; ++m) {
+        for (unsigned int k = 0; k < SOFTMAX; ++k) {
+            // visbiases[m][k] = log(visbiases[m][k] / movCount[m]);
+        }
+    }
+    clock_t time2 = clock();
+
+    float ms1 = diffclock(time1, time0);
+    float ms2 = diffclock(time2, time1);
+    printf("Adding visible biases took %f ms\n", ms1);
+    printf("Logging biases took %f ms\n", ms2);
 }
 
 void RBM::train(std::string saveFile) {
@@ -108,7 +137,8 @@ void RBM::train(std::string saveFile) {
 
                 // 1. get one data point from data set.
                 // 2. use values of this data point to set state of visible neurons Si
-                int r = values[j];
+                int r = values[j] - 1;
+                assert(r >= 0 && r < SOFTMAX);
 
                 // Add to the bias contribution for set visible units
                 posvisact[m][r] += 1.0;
@@ -150,7 +180,7 @@ void RBM::train(std::string saveFile) {
 
                 // 5. on visible neurons compute Si using the Sj computed in step3. This is known as reconstruction
                 // for all visible units j:
-                int count = userStart - userEnd;
+                int count = userEnd - userStart;
                 // count += useridx[u][2];  // to compute probe errors
                 // TODO: Need to add probe or validation set somehow
                 for (int j = userStart; j < userEnd; ++j) {
@@ -262,7 +292,8 @@ void RBM::train(std::string saveFile) {
                     // Compute rmse on training data
                     for (int j = userStart; j < userEnd; ++j) {
                         int m = columns[j];
-                        int r = values[j];
+                        int r = values[j] - 1;
+                        assert(r >= 0 && r < SOFTMAX);
 
                         //# Compute some error function like sum of squared difference between Si in 1) and Si in 5)
                         double expectedV = nvp2[m][1] + 2.0 * nvp2[m][2] + 3.0 * nvp2[m][3] + 4.0 * nvp2[m][4];
@@ -287,7 +318,8 @@ void RBM::train(std::string saveFile) {
             // Accumulate contrastive divergence contributions for (Si.Sj)0 and (Si.Sj)T
             for (int j = userStart; j < userEnd; ++j) {
                 int m = columns[j];
-                int r = values[j];
+                int r = values[j] - 1;
+                assert(r >= 0 && r < SOFTMAX);
 
                 // for all hidden units h:
                 for (int h = 0; h < TOTAL_FEATURES; ++h) {
@@ -372,15 +404,18 @@ void RBM::train(std::string saveFile) {
             }
         }
 
+        printf("nrmse: %f \n", nrmse);
+        printf("ntrain: %d \n", ntrain);
         nrmse = sqrt(nrmse / ntrain);
+        printf("nrmse: %f \n", nrmse);
         vrmse = validate("2.dta");
         prmse = validate("4.dta");
 
         clock_t time1 = clock();
         float ms1 = diffclock(time1, time0);
         validateFile = fopen("out/rbm/scores.txt", "a");
-        printf("nrmse: %f\t prmse: %f time: %f ms\n", nrmse, prmse, ms1);
-        fprintf(validateFile, "nrmse: %f\t prmse: %f time: %f ms\n", nrmse, prmse, ms1);
+        printf("nrmse: %f vrmse: %f prmse: %f time: %f ms\n", nrmse, vrmse, prmse, ms1);
+        fprintf(validateFile, "nrmse: %f vrmse: %f prmse: %f time: %f ms\n", nrmse, vrmse, prmse, ms1);
         fclose(validateFile);
         output("out/rbm/pure_rbm_factors" + std::to_string(TOTAL_FEATURES)
                 + "_epoch_" + std::to_string(loopcount) + "_T_" +
@@ -420,7 +455,61 @@ void RBM::train(std::string saveFile) {
 
 // Return the predicted rating for user n, movie i
 float RBM::predict(int n, int i) {
-    return 0;
+        ZERO(negvisprobs);
+        int userEnd = rowIndex[n + 1];
+        int userStart = rowIndex[n];
+        double sumW[TOTAL_FEATURES];
+        ZERO(sumW);
+        for (int j = userStart; j < userEnd; ++j) {
+            int m = columns[j];
+            int r = values[j] - 1;
+            assert(r >= 0 && r < SOFTMAX);
+
+            for (int h = 0; h < TOTAL_FEATURES; ++h) {
+                sumW[h] += vishid[m][r][h];
+            }
+        }
+
+        // Compute hidden probabilities
+        for (int h = 0; h < TOTAL_FEATURES; ++h) {
+            poshidprobs[h] = 1.0 / (1.0 + exp(-sumW[h] - hidbiases[h]));
+        }
+
+        // for (int j = userStart; j < userEnd; ++j)
+        {
+            int m = i;
+            for (int h = 0; h < TOTAL_FEATURES; ++h) {
+                for (int k = 0; k < SOFTMAX; ++k) {
+                    negvisprobs[m][k] += poshidprobs[h] * vishid[m][k][h];
+                }
+            }
+
+            for (int k = 0; k < SOFTMAX; ++k) {
+                negvisprobs[m][k]  = 1./(1 + exp(-negvisprobs[m][k] - visbiases[m][k]));
+            }
+
+            double tsum = 0.0;
+            for (int k = 0; k < SOFTMAX; ++k) {
+                tsum += negvisprobs[m][k];
+            }
+
+            if (tsum != 0) {
+                for (int k = 0; k < SOFTMAX; ++k) {
+                    negvisprobs[m][k] /= tsum;
+                }
+            }
+            else {
+                printf("Oh nooooo\n");
+                return 3;
+            }
+        }
+
+    double expVal = 0.0;
+    for (int k = 0; k < SOFTMAX; ++k) {
+        expVal += negvisprobs[i][k] * (k + 1);
+    }
+    assert(expVal >= 1 && expVal <= 5);
+    return expVal;
 }
 
 int main() {

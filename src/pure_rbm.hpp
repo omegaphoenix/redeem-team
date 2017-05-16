@@ -48,6 +48,7 @@ class RBM : public Model {
         double visbiasinc[N_MOVIES][SOFTMAX];
 
         unsigned int moviecount[N_MOVIES];
+        int prevUser;
 
 };
 #endif // PURE_RBM_HPP
