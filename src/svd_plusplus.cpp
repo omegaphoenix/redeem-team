@@ -38,7 +38,7 @@ void SVDPlus::setParams(int K, float eta, float lambda,
     this->eta = eta;
     this->lambda = lambda;
 
-    this->MAX_EPOCHS = 1;
+    this->MAX_EPOCHS = 10;
     this->EPSILON = 0.0001;
 
     // Need to run a baseline model
@@ -87,24 +87,24 @@ void SVDPlus::train(std::string saveFile) {
         }
 
         // If the difference in error is less than epsilon, break
-        //float delta_error = delta / delta0;
-        //#ifdef DEBUG
-        //    std::cout << "ratio of curr_error / init_error is " << delta_error << std::endl;
-        //#endif
-        //if (delta_error < this->EPSILON) {
-        //    break;
-        //}
+        float delta_error = delta / delta0;
+        #ifdef DEBUG
+            std::cout << "ratio of curr_error / init_error is " << delta_error << std::endl;
+        #endif
+        if (delta_error < this->EPSILON) {
+            break;
+        }
     }
 
 }
 
 // Run one epoch of SGD, returning delta error.
 float SVDPlus::runEpoch() {
-    /* Compute the initial error
+    // Compute the initial error
     #ifdef DEBUG
         std::cout << "Computing initial error" << std::endl;
     #endif
-    //float init_error = computeAllError(); */
+    float init_error = computeAllError(); 
 
     //std::shuffle(this->shuffler.begin(), this->shuffler.end(),
     //    std::default_random_engine(0));
@@ -144,10 +144,6 @@ float SVDPlus::runEpoch() {
                 N = 1.0 / std::sqrt((float) (rowIndex[user] - rowIndex[user - 1]));
             }
 
-            if (i % 10000 == 0) {
-                std::cout << "Currently on datapt number " << i << std::endl;
-            }
-
             getPlusVariables(user, movie, N, sum_y, sum_w, sum_c);
 
             update_ycw = true;
@@ -161,17 +157,17 @@ float SVDPlus::runEpoch() {
         update(user, movie, rating, N, sum_y, e_ui, update_ycw);
     }
     // Compute the new error.
-    //float new_error = computeAllError();
-    //float delta_error = std::abs(new_error - init_error);
-    //#ifdef DEBUG
-    //    std::cout << "error was " << new_error << std::endl;
-    //#endif
+    float new_error = computeAllError();
+    float delta_error = std::abs(new_error - init_error);
+    float RMSE = std::sqrt(new_error);
+    #ifdef DEBUG
+        std::cout << "RMSE was " << RMSE << std::endl;
+    #endif
 
     delete sum_y;
 
     // Return the error
-    //return delta_error;
-    return 0;
+    return delta_error;
 
 }
 
@@ -313,9 +309,6 @@ float SVDPlus::computeAllError() {
             sum_w = 0.0;
             sum_c = 0.0;
             std::fill(sum_y, sum_y + (this->K), 0);
-            #ifdef DEBUG
-                //std::cout << *(sum_y) << *(sum_y + this->K) << std::endl;
-            #endif
 
             // Fill them with new values.
             if ((this->rowIndex[user] - this->rowIndex[user - 1]) > 0.0) {
@@ -384,12 +377,6 @@ void SVDPlus::save(std::string fname) {
     fwrite(C, sizeof(float), N_MOVIES * N_MOVIES, out);
     fwrite(W, sizeof(float), N_MOVIES * N_MOVIES, out);
 
-    /* Not sure if we're doing these here.
-    fwrite(mu, sizeof(float), 1, out);
-    fwrite(user_bias, sizeof(float), N_USERS, out);
-    fwrite(movie_bias, sizeof(float), N_MOVIES, out);
-    */
-
     fclose(out);
 }
 
@@ -404,8 +391,8 @@ void SVDPlus::loadSaved(std::string fname) {
         delete V;
     }
     FILE *in = fopen(fname.c_str(), "r");
-    std::cout << "LOADING FROM FRESH" << std::endl;
     if (fname == "" || in == NULL) {
+        std::cout << "LOADING FROM FRESH" << std::endl;
         this->U = new float[N_USERS * this->K];
         this->V = new float[N_MOVIES * this->K];
         // Initialize the W, C, Y arrays.
@@ -492,9 +479,6 @@ void SVDPlus::printOutput(std::string fname) {
             }
 
             getPlusVariables(user, movie, N, sum_y, sum_w, sum_c);
-            for (int i = 0; i < K; i++) {
-                std::cout << sum_y[i] << std::endl;
-            }
         }
 
         float rating = predictRating(user, movie, sum_y, sum_w, sum_c);

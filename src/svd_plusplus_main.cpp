@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
 
     std::cout << "Setting parameters" << std::endl;
     clock_t time4 = clock();
-    svd->setParams(40, 0.001, 0.0, mu, user_bias, movie_bias);
+    svd->setParams(40, 0.001, 0.01, mu, user_bias, movie_bias);
     clock_t time5 = clock();
 
     std::cout << "Begin training" << std::endl;
