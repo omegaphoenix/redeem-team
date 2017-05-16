@@ -38,7 +38,7 @@ void SVDPlus::setParams(int K, float eta, float lambda,
     this->eta = eta;
     this->lambda = lambda;
 
-    this->MAX_EPOCHS = 10;
+    this->MAX_EPOCHS = 30;
     this->EPSILON = 0.0001;
 
     // Need to run a baseline model
@@ -231,11 +231,16 @@ void SVDPlus::update(int user, int movie, float rating,
         float dv = (this->lambda * Q_ik) - ((P_uk + sum_y[i]) * e_ui);
 
         // Set u_i = u_i - (ETA * du)
-        this->U[user * this->K + i] = this->eta * du;
+        this->U[user * this->K + i] -= this->eta * du;
 
         // Set v_i = v_i - (ETA * dv)
-        this->V[movie * this->K + i] = this->eta * dv;
+        this->V[movie * this->K + i] -= this->eta * dv;
     }
+
+    this->user_bias[user] += this->eta * (e_ui - 
+        (this->lambda * this->user_bias[user]));
+    this->movie_bias[movie] += this->eta * (e_ui - 
+        (this->lambda * this->movie_bias[movie]));
 }
 
 void SVDPlus::getPlusVariables(int user, int movie, float N, 
@@ -369,7 +374,7 @@ void SVDPlus::save(std::string fname) {
     int buf[1];
     buf[0] = numEpochs;
 
-    fwrite(buf, sizeof(numEpochs), 1, out);
+    fwrite(buf, sizeof(int), 1, out);
     fwrite(U, sizeof(float), N_USERS * K, out);
     fwrite(V, sizeof(float), N_MOVIES * K, out);
 
