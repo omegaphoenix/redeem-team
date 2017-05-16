@@ -139,6 +139,25 @@ void RBM::train(std::string saveFile) {
 
             // Make T Contrastive Divergence steps
             int stepT = 0;
+            do {
+                // Determine if this is the last pass through this loop
+                int finalTStep = (stepT+1 >= tSteps);
+
+                // 5. on visible neurons compute Si using the Sj computed in step3. This is known as reconstruction
+                // for all visible units j:
+                int r;
+                int count = userStart - userEnd;
+                // If looping again, load the curposvisstates
+                if ( !finalTStep ) {
+                    for (int h = 0; h < TOTAL_FEATURES; h++ )
+                        curposhidstates[h] = neghidstates[h];
+                    ZERO(negvisprobs);
+                }
+
+              // 8. repeating multiple times steps 5,6 and 7 compute (Si.Sj)n. Where n is small number and can
+              //    increase with learning steps to achieve better accuracy.
+
+            } while ( ++stepT < tSteps );
 
             // Accumulate contrastive divergence contributions for (Si.Sj)0 and (Si.Sj)T
             for (int j = userStart; j < userEnd; ++j) {
