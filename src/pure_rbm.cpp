@@ -66,7 +66,7 @@ void RBM::train(std::string saveFile) {
 
         lastRMSE = nrmse;
         lastPRMSE = prmse;
-        clock_t t0 = clock();
+        clock_t time0 = clock();
         loopcount++;
         int ntrain = 0;
         nrmse = 0.0;
@@ -87,10 +87,12 @@ void RBM::train(std::string saveFile) {
         ZERO(moviecount);
 
 
-        nrmse = sqrt(nrmse/ntrain);
-        prmse = sqrt(s/n);
+        nrmse = sqrt(nrmse / ntrain);
+        prmse = sqrt(s / n);
 
-        printf("%f\t%f\t%f\n",nrmse,prmse,(clock()-t0)/(double)CLOCKS_PER_SEC);
+        clock_t time1 = clock();
+        float ms1 = diffclock(time1, time0);
+        printf("nrmse: %f\t prmse: %f time: %f ms\n", nrmse, prmse, ms1);
 
         if (TOTAL_FEATURES == 200) {
             if (loopcount > 6) {
@@ -107,15 +109,15 @@ void RBM::train(std::string saveFile) {
                 epsilonHB *= 0.70;
             }
         } else {  // The 100 hidden variable case
-            if ( loopcount > 8 ) {
+            if (loopcount > 8) {
                 epsilonW  *= 0.92;
                 epsilonVB *= 0.92;
                 epsilonHB *= 0.92;
-            } else if ( loopcount > 6 ) {
+            } else if (loopcount > 6) {
                 epsilonW  *= 0.90;
                 epsilonVB *= 0.90;
                 epsilonHB *= 0.90;
-            } else if ( loopcount > 2 ) {
+            } else if (loopcount > 2) {
                 epsilonW  *= 0.78;
                 epsilonVB *= 0.78;
                 epsilonHB *= 0.78;
@@ -125,5 +127,36 @@ void RBM::train(std::string saveFile) {
 }
 
 float RBM::predict(int n, int i) {
+    return 0;
+}
+
+int main() {
+    // Speed up stdio operations
+    std::ios_base::sync_with_stdio(false);
+
+    srand(0);
+
+    clock_t time0 = clock();
+    // Initialize
+    RBM* rbm = new RBM();
+    clock_t time1 = clock();
+    rbm->init();
+    clock_t time2 = clock();
+
+    // Learn parameters
+    rbm->train("data/um/rbm.save");
+    clock_t time3 = clock();
+
+    float ms1 = diffclock(time1, time0);
+    float ms2 = diffclock(time2, time1);
+    float ms3 = diffclock(time3, time2);
+    float total_ms = diffclock(time3, time0);
+
+    printf("Initialization took %f ms\n", ms1);
+    printf("Total loading took %f ms\n", ms2);
+    printf("Training took %f ms\n", ms3);
+    printf("Total running time was %f ms\n", total_ms);
+
+    delete rbm;
     return 0;
 }

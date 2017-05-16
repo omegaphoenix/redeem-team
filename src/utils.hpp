@@ -61,7 +61,7 @@ static inline void debugPrint(const char* statement) {
 #endif
 }
 
-double randn() {
+static inline double randn() {
     return (rand()/(double)(RAND_MAX));
 }
 
