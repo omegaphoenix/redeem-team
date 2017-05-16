@@ -58,6 +58,10 @@ void RBM::train(std::string saveFile) {
     ZERO(hidbiasinc);
     int tSteps = 1;
 
+    FILE *validateFile = fopen("out/rbm/scores.txt", "a");
+    fprintf(validateFile, "New run\n");
+    fclose(validateFile);
+
     // Iterate through the model while the RMSE is decreasing
     while (((nrmse < (lastRMSE-E)) || loopcount < 14) && loopcount < 80)  {
         if ( loopcount >= 10 ) {
@@ -374,7 +378,10 @@ void RBM::train(std::string saveFile) {
 
         clock_t time1 = clock();
         float ms1 = diffclock(time1, time0);
+        validateFile = fopen("out/rbm/scores.txt", "a");
         printf("nrmse: %f\t prmse: %f time: %f ms\n", nrmse, prmse, ms1);
+        fprintf(validateFile, "nrmse: %f\t prmse: %f time: %f ms\n", nrmse, prmse, ms1);
+        fclose(validateFile);
         output("out/rbm/pure_rbm_factors" + std::to_string(TOTAL_FEATURES)
                 + "_epoch_" + std::to_string(loopcount) + "_T_" +
                 std::to_string(tSteps) + ".txt");
