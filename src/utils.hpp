@@ -9,8 +9,8 @@
 
 using namespace std;
 
-// Disable assertions
-#define NDEBUG
+// Uncomment to disable assertions
+// #define NDEBUG
 // Uncomment this if you want to print debug statements
 #define PRINT
 

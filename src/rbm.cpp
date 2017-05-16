@@ -21,7 +21,7 @@ RBM::RBM() {
 
     // Initial learning rates
     eta = 0.1;
-    epsilon = 0.02;
+    epsilon = 0.01;
     lambda = 0.0001;
 
     // Initialize W
@@ -49,15 +49,39 @@ RBM::RBM() {
     for (unsigned int i = 0; i < N_FACTORS; ++i) {
         hidBiases[i] = normalRandom() * STD_DEV;
     }
-    visBiases = new float[N_MOVIES * MAX_RATING];
+
+    visBiases = new float[N_MOVIES * MAX_RATING]();
+#ifndef NDEBUG
     for (unsigned int i = 0; i < N_MOVIES * MAX_RATING; ++i) {
-        visBiases[i] = 0;
+        assert (visBiases[i] == 0);
     }
+#endif
 
     // Initialize deltas
     dW = new float[N_MOVIES * N_FACTORS * MAX_RATING];
+    incW = new float[N_MOVIES * N_FACTORS * MAX_RATING]();
+#ifndef NDEBUG
+    for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
+        assert (dW[i] == 0);
+        assert (incW[i] == 0);
+    }
+#endif
     dHidBiases = new float[N_FACTORS];
+    incHidBiases = new float[N_FACTORS]();
+#ifndef NDEBUG
+    for (unsigned int i = 0; i < N_FACTORS; ++i) {
+        assert (dHidBiases[i] == 0);
+        assert (incHidBiases[i] == 0);
+    }
+#endif
     dVisBiases = new float[N_MOVIES * MAX_RATING];
+    incVisBiases = new float[N_MOVIES * MAX_RATING]();
+#ifndef NDEBUG
+    for (unsigned int i = 0; i < N_MOVIES * MAX_RATING; ++i) {
+        assert (dVisBiases[i] == 0);
+        assert (incVisBiases[i] == 0);
+    }
+#endif
 
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
@@ -68,10 +92,13 @@ RBM::RBM() {
 RBM::~RBM() {
     delete[] W;
     delete[] dW;
+    delete[] incW;
     delete[] hidBiases;
     delete[] dHidBiases;
+    delete[] incHidBiases;
     delete[] visBiases;
     delete[] dVisBiases;
+    delete[] incVisBiases;
     delete[] hidProbs;
     delete[] visProbs;
     delete hidVars;
@@ -135,7 +162,6 @@ bool RBM::getV(int n, int i, int k) {
 }
 
 // Set all deltas to 0
-// TODO: Consider just creating a new array for speed
 void RBM::resetDeltas() {
     debugPrint("Resetting deltas...\n");
     clock_t time0 = clock();
@@ -156,7 +182,6 @@ void RBM::resetDeltas() {
 }
 
 // Calculate the gradient averaged over all users
-// TODO: Add biases
 void RBM::calcGrad(int startUser, int endUser) {
     debugPrint("Calculating gradient...\n");
     clock_t time0 = clock();
@@ -458,9 +483,12 @@ void RBM::compHidProbs() {
     debugPrint("Sigmoiding hidden probabilities...\n");
     clock_t time0 = clock();
 
-    for (unsigned int i = 0; i < N_USERS * N_FACTORS; ++i) {
-        hidProbs[i] = sigmoid(hidProbs[i]);
-        assert (hidProbs[i] >= 0 && hidProbs[i] <= 1);
+    for (unsigned int n = 0; n < N_USERS; ++n) {
+        for (unsigned int j = 0; j < N_FACTORS; ++j) {
+            unsigned int idx = n * N_FACTORS + j;
+            hidProbs[idx] = sigmoid(hidProbs[idx]);
+            assert (hidProbs[idx] >= 0 && hidProbs[idx] <= 1);
+        }
     }
 
     clock_t time1 = clock();
@@ -648,11 +676,12 @@ void RBM::train(std::string saveFile) {
 float RBM::predict(int n, int i) {
     // Calculate probabilities
     unsigned int hIdx, wIdx, vBiasIdx;
-    float prob[5];
+    float prob[5] = {0};
+#ifndef NDEBUG
     for (unsigned int k = 0; k < MAX_RATING; k++) {
-        prob[k] = 0;
         assert (prob[k] == 0.0);
     }
+#endif
     for (unsigned int j = 0; j < N_FACTORS; j++) {
         hIdx = n * N_FACTORS + j;
         for (unsigned int k = 0; k < MAX_RATING; k++) {
@@ -690,6 +719,8 @@ float RBM::predict(int n, int i) {
 
 int main() {
     // Speed up stdio operations
+    std::ios_base::sync_with_stdio(false);
+
     srand(0);
 
     clock_t time0 = clock();
