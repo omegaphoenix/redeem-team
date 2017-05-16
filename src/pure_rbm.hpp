@@ -10,6 +10,7 @@
 #define WEIGHTCOST      0.0001
 #define MOMENTUM        0.8
 #define FINAL_MOMENTUM   0.9
+#define BATCH_SIZE   100
 #define E  (0.00002) // stop condition
 
 class RBM : public Model {
