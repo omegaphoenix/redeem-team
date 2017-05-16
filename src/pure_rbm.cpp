@@ -45,8 +45,9 @@ void RBM::init() {
 
 void RBM::train(std::string saveFile) {
     // Optimize current feature
-    double nrmse=2., lastRMSE=10.;
-    double prmse = 0, lastPRMSE=0;
+    double nrmse=2., lastRMSE = 10.;
+    double vrmse = 0, lastVRMSE = 0;
+    double prmse = 0, lastPRMSE = 0;
     int loopcount=0;
     double epsilonW = EPSILONW;
     double epsilonVB = EPSILONVB;
@@ -64,13 +65,12 @@ void RBM::train(std::string saveFile) {
         }
 
         lastRMSE = nrmse;
+        lastVRMSE = vrmse;
         lastPRMSE = prmse;
         clock_t time0 = clock();
         loopcount++;
         int ntrain = 0;
         nrmse = 0.0;
-        double s  = 0.0;
-        int n = 0;
 
         if (loopcount > 5) {
             momentum = FINAL_MOMENTUM;
@@ -146,7 +146,6 @@ void RBM::train(std::string saveFile) {
 
                 // 5. on visible neurons compute Si using the Sj computed in step3. This is known as reconstruction
                 // for all visible units j:
-                int r;
                 int count = userStart - userEnd;
                 // count += useridx[u][2];  // to compute probe errors
                 // TODO: Need to add probe or validation set somehow
@@ -370,6 +369,7 @@ void RBM::train(std::string saveFile) {
         }
 
         nrmse = sqrt(nrmse / ntrain);
+        vrmse = validate("2.dta");
         prmse = validate("4.dta");
 
         clock_t time1 = clock();

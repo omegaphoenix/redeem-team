@@ -42,12 +42,11 @@ class RBM : public Model {
 
         double nvp2[N_MOVIES][SOFTMAX];
         double negvisprobs[N_MOVIES][SOFTMAX];
-        char   negvissoftmax[N_MOVIES];
+        unsigned char   negvissoftmax[N_MOVIES];
         double posvisact[N_MOVIES][SOFTMAX];
         double negvisact[N_MOVIES][SOFTMAX];
         double visbiasinc[N_MOVIES][SOFTMAX];
 
-        unsigned int moviercount[SOFTMAX*N_MOVIES];
         unsigned int moviecount[N_MOVIES];
 
 };
