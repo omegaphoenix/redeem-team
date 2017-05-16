@@ -1,4 +1,5 @@
 #include "pure_rbm.hpp"
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -147,8 +148,85 @@ void RBM::train(std::string saveFile) {
                 // for all visible units j:
                 int r;
                 int count = userStart - userEnd;
+                // count += useridx[u][2];  // to compute probe errors
+                // TODO: Need to add probe or validation set somehow
+                for (int j = userStart; j < userEnd; ++j) {
+                    int m = columns[j];
+                    for (int h = 0; h < TOTAL_FEATURES; ++h) {
+                        // Accumulate Weight values for sampled hidden states == 1
+                        if (curposhidstates[h] == 1) {
+                            for (int r = 0; r < SOFTMAX; ++r) {
+                                negvisprobs[m][r] += vishid[m][r][h];
+                            }
+                        }
+
+                        // Compute more accurate probabilites for RMSE reporting
+                        if (stepT == 0) {
+                            for (int r = 0; r < SOFTMAX; ++r)
+                                nvp2[m][r] += poshidprobs[h] * vishid[m][r][h];
+                        }
+                    }
+
+                    // compute P(v[1][j] = 1 | h[0]) # for binomial units, sigmoid(c[j] + sum_i(W[i][j] * h[0][i]))
+                    // Softmax elements are handled individually here
+                    for (int k = 0; k < SOFTMAX; ++k) {
+                        negvisprobs[m][k] = 1./(1 + exp(-negvisprobs[m][k] - visbiases[m][k]));
+                    }
+
+                    // Normalize probabilities
+                    double tsum  = 0.0;
+                    for (int k = 0; k < SOFTMAX; ++k) {
+                      tsum += negvisprobs[m][k];
+                    }
+                    if (tsum != 0) {
+                        for (int k = 0; k < SOFTMAX; ++k) {
+                            negvisprobs[m][k] /= tsum;
+                        }
+                    }
+                    // Compute and Normalize more accurate RMSE reporting probabilities
+                    if (stepT == 0) {
+                        for (int k = 0; k < SOFTMAX; ++k) {
+                            nvp2[m][k] = 1./(1 + exp(-nvp2[m][k] - visbiases[m][k]));
+                        }
+                        double tsum2  = 0.0;
+                        for (int k = 0; k < SOFTMAX; ++k) {
+                          tsum2 += nvp2[m][k];
+                        }
+                        if (tsum2 != 0) {
+                            for (int k = 0; k < SOFTMAX; ++k) {
+                                nvp2[m][k] /= tsum2;
+                            }
+                        }
+                    }
+
+                    // sample v[1][j] from P(v[1][j] = 1 | h[0])
+                    double randval = randn();
+                    if ((randval -= negvisprobs[m][0]) <= 0.0 ) {
+                        negvissoftmax[m] = 0;
+                    }
+                    else if ((randval -= negvisprobs[m][1]) <= 0.0 ) {
+                        negvissoftmax[m] = 1;
+                    }
+                    else if ((randval -= negvisprobs[m][2]) <= 0.0 ) {
+                        negvissoftmax[m] = 2;
+                    }
+                    else if ((randval -= negvisprobs[m][3]) <= 0.0 ) {
+                        negvissoftmax[m] = 3;
+                    }
+                    else if ((randval -= negvisprobs[m][4]) <= 0.0 ) {
+                        negvissoftmax[m] = 4;
+                    }
+                    else {
+                        assert (false);
+                    }
+
+                    // if in training data then train on it
+                    if (true && finalTStep) {
+                        negvisact[m][negvissoftmax[m]] += 1.0;
+                    }
+                }
                 // If looping again, load the curposvisstates
-                if ( !finalTStep ) {
+                if (!finalTStep) {
                     for (int h = 0; h < TOTAL_FEATURES; h++ )
                         curposhidstates[h] = neghidstates[h];
                     ZERO(negvisprobs);
@@ -157,7 +235,7 @@ void RBM::train(std::string saveFile) {
               // 8. repeating multiple times steps 5,6 and 7 compute (Si.Sj)n. Where n is small number and can
               //    increase with learning steps to achieve better accuracy.
 
-            } while ( ++stepT < tSteps );
+            } while (++stepT < tSteps);
 
             // Accumulate contrastive divergence contributions for (Si.Sj)0 and (Si.Sj)T
             for (int j = userStart; j < userEnd; ++j) {
