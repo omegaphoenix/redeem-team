@@ -15,7 +15,6 @@ using namespace std;
 RBM::RBM() {
     clock_t time0 = clock();
     debugPrint("Initializing RBM...\n");
-    unsigned int i;
 
     // Number of full steps to run Gibb's sampler
     T = 1;
@@ -27,31 +26,31 @@ RBM::RBM() {
 
     // Initialize W
     W = new float[N_MOVIES * N_FACTORS * MAX_RATING];
-    for (i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
+    for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
         W[i] = normalRandom() * STD_DEV;
     }
 
     // Initialize hidden units
     hidVars = new std::bitset<N_USERS * N_FACTORS>(0);
     hidProbs = new float[N_USERS * N_FACTORS];
-    for (i = 0; i < N_USERS * N_FACTORS; ++i) {
+    for (unsigned int i = 0; i < N_USERS * N_FACTORS; ++i) {
         setHidVar(i, rand() % 2);
     }
 
     // Initialize V
     indicatorV = new std::bitset<N_MOVIES * MAX_RATING>[N_USERS];
     visProbs = new float[(long) N_USERS * N_MOVIES * MAX_RATING];
-    for (i = 0; i < N_USERS; ++i) {
+    for (unsigned int i = 0; i < N_USERS; ++i) {
         indicatorV[i] = std::bitset<N_MOVIES * MAX_RATING>(0);
     }
 
     // Initialize feature biases
     hidBiases = new float[N_FACTORS];
-    for (i = 0; i < N_FACTORS; ++i) {
+    for (unsigned int i = 0; i < N_FACTORS; ++i) {
         hidBiases[i] = normalRandom() * STD_DEV;
     }
     visBiases = new float[N_MOVIES * MAX_RATING];
-    for (i = 0; i < N_MOVIES * MAX_RATING; ++i) {
+    for (unsigned int i = 0; i < N_MOVIES * MAX_RATING; ++i) {
         visBiases[i] = 0;
     }
 
@@ -86,9 +85,9 @@ void RBM::init() {
     debugPrint("Initializing visible biases...\n");
 
     // Init visible biases to logs of respective base rates over all users
-    unsigned int movie, rating, i, k, vBiasIdx;
-    int movCount[N_MOVIES] = {0};
-    for (i = 0; i < numRatings; ++i) {
+    unsigned int movie, rating, vBiasIdx;
+    unsigned int movCount[N_MOVIES] = {0};
+    for (unsigned int i = 0; i < numRatings; ++i) {
         movie = columns[i];
         assert (movie >= 0 && movie < N_MOVIES);
         rating = values[i] - 1;
@@ -97,8 +96,8 @@ void RBM::init() {
         visBiases[movie * MAX_RATING + rating] += 1;
     }
     clock_t time1 = clock();
-    for (i = 0; i < N_MOVIES; ++i) {
-        for (k = 0; k < MAX_RATING; ++k) {
+    for (unsigned int i = 0; i < N_MOVIES; ++i) {
+        for (unsigned int k = 0; k < MAX_RATING; ++k) {
             vBiasIdx = i * MAX_RATING + k;
             visBiases[vBiasIdx] = log(visBiases[vBiasIdx] / movCount[i]);
         }
@@ -141,14 +140,13 @@ void RBM::resetDeltas() {
     debugPrint("Resetting deltas...\n");
     clock_t time0 = clock();
 
-    unsigned int i;
-    for (i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
+    for (unsigned int i = 0; i < N_MOVIES * N_FACTORS * MAX_RATING; ++i) {
         dW[i] = 0;
     }
-    for (i = 0; i < N_FACTORS; ++i) {
+    for (unsigned int i = 0; i < N_FACTORS; ++i) {
         dHidBiases[i] = 0;
     }
-    for (i = 0; i < N_MOVIES * MAX_RATING; ++i) {
+    for (unsigned int i = 0; i < N_MOVIES * MAX_RATING; ++i) {
         dVisBiases[i] = 0;
     }
 
@@ -177,7 +175,7 @@ void RBM::posStep() {
     debugPrint("Positive step...\n");
     clock_t time0 = clock();
 
-    unsigned int userStartIdx, userEndIdx, movIdx, facIdx, i, j, k, n, colIdx;
+    unsigned int userStartIdx, userEndIdx, movIdx, facIdx, i;
     unsigned int wIdx, vBiasIdx, hIdx;
     int movFac = N_FACTORS * MAX_RATING;
     float prod;
@@ -185,16 +183,16 @@ void RBM::posStep() {
     calcHidProbsUsingData();
     // updateH();
     // First half of equation 6 in RBM for CF, Salakhutdinov 2007
-    for (n = 0; n < N_USERS; ++n) {
+    for (unsigned int n = 0; n < N_USERS; ++n) {
         userStartIdx = rowIndex[n];
         userEndIdx = rowIndex[n + 1];
-        for (colIdx = userStartIdx; colIdx < userEndIdx;
+        for (unsigned int colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = columns[colIdx];
             movIdx = i * movFac;
-            for (j = 0; j < N_FACTORS; ++j) {
+            for (unsigned int j = 0; j < N_FACTORS; ++j) {
                 facIdx = j * MAX_RATING;
-                for (k = 0; k < MAX_RATING; ++k) {
+                for (unsigned int k = 0; k < MAX_RATING; ++k) {
                     prod = 0;
                     if (getV(n, i, k)) {
                         hIdx = n * N_FACTORS + j;
@@ -222,7 +220,7 @@ void RBM::negStep() {
     debugPrint("Negative step...\n");
     clock_t time0 = clock();
 
-    unsigned int userStartIdx, userEndIdx, movIdx, facIdx, i, j, k, n, colIdx;
+    unsigned int userStartIdx, userEndIdx, movIdx, facIdx, i;
     unsigned int vBiasIdx, wIdx, hIdx;
     unsigned long vIdx;
     float v, h;
@@ -232,16 +230,16 @@ void RBM::negStep() {
     runGibbsSampler();
 
     // Second half of equation 6 in RBM for CF, Salakhutdinov 2007
-    for (n = 0; n < N_USERS; ++n) {
+    for (unsigned int n = 0; n < N_USERS; ++n) {
         userStartIdx = rowIndex[n];
         userEndIdx = rowIndex[n + 1];
-        for (colIdx = userStartIdx; colIdx < userEndIdx;
+        for (unsigned int colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = columns[colIdx];
             movIdx = i * movFac;
-            for (j = 0; j < N_FACTORS; ++j) {
+            for (unsigned int j = 0; j < N_FACTORS; ++j) {
                 facIdx = j * MAX_RATING;
-                for (k = 0; k < MAX_RATING; ++k) {
+                for (unsigned int k = 0; k < MAX_RATING; ++k) {
                     vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
                     v = visProbs[vIdx];
 
@@ -315,8 +313,7 @@ void RBM::updateH() {
     clock_t time0 = clock();
 
     bool var;
-    unsigned int i;
-    for (i = 0; i < N_USERS * N_FACTORS; ++i) {
+    for (unsigned int i = 0; i < N_USERS * N_FACTORS; ++i) {
         var = uniform(0, 1) > hidProbs[i];
         setHidVar(i, var);
     }
@@ -333,14 +330,14 @@ void RBM::updateV() {
 
     // TODO: Do we update all the V's or just the learned ones?
     bool var;
-    unsigned int idx, n, i, k, userStartIdx, userEndIdx, colIdx;
-    for (n = 0; n < N_USERS; ++n) {
+    unsigned int idx, i, userStartIdx, userEndIdx;
+    for (unsigned int n = 0; n < N_USERS; ++n) {
         userStartIdx = rowIndex[n];
         userEndIdx = rowIndex[n + 1];
-        for (colIdx = userStartIdx; colIdx < userEndIdx;
+        for (unsigned int colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = columns[colIdx]; // movie
-            for (k = 0; k < MAX_RATING; ++k) {
+            for (unsigned int k = 0; k < MAX_RATING; ++k) {
                 idx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
                 var = uniform(0, 1) > hidProbs[idx];
                 setV(n, i, k, var);
@@ -360,7 +357,7 @@ void RBM::runGibbsSampler() {
 
     calcVisProbs();
 
-    for (int t = 1; t < T; t++) {
+    for (unsigned int t = 1; t < T; t++) {
         calcHidProbs();
         calcVisProbs();
     }
@@ -376,18 +373,18 @@ void RBM::calcHidProbsUsingData() {
     clock_t time0 = clock();
 
     // Reset hidProbs to b_j
-    unsigned int userStartIdx, userEndIdx, n, i, k, j, idx, colIdx;
+    unsigned int userStartIdx, userEndIdx, i, k, idx;
     resetHidProbs();
 
-    for (n = 0; n < N_USERS; ++n) {
+    for (unsigned int n = 0; n < N_USERS; ++n) {
         userStartIdx = rowIndex[n];
         userEndIdx = rowIndex[n + 1];
-        for (colIdx = userStartIdx; colIdx < userEndIdx;
+        for (unsigned int colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = columns[colIdx]; // movie
             k = values[colIdx] - 1; // rating
             assert (k >= 0 && k < MAX_RATING);
-            for (j = 0; j < N_FACTORS; ++j) {
+            for (unsigned int j = 0; j < N_FACTORS; ++j) {
                 idx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
                 hidProbs[n * N_FACTORS + j] += W[idx];
             }
@@ -408,20 +405,20 @@ void RBM::calcHidProbs() {
     clock_t time0 = clock();
 
     // Reset hidProbs to b_j
-    unsigned int n, i, k, j, userStartIdx, userEndIdx, colIdx;
+    unsigned int i, userStartIdx, userEndIdx;
     unsigned int wIdx, hIdx;
     unsigned long vIdx;
     resetHidProbs();
 
-    for (n = 0; n < N_USERS; ++n) {
+    for (unsigned int n = 0; n < N_USERS; ++n) {
         userStartIdx = rowIndex[n];
         userEndIdx = rowIndex[n + 1];
-        for (colIdx = userStartIdx; colIdx < userEndIdx;
+        for (unsigned int colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = columns[colIdx]; // movie
             // Add v_i^k W_ij^k
-            for (j = 0; j < N_FACTORS; ++j) {
-                for (k = 0; k < MAX_RATING; k++) {
+            for (unsigned int j = 0; j < N_FACTORS; ++j) {
+                for (unsigned int k = 0; k < MAX_RATING; k++) {
                     wIdx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
                     hIdx = n * N_FACTORS + j;
                     vIdx = n * N_MOVIES * MAX_RATING + j * MAX_RATING + k;
@@ -444,9 +441,9 @@ void RBM::resetHidProbs() {
     debugPrint("Resetting hidden probabilities to biases...\n");
     clock_t time0 = clock();
 
-    unsigned int userStartIdx, i;
+    unsigned int userStartIdx;
     float* hidBiasesEnd = hidBiases + N_FACTORS;
-    for (i = 0; i < N_USERS; ++i) {
+    for (unsigned int i = 0; i < N_USERS; ++i) {
         userStartIdx = i * N_FACTORS;
         std::copy(hidBiases, hidBiasesEnd, hidProbs + userStartIdx);
     }
@@ -461,8 +458,7 @@ void RBM::compHidProbs() {
     debugPrint("Sigmoiding hidden probabilities...\n");
     clock_t time0 = clock();
 
-    unsigned int i;
-    for (i = 0; i < N_USERS * N_FACTORS; ++i) {
+    for (unsigned int i = 0; i < N_USERS * N_FACTORS; ++i) {
         hidProbs[i] = sigmoid(hidProbs[i]);
         assert (hidProbs[i] >= 0 && hidProbs[i] <= 1);
     }
@@ -508,17 +504,17 @@ void RBM::sumVisProbs() {
     debugPrint("Summing weights for visible probabilities...\n");
     clock_t time0 = clock();
 
-    unsigned int userStartIdx, userEndIdx, n, i, j, k, idx, colIdx, hIdx;
+    unsigned int userStartIdx, userEndIdx, i, idx, hIdx;
     unsigned long vIdx;
-    for (n = 0; n < N_USERS; ++n) {
+    for (unsigned int n = 0; n < N_USERS; ++n) {
         userStartIdx = rowIndex[n];
         userEndIdx = rowIndex[n + 1];
-        for (colIdx = userStartIdx; colIdx < userEndIdx;
+        for (unsigned int colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = columns[colIdx]; // movie
-            for (j = 0; j < N_FACTORS; ++j) {
+            for (unsigned int j = 0; j < N_FACTORS; ++j) {
                 hIdx = n * N_FACTORS + j;
-                for (k = 0 ; k < MAX_RATING; ++k) {
+                for (unsigned int k = 0 ; k < MAX_RATING; ++k) {
                     idx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
                     vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
                     visProbs[vIdx] += hidProbs[hIdx] * W[idx];
@@ -537,22 +533,22 @@ void RBM::sumToVisProbs() {
     debugPrint("Exponentiating visible probabilities...\n");
     clock_t time0 = clock();
 
-    unsigned int userStartIdx, userEndIdx, n, i, k, colIdx, bIdx;
+    unsigned int userStartIdx, userEndIdx, i, bIdx;
     unsigned long vIdx;
     float denom = 0;
     // unsigned long vIdxBase = 0;
-    for (n = 0; n < N_USERS; ++n) {
+    for (unsigned int n = 0; n < N_USERS; ++n) {
         userStartIdx = rowIndex[n];
         userEndIdx = rowIndex[n + 1];
         // assert (vIdxBase % MAX_RATING == 0);
-        for (colIdx = userStartIdx; colIdx < userEndIdx;
+        for (unsigned int colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = columns[colIdx]; // movie
             denom = 0;
             bIdx = i * MAX_RATING;
             // vIdx = vIdxBase + bIdx;
             // assert (vIdx % MAX_RATING == 0);
-            for (k = 0 ; k < MAX_RATING; ++k) {
+            for (unsigned int k = 0 ; k < MAX_RATING; ++k) {
                 vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
                 visProbs[vIdx] = exp(visBiases[bIdx] + visProbs[vIdx]);
                 denom += visProbs[vIdx];
@@ -560,7 +556,7 @@ void RBM::sumToVisProbs() {
                 bIdx++;
             }
             // assert (vIdx % MAX_RATING == 0);
-            for (k = 0 ; k < MAX_RATING; ++k) {
+            for (unsigned int k = 0 ; k < MAX_RATING; ++k) {
                 // vIdx--;
                 vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
                 visProbs[vIdx] = visProbs[vIdx] / denom;
@@ -569,7 +565,7 @@ void RBM::sumToVisProbs() {
             // assert (vIdx % MAX_RATING == 0);
 #ifndef NDEBUG
             denom = 0;
-            for (k = 0 ; k < MAX_RATING; ++k) {
+            for (unsigned int k = 0 ; k < MAX_RATING; ++k) {
                 vIdx = n * N_MOVIES * MAX_RATING + i * MAX_RATING + k;
                 denom += visProbs[vIdx];
                 // vIdx++;
@@ -653,19 +649,19 @@ float RBM::predict(int n, int i) {
     // Calculate probabilities
     unsigned int hIdx, wIdx, vBiasIdx;
     float prob[5];
-    for (int k = 0; k < MAX_RATING; k++) {
+    for (unsigned int k = 0; k < MAX_RATING; k++) {
         prob[k] = 0;
         assert (prob[k] == 0.0);
     }
-    for (int j = 0; j < N_FACTORS; j++) {
+    for (unsigned int j = 0; j < N_FACTORS; j++) {
         hIdx = n * N_FACTORS + j;
-        for (int k = 0; k < MAX_RATING; k++) {
+        for (unsigned int k = 0; k < MAX_RATING; k++) {
             wIdx = i * N_FACTORS * MAX_RATING + j * MAX_RATING + k;
             prob[k] += hidProbs[hIdx] * W[wIdx];
         }
     }
     float denom = 0.0;
-    for (int k = 0; k < MAX_RATING; k++) {
+    for (unsigned int k = 0; k < MAX_RATING; k++) {
         vBiasIdx = i * MAX_RATING + k;
         prob[k] += visBiases[vBiasIdx];
         prob[k] = expf(prob[k]);
@@ -682,7 +678,7 @@ float RBM::predict(int n, int i) {
         return 3;
     }
     float expVal = 0.0;
-    for (int k = 0; k < MAX_RATING; k++) {
+    for (unsigned int k = 0; k < MAX_RATING; k++) {
         prob[k] /= denom;
         assert (prob[k] >= 0.0); // jump
         assert (prob[k] <= 1.0); // jump
