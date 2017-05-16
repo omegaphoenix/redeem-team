@@ -225,6 +225,51 @@ void RBM::train(std::string saveFile) {
                         negvisact[m][negvissoftmax[m]] += 1.0;
                     }
                 }
+
+
+                // 6. compute state of hidden neurons Sj again using Si from 5 step.
+                // For all rated movies accumulate contributions to hidden units from sampled visible units
+                ZERO(sumW);
+                for (int j = userStart; j < userEnd; ++j) {
+                    int m = columns[j];
+
+                    // for all hidden units h:
+                    for (int h = 0; h < TOTAL_FEATURES; ++h) {
+                        sumW[h]  += vishid[m][negvissoftmax[m]][h];
+                    }
+                }
+                // for all hidden units h:
+                for (int h = 0; h < TOTAL_FEATURES; ++h) {
+                    // compute Q(h[1][i] = 1 | v[1]) # for binomial units, sigmoid(b[i] + sum_j(W[i][j] * v[1][j]))
+                    neghidprobs[h]  = 1./(1 + exp(-sumW[h] - hidbiases[h]));
+
+                    // Sample the hidden units state again.
+                    if  (neghidprobs[h] >  randn()) {
+                        neghidstates[h]=1;
+                        if ( finalTStep )
+                            neghidact[h] += 1.0;
+                    } else {
+                        neghidstates[h]=0;
+                    }
+                }
+
+                // Compute error rmse and prmse before we start iterating on T
+                if ( stepT == 0 ) {
+
+                    // Compute rmse on training data
+                    for (int j = userStart; j < userEnd; ++j) {
+                        int m = columns[j];
+                        int r = values[j];
+
+                        //# Compute some error function like sum of squared difference between Si in 1) and Si in 5)
+                        double expectedV = nvp2[m][1] + 2.0 * nvp2[m][2] + 3.0 * nvp2[m][3] + 4.0 * nvp2[m][4];
+                        double vdelta = (((double)r)-expectedV);
+                        nrmse += (vdelta * vdelta);
+                    }
+                    ntrain += count;
+
+                }
+
                 // If looping again, load the curposvisstates
                 if (!finalTStep) {
                     for (int h = 0; h < TOTAL_FEATURES; h++ )
