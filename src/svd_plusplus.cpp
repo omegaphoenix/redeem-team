@@ -81,7 +81,7 @@ void SVDPlus::train(std::string saveFile) {
         #endif
 
         if (numEpochs % 10 == 0 || numEpochs == MAX_EPOCHS) {
-            save("model/naive_svd/k=" + std::to_string(K) + "_lamb=" +
+            save("model/svd_plus/k=" + std::to_string(K) + "_lamb=" +
                  std::to_string(lambda) + "_epoch=" +
                  std::to_string(numEpochs) + ".save");
         }
