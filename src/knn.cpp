@@ -50,8 +50,6 @@ kNN::~kNN() {
 
 void kNN::normalizeRatings(double average_array[], double stdev_array[]) {
     int user = 0;
-    int nan_count = 0;
-    int stdev_count = 0;
 
     for (int i = 0; i < numRatings; i++) {
         while (i == rowIndex[user + 1]) {
@@ -165,7 +163,7 @@ void kNN::buildMatrix(std::string saveFile) {
     }
 
     num_correlations = 0; // also acts as index
-    int num_users = 0;
+    int num_users = N_USERS;
     int nan_coeff = 0;
 
     for (int user_i = 0; user_i < N_USERS; user_i++) {
@@ -174,6 +172,7 @@ void kNN::buildMatrix(std::string saveFile) {
         }
         if (rowIndex[user_i + 1] - rowIndex[user_i] < individual_threshold) {
             corrMatrix[0].push_back(num_correlations);
+            num_users--;
             continue;
         }
         pearsonIntermediate* arr = new pearsonIntermediate[N_USERS];
@@ -217,11 +216,9 @@ void kNN::buildMatrix(std::string saveFile) {
                         - (arr[j].j / arr[j].count) * (arr[j].j / arr[j].count))
                     );
                 if (pearson == 0) {
-                    // std::cout << "pearson coeff is 0\n";
                     continue;
                 }
                 else if (isnan(pearson)) {
-                    // std::cout << "pearson coeff is nan\n";
                     nan_coeff++;
                     continue;
                 }
@@ -270,21 +267,17 @@ float kNN::predict(int user, int movie) {
 
     // Get each OTHER USER that has rated MOVIE
     for (int movie_idx = movie_start; movie_idx < movie_end; movie_idx++) {
-        int other_user = mucolumns[movie_idx];
+        other_user = mucolumns[movie_idx];
+        int rating = muvalues[movie_idx]; // associated rating
 
         // to look up correlation, we need first_user < second_user
-        //assert(other_user != user);
         if (other_user == user) {
-            // std::cout << "(317, 4498) --> " << ratings[];
             std::cout << "user " << user << " already rated movie " << movie
             << "! gave it a " << muvalues[movie_idx] << "\n";
             exit(0);
         }
         first_user = (user < other_user) ? user : other_user;
         second_user = (user > other_user) ? user : other_user;
-
-        // std::cout << "first user = " << first_user << "\n";
-        // std::cout << "second user = " << second_user << "\n";
 
         // Retrieve correlation from matrix
         // TODO: consider binary search?
@@ -294,7 +287,7 @@ float kNN::predict(int user, int movie) {
             if (corrMatrix[1][i] == second_user) {
                 // std::cout << "found nonzero correlation!\n";
                 // Retrieve movie rating by OTHER USER
-                int rating = getRatingCSR(other_user, movie);
+                // int rating = getRatingCSR(other_user, movie);
                 if (rating > 0) {
                     top_corr.push(corrUser(
                         corrMatrix[2][i], other_user, float(rating)));
@@ -306,7 +299,7 @@ float kNN::predict(int user, int movie) {
 
     // get top K's average
     int K = 10;
-    float total = 0;
+    double total = 0;
     float weighted_total = 0;
     float sum_weights = 0;
     int actualK = 0;
@@ -322,27 +315,19 @@ float kNN::predict(int user, int movie) {
             break;
         }
 
-        // std::cout << actualK << " top corr value = " << top.corr << " with user " << top.user << std::endl;
-
         total += float(top.rating);
         ++actualK;
     }
 
     if (actualK <= 0) {
-        return baseline;
+        return getDefaultRating(user, avg_array);
     }
 
-    // for debugging purposes only
-    // if (total != 0) {
-    //     std::cout << "total = " << total << "\n";
-    //     std::cout << "actualK = " << actualK << "\n";
-    //     std::cout << "got a value!! rating = " << total / actualK << std::endl;
-    // }
     if (user % 10 == 0) {
         std::cout << "predicting for user " << user << "\n";
     }
 
-    return total / actualK;
+    return float(total / actualK);
 }
 
 void kNN::loadSaved(std::string fname) {
@@ -393,8 +378,6 @@ float kNN::validate(int* valid_ratings, int valid_numRatings) {
     for (int i = 0; i < valid_numRatings; i++) {
         int user = valid_ratings[i * DATA_POINT_SIZE + USER_IDX];
         int movie = valid_ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
-        // std::cout << "valid // user = " << user << "\n";
-        // std::cout << "valid // movie = " << movie << "\n";
         int actual_rating = valid_ratings[i * DATA_POINT_SIZE + RATING_IDX];
         float rating = predict(user, movie);
         if (rating < 1) {
@@ -433,7 +416,6 @@ std::string kNN::getFilename(std::string data_file) {
     std::string fname = "knn_" + metric_name
         + "_s" + std::to_string(shared_threshold)
         + "_i" + std::to_string(individual_threshold)
-        + "_k" + std::to_string(K)
         + "_train=" + data_file;
     return fname;
 }
@@ -452,10 +434,14 @@ int kNN::getRatingCSR(int user, int movie) {
     }
 }
 
+float kNN::getDefaultRating(int user, double avg_array[]) {
+    return avg_array[user];
+}
+
 int main(int argc, char **argv) {
     clock_t time0 = clock();
     kNN* knn = new kNN();
-    // Baseline* base = new Baseline();
+    Baseline* base = new Baseline();
 
     std::string data_file = "1.dta";
 
@@ -464,16 +450,17 @@ int main(int argc, char **argv) {
     knn->transposeMU();
 
     // Normalize ratings
-    // base->load(data_file);
-    // base->train("unused variable");
+    base->load(data_file);
+    base->train("unused variable");
     // knn->normalizeRatings(base->average_array, base->stdev_array);
 
     // Train by building correlation matrix
     knn->metric = kPearson;
     knn->shared_threshold = 6;
-    knn->individual_threshold = 1800;
-    knn->K = 10;
-    knn->baseline = 3; // TODO: figure out what to use
+    knn->individual_threshold = 1500;
+    knn->K = 100;
+    // knn->baseline = 3; // TODO: figure out what to use
+    knn->avg_array = base->average_array;
     knn->train("model/knn/" + knn->getFilename(data_file) + ".save");
 
     clock_t time1 = clock();
@@ -494,33 +481,31 @@ int main(int argc, char **argv) {
     std::cout << "kNN validation took " << valid_ms << " ms" << std::endl;
 
     // Predict ratings and write to file
-    // Load qual data
-    // knn->load(data_file); // can this be done more elegantly
-    std::cout << "PREDICTIONS:\n";
-    kNN* qual = new kNN();
-    qual->load("5-1.dta"); // is this how we're going to do things
+    // std::cout << "PREDICTIONS:\n";
+    // kNN* qual = new kNN();
+    // qual->load("5-1.dta"); // is this how we're going to do things
 
-    // Prepare file
-    std::ofstream outputFile;
-    outputFile << std::setprecision(3);
-    outputFile.open("out/" + knn->getFilename(data_file) + ".dta");
+    // // Prepare file
+    // std::ofstream outputFile;
+    // outputFile << std::setprecision(3);
+    // outputFile.open("out/" + knn->getFilename(data_file) + ".dta");
 
-    for (int i = 0; i < qual->numRatings; i++) {
-        int user = qual->ratings[i * DATA_POINT_SIZE + USER_IDX];
-        int movie = qual->ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
-        // std::cout << "qual // user = " << user << "\n";
-        // std::cout << "qual // movie = " << movie << "\n";
-        float rating = knn->predict(user, movie);
-        if (rating < 1) {
-            rating = 1;
-        }
-        else if (rating > 5) {
-            rating = 5;
-        }
+    // for (int i = 0; i < qual->numRatings; i++) {
+    //     int user = qual->ratings[i * DATA_POINT_SIZE + USER_IDX];
+    //     int movie = qual->ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+    //     // std::cout << "qual // user = " << user << "\n";
+    //     // std::cout << "qual // movie = " << movie << "\n";
+    //     float rating = knn->predict(user, movie);
+    //     if (rating < 1) {
+    //         rating = 1;
+    //     }
+    //     else if (rating > 5) {
+    //         rating = 5;
+    //     }
 
-        outputFile << rating << "\n";
-    }
-    outputFile.close();
+    //     outputFile << rating << "\n";
+    // }
+    // outputFile.close();
 
     clock_t time2 = clock();
 
