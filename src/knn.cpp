@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -327,7 +328,16 @@ float kNN::predict(int user, int movie) {
         std::cout << "predicting for user " << user << "\n";
     }
 
-    return float(total / actualK);
+    float prediction = float(total / actualK);
+
+    if (prediction < 1) {
+        prediction = 1;
+    }
+    else if (prediction > 5) {
+        prediction = 5;
+    }
+
+    return prediction;
 }
 
 void kNN::loadSaved(std::string fname) {
@@ -439,6 +449,19 @@ float kNN::getDefaultRating(int user, double avg_array[]) {
 }
 
 int main(int argc, char **argv) {
+    // Process cmd line args
+    if ((argc > 1 && argc < 4) || argc > 4) {
+        std::cout << "Usage: knn [shared threshold] [individual threshold] [number of neighbors]\n";
+        return 1;
+    }
+    else if (argc == 4) {
+        std::cout << "Running kNN with i = " << argv[1] << ", s = " << argv[2]
+        << ", k = " << argv[3] << "\n";
+    }
+    else {
+        std::cout << "Running kNN with default params\n";
+    }
+
     clock_t time0 = clock();
     kNN* knn = new kNN();
     Baseline* base = new Baseline();
@@ -448,19 +471,28 @@ int main(int argc, char **argv) {
     // Load data from file.
     knn->load(data_file);
     knn->transposeMU();
+    knn->metric = kPearson;
 
-    // Normalize ratings
+    // Set kNN parameters
+    if (argc == 4) {
+        knn->shared_threshold = atoi(argv[1]);
+        knn->individual_threshold = atoi(argv[2]);
+        knn->K = atoi(argv[3]);
+    }
+    else {
+        //or change variables here for testing
+        knn->shared_threshold = 6;
+        knn->individual_threshold = 1801;
+        knn->K = 100;
+    }
+
+    // Get baseline and maybe normalize ratings
     base->load(data_file);
     base->train("unused variable");
     // knn->normalizeRatings(base->average_array, base->stdev_array);
+    knn->avg_array = base->average_array;
 
     // Train by building correlation matrix
-    knn->metric = kPearson;
-    knn->shared_threshold = 6;
-    knn->individual_threshold = 1500;
-    knn->K = 100;
-    // knn->baseline = 3; // TODO: figure out what to use
-    knn->avg_array = base->average_array;
     knn->train("model/knn/" + knn->getFilename(data_file) + ".save");
 
     clock_t time1 = clock();
@@ -468,19 +500,20 @@ int main(int argc, char **argv) {
     double kNN_ms = diffclock(time1, time0);
     std::cout << "kNN training took " << kNN_ms << " ms" << std::endl;
 
-    // Validate
+    // Validate [begin]
     std::cout << "Validating...\n";
     kNN* valid = new kNN();
-    valid->load("2.dta");
-    std::cout << "RMSE = " << knn->validate(valid->ratings, valid->numRatings) << "\n";
+    valid->load("4.dta");
+    std::cout << "RMSE = \n" << knn->validate(valid->ratings, valid->numRatings) << "\n";
     std::cout << "Validation DONE\n";
+    // Validate [end]
 
     clock_t time_valid = clock();
 
     double valid_ms = diffclock(time_valid, time1);
     std::cout << "kNN validation took " << valid_ms << " ms" << std::endl;
 
-    // Predict ratings and write to file
+    // Predict ratings and write to file [begin]
     // std::cout << "PREDICTIONS:\n";
     // kNN* qual = new kNN();
     // qual->load("5-1.dta"); // is this how we're going to do things
@@ -496,16 +529,11 @@ int main(int argc, char **argv) {
     //     // std::cout << "qual // user = " << user << "\n";
     //     // std::cout << "qual // movie = " << movie << "\n";
     //     float rating = knn->predict(user, movie);
-    //     if (rating < 1) {
-    //         rating = 1;
-    //     }
-    //     else if (rating > 5) {
-    //         rating = 5;
-    //     }
 
     //     outputFile << rating << "\n";
     // }
     // outputFile.close();
+    // Predict [end]
 
     clock_t time2 = clock();
 
