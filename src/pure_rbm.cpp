@@ -415,14 +415,14 @@ void RBM::train(std::string saveFile) {
         clock_t time1 = clock();
         float ms1 = diffclock(time1, time0);
         validateFile = fopen(scoreFileName.c_str(), "a");
-        printf("nrmse: %f vrmse: %f prmse: %f time: %f ms\n", nrmse, vrmse, prmse, ms1);
-        fprintf(validateFile, "nrmse: %f vrmse: %f prmse: %f time: %f ms\n", nrmse, vrmse, prmse, ms1);
+        printf("epoch: %d nrmse: %f vrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, vrmse, prmse, ms1);
+        fprintf(validateFile, "epoch: %d nrmse: %f vrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, vrmse, prmse, ms1);
         fclose(validateFile);
-        output("out/rbm/pure_rbm_factors" + std::to_string(TOTAL_FEATURES)
+        output("out/rbm/pure_rbm_v2_factors_" + std::to_string(TOTAL_FEATURES)
                 + "_epoch_" + std::to_string(loopcount) + "_T_" +
                 std::to_string(tSteps) + ".txt");
 
-        if (TOTAL_FEATURES == 200) {
+        if (TOTAL_FEATURES >= 200) {
             if (loopcount > 6) {
                 epsilonW  *= 0.90;
                 epsilonVB *= 0.90;

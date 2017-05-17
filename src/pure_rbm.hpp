@@ -2,7 +2,7 @@
 #define PURE_RBM_HPP
 #include "model.hpp"
 
-#define TOTAL_FEATURES  100
+#define TOTAL_FEATURES  256
 #define SOFTMAX         5
 #define EPSILONW        0.001   // Learning rate for weights
 #define EPSILONVB       0.008   // Learning rate for biases of visible units
@@ -12,6 +12,7 @@
 #define FINAL_MOMENTUM   0.9
 #define BATCH_SIZE   100
 #define E  (0.00002) // stop condition
+#define STD_DEV 0.01
 
 class RBM : public Model {
 

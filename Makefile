@@ -34,6 +34,7 @@ run_nsvd: validate_naive_svd
 	bin/validate_naive_svd 2> log/validate_nsvd.log
 
 rbm: $(RBM_FILES:.cpp=.o)
+	mkdir -p bin out model out/rbm model/rbm
 	$(CXX) $(CFLAGS) -o bin/rbm $^
 
 clean:
