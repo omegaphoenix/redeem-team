@@ -35,7 +35,6 @@ class kNN : public Model {
         void buildMatrix(std::string saveFile);
         float rmse(float actual, float predicted);
         int getRatingCSR(int user, int movie);
-        float getDefaultRating(int user, double avg_array[]);
         std::vector<std::vector<float>> corrMatrix;
         float* normalized_values;
 };

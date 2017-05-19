@@ -299,7 +299,6 @@ float kNN::predict(int user, int movie) {
     }
 
     // get top K's average
-    int K = 10;
     double total = 0;
     int actualK = 0;
     while (actualK < K) {
@@ -441,10 +440,6 @@ int kNN::getRatingCSR(int user, int movie) {
         }
     }
     return -1;
-}
-
-float kNN::getDefaultRating(int user, double avg_array[]) {
-    return avg_array[user];
 }
 
 int main(int argc, char **argv) {
