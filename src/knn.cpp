@@ -301,8 +301,6 @@ float kNN::predict(int user, int movie) {
     // get top K's average
     int K = 10;
     double total = 0;
-    float weighted_total = 0;
-    float sum_weights = 0;
     int actualK = 0;
     while (actualK < K) {
         if (top_corr.empty()) {
@@ -321,7 +319,7 @@ float kNN::predict(int user, int movie) {
     }
 
     if (actualK <= 0) {
-        return getDefaultRating(user, avg_array);
+        return avg_array[user];
     }
 
     if (user % 10 == 0) {
@@ -442,6 +440,7 @@ int kNN::getRatingCSR(int user, int movie) {
             return -1;
         }
     }
+    return -1;
 }
 
 float kNN::getDefaultRating(int user, double avg_array[]) {
@@ -489,8 +488,8 @@ int main(int argc, char **argv) {
     // Get baseline and maybe normalize ratings
     base->load(data_file);
     base->train("unused variable");
-    // knn->normalizeRatings(base->average_array, base->stdev_array);
     knn->avg_array = base->average_array;
+    knn->stdev_array = base->stdev_array;
 
     // Train by building correlation matrix
     knn->train("model/knn/" + knn->getFilename(data_file) + ".save");
@@ -503,7 +502,7 @@ int main(int argc, char **argv) {
     // Validate [begin]
     std::cout << "Validating...\n";
     kNN* valid = new kNN();
-    valid->load("4.dta");
+    valid->load("2.dta");
     std::cout << "RMSE = \n" << knn->validate(valid->ratings, valid->numRatings) << "\n";
     std::cout << "Validation DONE\n";
     // Validate [end]
@@ -514,25 +513,23 @@ int main(int argc, char **argv) {
     std::cout << "kNN validation took " << valid_ms << " ms" << std::endl;
 
     // Predict ratings and write to file [begin]
-    // std::cout << "PREDICTIONS:\n";
-    // kNN* qual = new kNN();
-    // qual->load("5-1.dta"); // is this how we're going to do things
+    std::cout << "PREDICTIONS:\n";
+    kNN* qual = new kNN();
+    qual->load("5-1.dta"); // is this how we're going to do things
 
-    // // Prepare file
-    // std::ofstream outputFile;
-    // outputFile << std::setprecision(3);
-    // outputFile.open("out/" + knn->getFilename(data_file) + ".dta");
+    // Prepare file
+    std::ofstream outputFile;
+    outputFile << std::setprecision(3);
+    outputFile.open("out/" + knn->getFilename(data_file) + ".dta");
 
-    // for (int i = 0; i < qual->numRatings; i++) {
-    //     int user = qual->ratings[i * DATA_POINT_SIZE + USER_IDX];
-    //     int movie = qual->ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
-    //     // std::cout << "qual // user = " << user << "\n";
-    //     // std::cout << "qual // movie = " << movie << "\n";
-    //     float rating = knn->predict(user, movie);
+    for (int i = 0; i < qual->numRatings; i++) {
+        int user = qual->ratings[i * DATA_POINT_SIZE + USER_IDX];
+        int movie = qual->ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        float rating = knn->predict(user, movie);
 
-    //     outputFile << rating << "\n";
-    // }
-    // outputFile.close();
+        outputFile << rating << "\n";
+    }
+    outputFile.close();
     // Predict [end]
 
     clock_t time2 = clock();

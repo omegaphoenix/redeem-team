@@ -28,6 +28,7 @@ class kNN : public Model {
         int individual_threshold;
         int K; // number of nearest neighbors
         double* avg_array;
+        double* stdev_array;
     private:
         float pearson(int i_start, int i_end, int j_start, int j_end);
         float denormalize(float normalized, double stdev, double ave);
