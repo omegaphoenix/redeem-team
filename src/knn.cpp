@@ -481,7 +481,7 @@ int main(int argc, char **argv) {
     else {
         //or change variables here for testing
         knn->shared_threshold = 6;
-        knn->individual_threshold = 1801;
+        knn->individual_threshold = 1800;
         knn->K = 100;
     }
 

@@ -9,7 +9,7 @@ KNN_FILES = $(addprefix src/, knn.cpp baseline.cpp model.cpp)
 all: init naive_svd validate_naive_svd knn
 
 init:
-	mkdir -p bin log out model model/naive_svd
+	mkdir -p bin log out model model/naive_svd model/knn
 	if [ ! -f "data/um/5-1.dta" ]; \
 then \
 	sed 's/0$$/1/' data/um/5.dta > data/um/5-1.dta; \
