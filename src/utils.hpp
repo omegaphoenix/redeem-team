@@ -9,8 +9,8 @@
 
 using namespace std;
 
-// Disable assertions
-#define NDEBUG
+// Uncomment to disable assertions
+// #define NDEBUG
 // Uncomment this if you want to print debug statements
 #define PRINT
 
@@ -24,6 +24,8 @@ using namespace std;
 #define TIME_IDX 2
 #define RATING_IDX 3
 #define DATA_POINT_SIZE 4
+
+#define ZERO(v) memset(v,0,sizeof(v))
 
 struct dataPoint {
     int userID;
@@ -59,6 +61,10 @@ static inline void debugPrint(const char* statement) {
 #ifdef PRINT
     printf("%s", statement);
 #endif
+}
+
+static inline double randn() {
+    return (rand()/(double)(RAND_MAX));
 }
 
 // Returns a uniformly distributed random number
