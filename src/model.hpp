@@ -34,6 +34,9 @@ class Model {
         void transposeMU();
 
         virtual void train(std::string saveFile);
+#ifdef ISRBM
+        virtual void prepPredict(int n);
+#endif
         virtual float predict(int n, int i);
 };
 

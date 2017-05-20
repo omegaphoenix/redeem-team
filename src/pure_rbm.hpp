@@ -2,7 +2,7 @@
 #define PURE_RBM_HPP
 #include "model.hpp"
 
-#define TOTAL_FEATURES  100
+#define TOTAL_FEATURES  200
 #define SOFTMAX         5
 #define EPSILONW        0.001   // Learning rate for weights
 #define EPSILONVB       0.008   // Learning rate for biases of visible units
@@ -21,7 +21,10 @@ class RBM : public Model {
         ~RBM();
         void init();
         void train(std::string saveFile);
+        void prepPredict(int n);
         float predict(int n, int i);
+        void save(std::string fname);
+        void loadSaved(std::string fname);
 
     private:
         // vishid are the weights.
@@ -50,7 +53,6 @@ class RBM : public Model {
         char  neghidstates[TOTAL_FEATURES];
         float hidbiasinc[TOTAL_FEATURES];
 
-        int prevUser;
-
+        int prevUser, loopcount;
 };
 #endif // PURE_RBM_HPP

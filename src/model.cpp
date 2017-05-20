@@ -235,6 +235,9 @@ float Model::validate(std::string valFile) {
     unsigned int userStartIdx, userEndIdx, n, i, k, colIdx;
     float squareError = 0.0;
     for (n = 0; n < N_USERS; ++n) {
+#ifdef ISRBM
+        prepPredict(n);
+#endif
         userStartIdx = validator->rowIndex[n];
         userEndIdx = validator->rowIndex[n + 1];
         for (colIdx = userStartIdx; colIdx < userEndIdx; colIdx++) {
@@ -263,6 +266,9 @@ float Model::trainingError() {
     unsigned int userStartIdx, userEndIdx, n, i, k, colIdx;
     float squareError = 0.0;
     for (n = 0; n < N_USERS; ++n) {
+#ifdef ISRBM
+        prepPredict(n);
+#endif
         userStartIdx = rowIndex[n];
         userEndIdx = rowIndex[n + 1];
         for (colIdx = userStartIdx; colIdx < userEndIdx; colIdx++) {
@@ -317,6 +323,11 @@ void Model::output(std::string saveFile) {
 
 void Model::train(std::string saveFile) {
 }
+
+#ifdef ISRBM
+void Model::prepPredict(int n) {
+}
+#endif
 
 float Model::predict(int n, int i) {
     return 0.0;
