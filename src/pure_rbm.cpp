@@ -470,12 +470,12 @@ void RBM::train(std::string saveFile) {
 
 void RBM::prepPredict(Model *mod, int n) {
     ZERO(negvisprobs);
-    int userEnd = mod->rowIndex[n + 1];
-    int userStart = mod->rowIndex[n];
+    int userEnd = rowIndex[n + 1];
+    int userStart = rowIndex[n];
     float sumW[TOTAL_FEATURES];
     ZERO(sumW);
     for (int j = userStart; j < userEnd; ++j) {
-        int m = mod->columns[j];
+        int m =columns[j];
         int r = values[j] - 1;
         assert(r >= 0 && r < SOFTMAX);
 
@@ -489,6 +489,8 @@ void RBM::prepPredict(Model *mod, int n) {
         poshidprobs[h] = 1.0 / (1.0 + exp(-sumW[h] - hidbiases[h]));
     }
 
+    userEnd = mod->rowIndex[n + 1];
+    userStart = mod->rowIndex[n];
     for (int j = userStart; j < userEnd; ++j)
     {
         int m = mod->columns[j];
@@ -513,9 +515,7 @@ void RBM::prepPredict(Model *mod, int n) {
             }
         }
         else {
-            for (int k = 0; k < SOFTMAX; ++k) {
-                negvisprobs[m * SOFTMAX + k] = 1.0 / 5.0;
-            }
+            negvisprobs[m * SOFTMAX + 2] = 1.0;
         }
     }
 }
