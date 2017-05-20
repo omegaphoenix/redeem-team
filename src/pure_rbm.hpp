@@ -2,7 +2,7 @@
 #define PURE_RBM_HPP
 #include "model.hpp"
 
-#define TOTAL_FEATURES  200
+#define TOTAL_FEATURES  100
 #define SOFTMAX         5
 #define EPSILONW        0.001   // Learning rate for weights
 #define EPSILONVB       0.008   // Learning rate for biases of visible units
@@ -21,7 +21,7 @@ class RBM : public Model {
         ~RBM();
         void init();
         void train(std::string saveFile);
-        void prepPredict(int n);
+        void prepPredict(Model *mod, int n);
         float predict(int n, int i);
         void save(std::string fname);
         void loadSaved(std::string fname);

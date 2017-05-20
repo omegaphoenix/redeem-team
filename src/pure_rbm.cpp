@@ -87,6 +87,10 @@ void RBM::train(std::string saveFile) {
     fclose(validateFile);
 
     loadSaved(loadFile);
+    prmse = validate("4.dta");
+    output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+            + "_epoch_" + std::to_string(loopcount) + "_T_" +
+            std::to_string(tSteps) + ".txt");
 
     // Iterate through the model while the RMSE is decreasing
     while (((nrmse < (lastRMSE-E)) || loopcount < 14) && loopcount < 80)  {
@@ -410,7 +414,7 @@ void RBM::train(std::string saveFile) {
         printf("ntrain: %d \n", ntrain);
         nrmse = sqrt(nrmse / ntrain);
         printf("nrmse: %f \n", nrmse);
-        if ((loopcount - 1) % 5 == 0 || loopcount > 40) {
+        if (loopcount % 5 == 0 || loopcount > 40) {
             prmse = validate("4.dta");
         }
 
@@ -423,7 +427,7 @@ void RBM::train(std::string saveFile) {
         save("model/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
                 + "_epoch_" + std::to_string(loopcount) + "_T_" +
                 std::to_string(tSteps) + ".txt");
-        if ((loopcount - 1) % 5 == 0) {
+        if (loopcount % 5 == 0) {
             output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
                     + "_epoch_" + std::to_string(loopcount) + "_T_" +
                     std::to_string(tSteps) + ".txt");
@@ -464,14 +468,14 @@ void RBM::train(std::string saveFile) {
             std::to_string(tSteps) + ".txt");
 }
 
-void RBM::prepPredict(int n) {
+void RBM::prepPredict(Model *mod, int n) {
     ZERO(negvisprobs);
-    int userEnd = rowIndex[n + 1];
-    int userStart = rowIndex[n];
+    int userEnd = mod->rowIndex[n + 1];
+    int userStart = mod->rowIndex[n];
     float sumW[TOTAL_FEATURES];
     ZERO(sumW);
     for (int j = userStart; j < userEnd; ++j) {
-        int m = columns[j];
+        int m = mod->columns[j];
         int r = values[j] - 1;
         assert(r >= 0 && r < SOFTMAX);
 
@@ -487,7 +491,7 @@ void RBM::prepPredict(int n) {
 
     for (int j = userStart; j < userEnd; ++j)
     {
-        int m = columns[j];
+        int m = mod->columns[j];
         for (int h = 0; h < TOTAL_FEATURES; ++h) {
             for (int k = 0; k < SOFTMAX; ++k) {
                 negvisprobs[m * SOFTMAX + k] += poshidprobs[h] * vishid[m][k][h];
@@ -506,6 +510,11 @@ void RBM::prepPredict(int n) {
         if (tsum != 0) {
             for (int k = 0; k < SOFTMAX; ++k) {
                 negvisprobs[m * SOFTMAX + k] /= tsum;
+            }
+        }
+        else {
+            for (int k = 0; k < SOFTMAX; ++k) {
+                negvisprobs[m * SOFTMAX + k] = 1.0 / 5.0;
             }
         }
     }

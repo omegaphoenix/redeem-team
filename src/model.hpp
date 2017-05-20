@@ -35,7 +35,7 @@ class Model {
 
         virtual void train(std::string saveFile);
 #ifdef ISRBM
-        virtual void prepPredict(int n);
+        virtual void prepPredict(Model *mod, int n);
 #endif
         virtual float predict(int n, int i);
 };

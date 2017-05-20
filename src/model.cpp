@@ -236,7 +236,7 @@ float Model::validate(std::string valFile) {
     float squareError = 0.0;
     for (n = 0; n < N_USERS; ++n) {
 #ifdef ISRBM
-        prepPredict(n);
+        prepPredict(validator, n);
 #endif
         userStartIdx = validator->rowIndex[n];
         userEndIdx = validator->rowIndex[n + 1];
@@ -267,7 +267,7 @@ float Model::trainingError() {
     float squareError = 0.0;
     for (n = 0; n < N_USERS; ++n) {
 #ifdef ISRBM
-        prepPredict(n);
+        prepPredict(this, n);
 #endif
         userStartIdx = rowIndex[n];
         userEndIdx = rowIndex[n + 1];
@@ -303,13 +303,14 @@ void Model::output(std::string saveFile) {
     outputFile.open(saveFile);
     for (n = 0; n < N_USERS; ++n) {
 #ifdef ISRBM
-        prepPredict(n);
+        prepPredict(validator, n);
 #endif
         userStartIdx = validator->rowIndex[n];
         userEndIdx = validator->rowIndex[n + 1];
         for (colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = validator->columns[colIdx]; // movie
+            assert (i >= 0 && i < N_MOVIES);
             float prediction = predict(n, i); // jump
             outputFile << prediction << "\n"; // jump
         }
@@ -327,7 +328,7 @@ void Model::train(std::string saveFile) {
 }
 
 #ifdef ISRBM
-void Model::prepPredict(int n) {
+void Model::prepPredict(Model *mod, int n) {
 }
 #endif
 
