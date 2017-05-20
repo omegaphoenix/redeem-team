@@ -17,23 +17,16 @@ RBM::RBM() {
     for (int j = 0; j < N_MOVIES; ++j) {
         for (int i = 0; i < TOTAL_FEATURES; ++i) {
             for (int k = 0; k < SOFTMAX; ++k) {
-                // TODO: Normal Distribution
-                vishid[j][k][i] = 0.02 * randn() - 0.004;
+                vishid[j][k][i] = normalRandom() * STD_DEV;
             }
         }
     }
 
     // Initial biases
     for (int i = 0; i < TOTAL_FEATURES; ++i) {
-        hidbiases[i] = 0.0;
+        hidbiases[i] = normalRandom() * STD_DEV;
     }
 
-    for (int j=0; j < N_MOVIES; ++j) {
-        for (int i = 0; i < SOFTMAX; ++i) {
-            // TODO: Normal Distribution
-            visbiases[j][i] = 0.02 * randn() - 0.004;
-        }
-    }
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
     printf("Initializing took %f ms\n", ms1);
@@ -44,7 +37,7 @@ RBM::~RBM() {
 }
 
 void RBM::init() {
-    load("1.dta");
+    load("all.dta");
     clock_t time0 = clock();
     debugPrint("Initializing visible biases...\n");
 
@@ -56,12 +49,12 @@ void RBM::init() {
         int rating = values[i] - 1;
         assert (rating >= 0 && rating < MAX_RATING);
         movCount[movie] += 1;
-        // visbiases[movie][rating] += 1;
+        visbiases[movie][rating] += 1;
     }
     clock_t time1 = clock();
     for (unsigned int m = 0; m < N_MOVIES; ++m) {
         for (unsigned int k = 0; k < SOFTMAX; ++k) {
-            // visbiases[m][k] = log(visbiases[m][k] / movCount[m]);
+            visbiases[m][k] = log(visbiases[m][k] / movCount[m]);
         }
     }
     clock_t time2 = clock();
@@ -73,23 +66,31 @@ void RBM::init() {
 }
 
 void RBM::train(std::string saveFile) {
+    std::string loadFile = "";
     // Optimize current feature
-    double nrmse=2., lastRMSE = 10.;
-    double vrmse = 0, lastVRMSE = 0;
-    double prmse = 0, lastPRMSE = 0;
-    int loopcount=0;
-    double epsilonW = EPSILONW;
-    double epsilonVB = EPSILONVB;
-    double epsilonHB = EPSILONHB;
-    double momentum = MOMENTUM;
+    float nrmse=2., lastRMSE = 10.;
+    float prmse = 0, lastPRMSE = 0;
+    loopcount=0;
+    float epsilonW = EPSILONW;
+    float epsilonVB = EPSILONVB;
+    float epsilonHB = EPSILONHB;
+    float momentum = MOMENTUM;
     ZERO(CDinc);
     ZERO(visbiasinc);
     ZERO(hidbiasinc);
     int tSteps = 1;
 
-    FILE *validateFile = fopen("out/rbm/scores.txt", "a");
+    std::string scoreFileName = "out/rbm/scores_"
+        + std::to_string(TOTAL_FEATURES) + ".txt";
+    FILE *validateFile = fopen(scoreFileName.c_str(), "a");
     fprintf(validateFile, "New run\n");
     fclose(validateFile);
+
+    loadSaved(loadFile);
+    prmse = validate("4.dta");
+    output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+            + "_epoch_" + std::to_string(loopcount) + "_T_" +
+            std::to_string(tSteps) + ".txt");
 
     // Iterate through the model while the RMSE is decreasing
     while (((nrmse < (lastRMSE-E)) || loopcount < 14) && loopcount < 80)  {
@@ -98,7 +99,6 @@ void RBM::train(std::string saveFile) {
         }
 
         lastRMSE = nrmse;
-        lastVRMSE = vrmse;
         lastPRMSE = prmse;
         clock_t time0 = clock();
         loopcount++;
@@ -129,7 +129,7 @@ void RBM::train(std::string saveFile) {
             int userStart = rowIndex[u];
 
             // For all rated movies, accumulate contributions to hidden units
-            double sumW[TOTAL_FEATURES];
+            float sumW[TOTAL_FEATURES];
             ZERO(sumW);
             for (int j = userStart; j < userEnd; ++j) {
                 int m = columns[j];
@@ -189,69 +189,75 @@ void RBM::train(std::string saveFile) {
                         // Accumulate Weight values for sampled hidden states == 1
                         if (curposhidstates[h] == 1) {
                             for (int r = 0; r < SOFTMAX; ++r) {
-                                negvisprobs[m][r] += vishid[m][r][h];
+                                negvisprobs[m * SOFTMAX + r] += vishid[m][r][h];
                             }
                         }
 
                         // Compute more accurate probabilites for RMSE reporting
                         if (stepT == 0) {
                             for (int r = 0; r < SOFTMAX; ++r)
-                                nvp2[m][r] += poshidprobs[h] * vishid[m][r][h];
+                                nvp2[m * SOFTMAX + r] += poshidprobs[h] * vishid[m][r][h];
                         }
                     }
 
                     // compute P(v[1][j] = 1 | h[0]) # for binomial units, sigmoid(c[j] + sum_i(W[i][j] * h[0][i]))
                     // Softmax elements are handled individually here
                     for (int k = 0; k < SOFTMAX; ++k) {
-                        negvisprobs[m][k] = 1./(1 + exp(-negvisprobs[m][k] - visbiases[m][k]));
+                        negvisprobs[m * SOFTMAX + k] = 1./(1 + exp(-negvisprobs[m * SOFTMAX + k] - visbiases[m][k]));
                     }
 
                     // Normalize probabilities
-                    double tsum  = 0.0;
+                    float tsum  = 0.0;
                     for (int k = 0; k < SOFTMAX; ++k) {
-                      tsum += negvisprobs[m][k];
+                        tsum += negvisprobs[m * SOFTMAX + k];
                     }
                     if (tsum != 0) {
                         for (int k = 0; k < SOFTMAX; ++k) {
-                            negvisprobs[m][k] /= tsum;
+                            negvisprobs[m * SOFTMAX + k] /= tsum;
                         }
                     }
                     // Compute and Normalize more accurate RMSE reporting probabilities
                     if (stepT == 0) {
                         for (int k = 0; k < SOFTMAX; ++k) {
-                            nvp2[m][k] = 1./(1 + exp(-nvp2[m][k] - visbiases[m][k]));
+                            nvp2[m * SOFTMAX + k] = 1./(1 + exp(-nvp2[m * SOFTMAX + k] - visbiases[m][k]));
                         }
-                        double tsum2  = 0.0;
+                        float tsum2  = 0.0;
                         for (int k = 0; k < SOFTMAX; ++k) {
-                          tsum2 += nvp2[m][k];
+                            tsum2 += nvp2[m * SOFTMAX + k];
                         }
                         if (tsum2 != 0) {
                             for (int k = 0; k < SOFTMAX; ++k) {
-                                nvp2[m][k] /= tsum2;
+                                nvp2[m * SOFTMAX + k] /= tsum2;
                             }
                         }
                     }
 
                     // sample v[1][j] from P(v[1][j] = 1 | h[0])
-                    double randval = randn();
-                    if ((randval -= negvisprobs[m][0]) <= 0.0 ) {
+                    float randval = randn();
+                    if ((randval -= negvisprobs[m * SOFTMAX + 0]) <= 0.0 ) {
                         negvissoftmax[m] = 0;
                     }
-                    else if ((randval -= negvisprobs[m][1]) <= 0.0 ) {
+                    else if ((randval -= negvisprobs[m * SOFTMAX + 1]) <= 0.0 ) {
                         negvissoftmax[m] = 1;
                     }
-                    else if ((randval -= negvisprobs[m][2]) <= 0.0 ) {
+                    else if ((randval -= negvisprobs[m * SOFTMAX + 2]) <= 0.0 ) {
                         negvissoftmax[m] = 2;
                     }
-                    else if ((randval -= negvisprobs[m][3]) <= 0.0 ) {
+                    else if ((randval -= negvisprobs[m * SOFTMAX + 3]) <= 0.0 ) {
                         negvissoftmax[m] = 3;
                     }
-                    else if ((randval -= negvisprobs[m][4]) <= 0.0 ) {
+#ifdef NDEBUG
+                    else {
+                        negvissoftmax[m] = 4;
+                    }
+#else
+                    else if ((randval -= negvisprobs[m * SOFTMAX + 4]) <= 0.01 ) {
                         negvissoftmax[m] = 4;
                     }
                     else {
                         assert (false);
                     }
+#endif
 
                     // if in training data then train on it
                     if (true && finalTStep) {
@@ -296,8 +302,8 @@ void RBM::train(std::string saveFile) {
                         assert(r >= 0 && r < SOFTMAX);
 
                         //# Compute some error function like sum of squared difference between Si in 1) and Si in 5)
-                        double expectedV = nvp2[m][1] + 2.0 * nvp2[m][2] + 3.0 * nvp2[m][3] + 4.0 * nvp2[m][4];
-                        double vdelta = (((double)r)-expectedV);
+                        float expectedV = nvp2[m * SOFTMAX + 1] + 2.0 * nvp2[m * SOFTMAX + 2] + 3.0 * nvp2[m * SOFTMAX + 3] + 4.0 * nvp2[m * SOFTMAX + 4];
+                        float vdelta = (((float)r)-expectedV);
                         nrmse += (vdelta * vdelta);
                     }
                     ntrain += count;
@@ -310,8 +316,8 @@ void RBM::train(std::string saveFile) {
                     ZERO(negvisprobs);
                 }
 
-              // 8. repeating multiple times steps 5,6 and 7 compute (Si.Sj)n. Where n is small number and can
-              //    increase with learning steps to achieve better accuracy.
+                // 8. repeating multiple times steps 5,6 and 7 compute (Si.Sj)n. Where n is small number and can
+                //    increase with learning steps to achieve better accuracy.
 
             } while (++stepT < tSteps);
 
@@ -326,11 +332,11 @@ void RBM::train(std::string saveFile) {
                     if (poshidstates[h] == 1) {
                         // 4. now Si and Sj values can be used to compute (Si.Sj)0  here () means just values not average
                         // accumulate CDpos = CDpos + (Si.Sj)0
-                        CDpos[m][r][h] += 1.0;
+                        CDpos[m][h][r] += 1.0;
                     }
 
                     // 7. now use Si and Sj to compute (Si.Sj)1 (fig.3)
-                    CDneg[m][negvissoftmax[m]][h] += (double) neghidstates[h];
+                    CDneg[m][h][negvissoftmax[m]]+= (float) neghidstates[h];
                 }
             }
 
@@ -353,17 +359,17 @@ void RBM::train(std::string saveFile) {
                         for (int rr = 0; rr < SOFTMAX; rr++) {
                             //# At the end compute average of CDpos and CDneg by dividing them by number of data points.
                             //# Compute CD = < Si.Sj >0  < Si.Sj >n = CDpos  CDneg
-                            double CDp = CDpos[m][rr][h];
-                            double CDn = CDneg[m][rr][h];
+                            float CDp = CDpos[m][h][rr];
+                            float CDn = CDneg[m][h][rr];
                             if (CDp != 0.0 || CDn != 0.0) {
-                                CDp /= ((double)moviecount[m]);
-                                CDn /= ((double)moviecount[m]);
+                                CDp /= ((float)moviecount[m]);
+                                CDn /= ((float)moviecount[m]);
 
                                 // W += epsilon * (h[0] * v[0]' - Q(h[1][.] = 1 | v[1]) * v[1]')
                                 //# Update weights and biases W = W + alpha*CD (biases are just weights to neurons that stay always 1.0)
                                 //e.g between data and reconstruction.
-                                CDinc[m][rr][h] = momentum * CDinc[m][rr][h] + epsilonW * ((CDp - CDn) - WEIGHTCOST * vishid[m][rr][h]);
-                                vishid[m][rr][h] += CDinc[m][rr][h];
+                                CDinc[m][h][rr] = momentum * CDinc[m][h][rr] + epsilonW * ((CDp - CDn) - WEIGHTCOST * vishid[m][rr][h]);
+                                vishid[m][rr][h] += CDinc[m][h][rr];
                             }
                         }
                     }
@@ -373,8 +379,8 @@ void RBM::train(std::string saveFile) {
                     // for all softmax
                     for (int rr = 0; rr < SOFTMAX; rr++) {
                         if (posvisact[m][rr] != 0.0 || negvisact[m][rr] != 0.0) {
-                            posvisact[m][rr] /= ((double)moviecount[m]);
-                            negvisact[m][rr] /= ((double)moviecount[m]);
+                            posvisact[m][rr] /= ((float)moviecount[m]);
+                            negvisact[m][rr] /= ((float)moviecount[m]);
                             visbiasinc[m][rr] = momentum * visbiasinc[m][rr] + epsilonVB * ((posvisact[m][rr] - negvisact[m][rr]));
                             //visbiasinc[m][rr] = momentum * visbiasinc[m][rr] + epsilonVB * ((posvisact[m][rr] - negvisact[m][rr]) - WEIGHTCOST * visbiases[m][rr]);
                             visbiases[m][rr]  += visbiasinc[m][rr];
@@ -387,8 +393,8 @@ void RBM::train(std::string saveFile) {
                 // b += epsilon * (h[0] - Q(h[1][.] = 1 | v[1]))
                 for (int h = 0; h < TOTAL_FEATURES; ++h) {
                     if (poshidact[h]  != 0.0 || neghidact[h]  != 0.0) {
-                        poshidact[h]  /= ((double)(numcases));
-                        neghidact[h]  /= ((double)(numcases));
+                        poshidact[h]  /= ((float)(numcases));
+                        neghidact[h]  /= ((float)(numcases));
                         hidbiasinc[h] = momentum * hidbiasinc[h] + epsilonHB * ((poshidact[h] - neghidact[h]));
                         //hidbiasinc[h] = momentum * hidbiasinc[h] + epsilonHB * ((poshidact[h] - neghidact[h]) - WEIGHTCOST * hidbiases[h]);
                         hidbiases[h]  += hidbiasinc[h];
@@ -408,20 +414,40 @@ void RBM::train(std::string saveFile) {
         printf("ntrain: %d \n", ntrain);
         nrmse = sqrt(nrmse / ntrain);
         printf("nrmse: %f \n", nrmse);
-        vrmse = validate("2.dta");
-        prmse = validate("4.dta");
+        if (loopcount % 5 == 0 || loopcount > 40 || loopcount == 1) {
+            prmse = validate("4.dta");
+        }
 
         clock_t time1 = clock();
         float ms1 = diffclock(time1, time0);
-        validateFile = fopen("out/rbm/scores.txt", "a");
-        printf("nrmse: %f vrmse: %f prmse: %f time: %f ms\n", nrmse, vrmse, prmse, ms1);
-        fprintf(validateFile, "nrmse: %f vrmse: %f prmse: %f time: %f ms\n", nrmse, vrmse, prmse, ms1);
+        validateFile = fopen(scoreFileName.c_str(), "a");
+        printf("epoch: %d nrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, prmse, ms1);
+        fprintf(validateFile, "epoch: %d nrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, prmse, ms1);
         fclose(validateFile);
-        output("out/rbm/pure_rbm_factors" + std::to_string(TOTAL_FEATURES)
+        save("model/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
                 + "_epoch_" + std::to_string(loopcount) + "_T_" +
                 std::to_string(tSteps) + ".txt");
+        if (loopcount % 5 == 0 || loopcount > 40 || loopcount == 1) {
+            output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+                    + "_epoch_" + std::to_string(loopcount) + "_T_" +
+                    std::to_string(tSteps) + ".txt");
+        }
 
-        if (TOTAL_FEATURES == 200) {
+        if (TOTAL_FEATURES >= 400) {
+            if (loopcount > 6) {
+                epsilonW  *= 0.88;
+                epsilonVB *= 0.88;
+                epsilonHB *= 0.88;
+            } else if (loopcount > 5) {  // With 200 hidden variables, you need to slow things down a little more
+                epsilonW  *= 0.50; // This could probably use some more optimization
+                epsilonVB *= 0.50;
+                epsilonHB *= 0.50;
+            } else if (loopcount > 2) {
+                epsilonW  *= 0.66;
+                epsilonVB *= 0.66;
+                epsilonHB *= 0.66;
+            }
+        } else if (TOTAL_FEATURES >= 200) {
             if (loopcount > 6) {
                 epsilonW  *= 0.90;
                 epsilonVB *= 0.90;
@@ -451,65 +477,116 @@ void RBM::train(std::string saveFile) {
             }
         }
     }
+    output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+            + "_epoch_" + std::to_string(loopcount) + "_T_" +
+            std::to_string(tSteps) + ".txt");
+}
+
+void RBM::prepPredict(Model *mod, int n) {
+    ZERO(negvisprobs);
+    int userEnd = rowIndex[n + 1];
+    int userStart = rowIndex[n];
+    float sumW[TOTAL_FEATURES];
+    ZERO(sumW);
+    for (int j = userStart; j < userEnd; ++j) {
+        int m =columns[j];
+        int r = values[j] - 1;
+        assert(r >= 0 && r < SOFTMAX);
+
+        for (int h = 0; h < TOTAL_FEATURES; ++h) {
+            sumW[h] += vishid[m][r][h];
+        }
+    }
+
+    // Compute hidden probabilities
+    for (int h = 0; h < TOTAL_FEATURES; ++h) {
+        poshidprobs[h] = 1.0 / (1.0 + exp(-sumW[h] - hidbiases[h]));
+    }
+
+    userEnd = mod->rowIndex[n + 1];
+    userStart = mod->rowIndex[n];
+    for (int j = userStart; j < userEnd; ++j)
+    {
+        int m = mod->columns[j];
+        for (int h = 0; h < TOTAL_FEATURES; ++h) {
+            for (int k = 0; k < SOFTMAX; ++k) {
+                negvisprobs[m * SOFTMAX + k] += poshidprobs[h] * vishid[m][k][h];
+            }
+        }
+
+        for (int k = 0; k < SOFTMAX; ++k) {
+            negvisprobs[m * SOFTMAX + k]  = 1./(1 + exp(-negvisprobs[m * SOFTMAX + k] - visbiases[m][k]));
+        }
+
+        float tsum = 0.0;
+        for (int k = 0; k < SOFTMAX; ++k) {
+            tsum += negvisprobs[m * SOFTMAX + k];
+        }
+
+        if (tsum != 0) {
+            for (int k = 0; k < SOFTMAX; ++k) {
+                negvisprobs[m * SOFTMAX + k] /= tsum;
+            }
+        }
+        else {
+            negvisprobs[m * SOFTMAX + 2] = 1.0;
+        }
+    }
 }
 
 // Return the predicted rating for user n, movie i
 float RBM::predict(int n, int i) {
-        ZERO(negvisprobs);
-        int userEnd = rowIndex[n + 1];
-        int userStart = rowIndex[n];
-        double sumW[TOTAL_FEATURES];
-        ZERO(sumW);
-        for (int j = userStart; j < userEnd; ++j) {
-            int m = columns[j];
-            int r = values[j] - 1;
-            assert(r >= 0 && r < SOFTMAX);
-
-            for (int h = 0; h < TOTAL_FEATURES; ++h) {
-                sumW[h] += vishid[m][r][h];
-            }
-        }
-
-        // Compute hidden probabilities
-        for (int h = 0; h < TOTAL_FEATURES; ++h) {
-            poshidprobs[h] = 1.0 / (1.0 + exp(-sumW[h] - hidbiases[h]));
-        }
-
-        // for (int j = userStart; j < userEnd; ++j)
-        {
-            int m = i;
-            for (int h = 0; h < TOTAL_FEATURES; ++h) {
-                for (int k = 0; k < SOFTMAX; ++k) {
-                    negvisprobs[m][k] += poshidprobs[h] * vishid[m][k][h];
-                }
-            }
-
-            for (int k = 0; k < SOFTMAX; ++k) {
-                negvisprobs[m][k]  = 1./(1 + exp(-negvisprobs[m][k] - visbiases[m][k]));
-            }
-
-            double tsum = 0.0;
-            for (int k = 0; k < SOFTMAX; ++k) {
-                tsum += negvisprobs[m][k];
-            }
-
-            if (tsum != 0) {
-                for (int k = 0; k < SOFTMAX; ++k) {
-                    negvisprobs[m][k] /= tsum;
-                }
-            }
-            else {
-                printf("Oh nooooo\n");
-                return 3;
-            }
-        }
-
-    double expVal = 0.0;
+    float expVal = 0.0;
     for (int k = 0; k < SOFTMAX; ++k) {
-        expVal += negvisprobs[i][k] * (k + 1);
+        expVal += negvisprobs[i * SOFTMAX + k] * (k + 1);
     }
     assert(expVal >= 1 && expVal <= 5);
     return expVal;
+}
+
+// Use <stdio.h> for binary writing.
+void RBM::save(std::string fname) {
+    clock_t time0 = clock();
+    debugPrint("Saving...\n");
+
+    FILE *out = fopen(fname.c_str(), "wb");
+    int buf[1];
+    buf[0] = loopcount;
+    fwrite(buf, sizeof(int), 1, out);
+    fwrite(vishid, sizeof(float), N_MOVIES * SOFTMAX * TOTAL_FEATURES, out);
+    fwrite(visbiases, sizeof(float), N_MOVIES * SOFTMAX, out);
+    fwrite(hidbiases, sizeof(float), TOTAL_FEATURES, out);
+    fclose(out);
+
+    clock_t time1 = clock();
+    float ms1 = diffclock(time1, time0);
+    printf("Saving took %f ms\n", ms1);
+}
+
+void RBM::loadSaved(std::string fname) {
+    clock_t time0 = clock();
+    debugPrint("Loading saved...\n");
+
+    FILE *in = fopen(fname.c_str(), "r");
+    if (fname == "" || in == NULL) {
+    }
+    else {
+        debugPrint("Loading saved RBM...\n");
+        // Buffer to hold numEpochs
+        int buf[1];
+        fread(buf, sizeof(int), 1, in);
+        loopcount = buf[0];
+
+        // Initialize vishid, visbiases, hidbiases
+        fread(vishid, sizeof(float), N_MOVIES * SOFTMAX * TOTAL_FEATURES, in);
+        fread(visbiases, sizeof(float), N_MOVIES * SOFTMAX, in);
+        fread(hidbiases, sizeof(float), TOTAL_FEATURES, in);
+        fclose(in);
+    }
+
+    clock_t time1 = clock();
+    float ms1 = diffclock(time1, time0);
+    printf("Loading saved took %f ms\n", ms1);
 }
 
 int main() {

@@ -235,6 +235,9 @@ float Model::validate(std::string valFile) {
     unsigned int userStartIdx, userEndIdx, n, i, k, colIdx;
     float squareError = 0.0;
     for (n = 0; n < N_USERS; ++n) {
+#ifdef ISRBM
+        prepPredict(validator, n);
+#endif
         userStartIdx = validator->rowIndex[n];
         userEndIdx = validator->rowIndex[n + 1];
         for (colIdx = userStartIdx; colIdx < userEndIdx; colIdx++) {
@@ -263,6 +266,9 @@ float Model::trainingError() {
     unsigned int userStartIdx, userEndIdx, n, i, k, colIdx;
     float squareError = 0.0;
     for (n = 0; n < N_USERS; ++n) {
+#ifdef ISRBM
+        prepPredict(this, n);
+#endif
         userStartIdx = rowIndex[n];
         userEndIdx = rowIndex[n + 1];
         for (colIdx = userStartIdx; colIdx < userEndIdx; colIdx++) {
@@ -283,7 +289,6 @@ float Model::trainingError() {
     return RMSE;
 }
 
-
 // Output submission
 void Model::output(std::string saveFile) {
     debugPrint("Outputing...\n");
@@ -297,11 +302,15 @@ void Model::output(std::string saveFile) {
     outputFile << std::setprecision(3);
     outputFile.open(saveFile);
     for (n = 0; n < N_USERS; ++n) {
+#ifdef ISRBM
+        prepPredict(validator, n);
+#endif
         userStartIdx = validator->rowIndex[n];
         userEndIdx = validator->rowIndex[n + 1];
         for (colIdx = userStartIdx; colIdx < userEndIdx;
                 colIdx++) {
             i = validator->columns[colIdx]; // movie
+            assert (i >= 0 && i < N_MOVIES);
             float prediction = predict(n, i); // jump
             outputFile << prediction << "\n"; // jump
         }
@@ -317,6 +326,11 @@ void Model::output(std::string saveFile) {
 
 void Model::train(std::string saveFile) {
 }
+
+#ifdef ISRBM
+void Model::prepPredict(Model *mod, int n) {
+}
+#endif
 
 float Model::predict(int n, int i) {
     return 0.0;
