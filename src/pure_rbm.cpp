@@ -433,7 +433,21 @@ void RBM::train(std::string saveFile) {
                     std::to_string(tSteps) + ".txt");
         }
 
-        if (TOTAL_FEATURES >= 200) {
+        if (TOTAL_FEATURES >= 400) {
+            if (loopcount > 6) {
+                epsilonW  *= 0.88;
+                epsilonVB *= 0.88;
+                epsilonHB *= 0.88;
+            } else if (loopcount > 5) {  // With 200 hidden variables, you need to slow things down a little more
+                epsilonW  *= 0.50; // This could probably use some more optimization
+                epsilonVB *= 0.50;
+                epsilonHB *= 0.50;
+            } else if (loopcount > 2) {
+                epsilonW  *= 0.66;
+                epsilonVB *= 0.66;
+                epsilonHB *= 0.66;
+            }
+        } else if (TOTAL_FEATURES >= 200) {
             if (loopcount > 6) {
                 epsilonW  *= 0.90;
                 epsilonVB *= 0.90;
