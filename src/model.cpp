@@ -299,7 +299,7 @@ void Model::output(std::string saveFile) {
 
     // Open file
     std::ofstream outputFile;
-    outputFile << std::setprecision(3);
+    outputFile << std::setprecision(4);
     outputFile.open(saveFile);
     for (n = 0; n < N_USERS; ++n) {
 #ifdef ISRBM
