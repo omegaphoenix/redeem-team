@@ -6,6 +6,12 @@ NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
 NAIVE_SVD_CV_FILES = $(addprefix src/, validate_naive_svd.cpp naive_svd.cpp model.cpp)
 KNN_FILES = $(addprefix src/, knn.cpp baseline.cpp model.cpp)
 RBM_FILES = $(addprefix src/, pure_rbm.cpp model.cpp)
+NOISE_FILES = $(addprefix src/, noise.cpp)
+# MODEL_FILES = $(addprefix src/, model.cpp)
+# BASELINE_FILES = $(addprefix src/, baseline.cpp model.cpp)
+
+all: init naive_svd validate_naive_svd knn
+
 # MODEL_FILES = $(addprefix src/, model.cpp)
 # BASELINE_FILES = $(addprefix src/, baseline.cpp model.cpp)
 
@@ -36,6 +42,9 @@ run_nsvd: validate_naive_svd
 rbm: $(RBM_FILES:.cpp=.o)
 	mkdir -p bin out model out/rbm model/rbm
 	$(CXX) $(CFLAGS) -o bin/rbm $^
+
+noise: $(NOISE_FILES:.cpp=.o)
+	$(CXX) $(CFLAGS) -o bin/noise $^
 
 clean:
 	rm -f -R bin/* src/*.o
