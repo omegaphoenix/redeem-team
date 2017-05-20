@@ -18,20 +18,20 @@ RBM::RBM() {
         for (int i = 0; i < TOTAL_FEATURES; ++i) {
             for (int k = 0; k < SOFTMAX; ++k) {
                 // TODO: Normal Distribution
-                vishid[j][k][i] = 0.02 * randn() - 0.004;
+                vishid[j][k][i] = normalRandom() * STD_DEV;
             }
         }
     }
 
     // Initial biases
     for (int i = 0; i < TOTAL_FEATURES; ++i) {
-        hidbiases[i] = 0.0;
+        hidbiases[i] = normalRandom() * STD_DEV;
     }
 
     for (int j=0; j < N_MOVIES; ++j) {
         for (int i = 0; i < SOFTMAX; ++i) {
             // TODO: Normal Distribution
-            visbiases[j][i] = 0.02 * randn() - 0.004;
+            // visbiases[j][i] = 0.02 * randn() - 0.004;
         }
     }
     clock_t time1 = clock();
@@ -56,12 +56,12 @@ void RBM::init() {
         int rating = values[i] - 1;
         assert (rating >= 0 && rating < MAX_RATING);
         movCount[movie] += 1;
-        // visbiases[movie][rating] += 1;
+        visbiases[movie][rating] += 1;
     }
     clock_t time1 = clock();
     for (unsigned int m = 0; m < N_MOVIES; ++m) {
         for (unsigned int k = 0; k < SOFTMAX; ++k) {
-            // visbiases[m][k] = log(visbiases[m][k] / movCount[m]);
+            visbiases[m][k] = log(visbiases[m][k] / movCount[m]);
         }
     }
     clock_t time2 = clock();
