@@ -289,7 +289,6 @@ float Model::trainingError() {
     return RMSE;
 }
 
-
 // Output submission
 void Model::output(std::string saveFile) {
     debugPrint("Outputing...\n");
@@ -303,6 +302,9 @@ void Model::output(std::string saveFile) {
     outputFile << std::setprecision(3);
     outputFile.open(saveFile);
     for (n = 0; n < N_USERS; ++n) {
+#ifdef ISRBM
+        prepPredict(n);
+#endif
         userStartIdx = validator->rowIndex[n];
         userEndIdx = validator->rowIndex[n + 1];
         for (colIdx = userStartIdx; colIdx < userEndIdx;
