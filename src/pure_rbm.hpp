@@ -31,8 +31,8 @@ class RBM : public Model {
         float CDinc[N_MOVIES][TOTAL_FEATURES][SOFTMAX];
 
         float visbiases[N_MOVIES][SOFTMAX];
-        float nvp2[N_MOVIES][SOFTMAX];
-        float negvisprobs[N_MOVIES][SOFTMAX];
+        float nvp2[N_MOVIES * SOFTMAX];
+        float negvisprobs[N_MOVIES * SOFTMAX];
         float posvisact[N_MOVIES][SOFTMAX];
         float negvisact[N_MOVIES][SOFTMAX];
         float visbiasinc[N_MOVIES][SOFTMAX];

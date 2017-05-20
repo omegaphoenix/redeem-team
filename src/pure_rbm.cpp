@@ -17,7 +17,6 @@ RBM::RBM() {
     for (int j = 0; j < N_MOVIES; ++j) {
         for (int i = 0; i < TOTAL_FEATURES; ++i) {
             for (int k = 0; k < SOFTMAX; ++k) {
-                // TODO: Normal Distribution
                 vishid[j][k][i] = normalRandom() * STD_DEV;
             }
         }
@@ -30,7 +29,6 @@ RBM::RBM() {
 
     for (int j=0; j < N_MOVIES; ++j) {
         for (int i = 0; i < SOFTMAX; ++i) {
-            // TODO: Normal Distribution
             // visbiases[j][i] = 0.02 * randn() - 0.004;
         }
     }
@@ -188,64 +186,64 @@ void RBM::train(std::string saveFile) {
                         // Accumulate Weight values for sampled hidden states == 1
                         if (curposhidstates[h] == 1) {
                             for (int r = 0; r < SOFTMAX; ++r) {
-                                negvisprobs[m][r] += vishid[m][r][h];
+                                negvisprobs[m * SOFTMAX + r] += vishid[m][r][h];
                             }
                         }
 
                         // Compute more accurate probabilites for RMSE reporting
                         if (stepT == 0) {
                             for (int r = 0; r < SOFTMAX; ++r)
-                                nvp2[m][r] += poshidprobs[h] * vishid[m][r][h];
+                                nvp2[m * SOFTMAX + r] += poshidprobs[h] * vishid[m][r][h];
                         }
                     }
 
                     // compute P(v[1][j] = 1 | h[0]) # for binomial units, sigmoid(c[j] + sum_i(W[i][j] * h[0][i]))
                     // Softmax elements are handled individually here
                     for (int k = 0; k < SOFTMAX; ++k) {
-                        negvisprobs[m][k] = 1./(1 + exp(-negvisprobs[m][k] - visbiases[m][k]));
+                        negvisprobs[m * SOFTMAX + k] = 1./(1 + exp(-negvisprobs[m * SOFTMAX + k] - visbiases[m][k]));
                     }
 
                     // Normalize probabilities
                     float tsum  = 0.0;
                     for (int k = 0; k < SOFTMAX; ++k) {
-                        tsum += negvisprobs[m][k];
+                        tsum += negvisprobs[m * SOFTMAX + k];
                     }
                     if (tsum != 0) {
                         for (int k = 0; k < SOFTMAX; ++k) {
-                            negvisprobs[m][k] /= tsum;
+                            negvisprobs[m * SOFTMAX + k] /= tsum;
                         }
                     }
                     // Compute and Normalize more accurate RMSE reporting probabilities
                     if (stepT == 0) {
                         for (int k = 0; k < SOFTMAX; ++k) {
-                            nvp2[m][k] = 1./(1 + exp(-nvp2[m][k] - visbiases[m][k]));
+                            nvp2[m * SOFTMAX + k] = 1./(1 + exp(-nvp2[m * SOFTMAX + k] - visbiases[m][k]));
                         }
                         float tsum2  = 0.0;
                         for (int k = 0; k < SOFTMAX; ++k) {
-                            tsum2 += nvp2[m][k];
+                            tsum2 += nvp2[m * SOFTMAX + k];
                         }
                         if (tsum2 != 0) {
                             for (int k = 0; k < SOFTMAX; ++k) {
-                                nvp2[m][k] /= tsum2;
+                                nvp2[m * SOFTMAX + k] /= tsum2;
                             }
                         }
                     }
 
                     // sample v[1][j] from P(v[1][j] = 1 | h[0])
                     float randval = randn();
-                    if ((randval -= negvisprobs[m][0]) <= 0.0 ) {
+                    if ((randval -= negvisprobs[m * SOFTMAX + 0]) <= 0.0 ) {
                         negvissoftmax[m] = 0;
                     }
-                    else if ((randval -= negvisprobs[m][1]) <= 0.0 ) {
+                    else if ((randval -= negvisprobs[m * SOFTMAX + 1]) <= 0.0 ) {
                         negvissoftmax[m] = 1;
                     }
-                    else if ((randval -= negvisprobs[m][2]) <= 0.0 ) {
+                    else if ((randval -= negvisprobs[m * SOFTMAX + 2]) <= 0.0 ) {
                         negvissoftmax[m] = 2;
                     }
-                    else if ((randval -= negvisprobs[m][3]) <= 0.0 ) {
+                    else if ((randval -= negvisprobs[m * SOFTMAX + 3]) <= 0.0 ) {
                         negvissoftmax[m] = 3;
                     }
-                    else if ((randval -= negvisprobs[m][4]) <= 0.01 ) {
+                    else if ((randval -= negvisprobs[m * SOFTMAX + 4]) <= 0.01 ) {
                         negvissoftmax[m] = 4;
                     }
                     else {
@@ -295,7 +293,7 @@ void RBM::train(std::string saveFile) {
                         assert(r >= 0 && r < SOFTMAX);
 
                         //# Compute some error function like sum of squared difference between Si in 1) and Si in 5)
-                        float expectedV = nvp2[m][1] + 2.0 * nvp2[m][2] + 3.0 * nvp2[m][3] + 4.0 * nvp2[m][4];
+                        float expectedV = nvp2[m * SOFTMAX + 1] + 2.0 * nvp2[m * SOFTMAX + 2] + 3.0 * nvp2[m * SOFTMAX + 3] + 4.0 * nvp2[m * SOFTMAX + 4];
                         float vdelta = (((float)r)-expectedV);
                         nrmse += (vdelta * vdelta);
                     }
@@ -483,22 +481,22 @@ float RBM::predict(int n, int i) {
         int m = i;
         for (int h = 0; h < TOTAL_FEATURES; ++h) {
             for (int k = 0; k < SOFTMAX; ++k) {
-                negvisprobs[m][k] += poshidprobs[h] * vishid[m][k][h];
+                negvisprobs[m * SOFTMAX + k] += poshidprobs[h] * vishid[m][k][h];
             }
         }
 
         for (int k = 0; k < SOFTMAX; ++k) {
-            negvisprobs[m][k]  = 1./(1 + exp(-negvisprobs[m][k] - visbiases[m][k]));
+            negvisprobs[m * SOFTMAX + k]  = 1./(1 + exp(-negvisprobs[m * SOFTMAX + k] - visbiases[m][k]));
         }
 
         float tsum = 0.0;
         for (int k = 0; k < SOFTMAX; ++k) {
-            tsum += negvisprobs[m][k];
+            tsum += negvisprobs[m * SOFTMAX + k];
         }
 
         if (tsum != 0) {
             for (int k = 0; k < SOFTMAX; ++k) {
-                negvisprobs[m][k] /= tsum;
+                negvisprobs[m * SOFTMAX + k] /= tsum;
             }
         }
         else {
