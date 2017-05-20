@@ -2,7 +2,7 @@
 #define PURE_RBM_HPP
 #include "model.hpp"
 
-#define TOTAL_FEATURES  256
+#define TOTAL_FEATURES  100
 #define SOFTMAX         5
 #define EPSILONW        0.001   // Learning rate for weights
 #define EPSILONVB       0.008   // Learning rate for biases of visible units
@@ -25,28 +25,28 @@ class RBM : public Model {
 
     private:
         // vishid are the weights.
-        double vishid[N_MOVIES][SOFTMAX][TOTAL_FEATURES];
-        double visbiases[N_MOVIES][SOFTMAX];
-        double hidbiases[TOTAL_FEATURES];
-        double CDpos[N_MOVIES][SOFTMAX][TOTAL_FEATURES];
-        double CDneg[N_MOVIES][SOFTMAX][TOTAL_FEATURES];
-        double CDinc[N_MOVIES][SOFTMAX][TOTAL_FEATURES];
+        float vishid[N_MOVIES][SOFTMAX][TOTAL_FEATURES];
+        float visbiases[N_MOVIES][SOFTMAX];
+        float hidbiases[TOTAL_FEATURES];
+        float CDpos[N_MOVIES][SOFTMAX][TOTAL_FEATURES];
+        float CDneg[N_MOVIES][SOFTMAX][TOTAL_FEATURES];
+        float CDinc[N_MOVIES][SOFTMAX][TOTAL_FEATURES];
 
-        double poshidprobs[TOTAL_FEATURES];
+        float poshidprobs[TOTAL_FEATURES];
         char   poshidstates[TOTAL_FEATURES];
         char   curposhidstates[TOTAL_FEATURES];
-        double poshidact[TOTAL_FEATURES];
-        double neghidact[TOTAL_FEATURES];
-        double neghidprobs[TOTAL_FEATURES];
+        float poshidact[TOTAL_FEATURES];
+        float neghidact[TOTAL_FEATURES];
+        float neghidprobs[TOTAL_FEATURES];
         char   neghidstates[TOTAL_FEATURES];
-        double hidbiasinc[TOTAL_FEATURES];
+        float hidbiasinc[TOTAL_FEATURES];
 
-        double nvp2[N_MOVIES][SOFTMAX];
-        double negvisprobs[N_MOVIES][SOFTMAX];
+        float nvp2[N_MOVIES][SOFTMAX];
+        float negvisprobs[N_MOVIES][SOFTMAX];
         unsigned char   negvissoftmax[N_MOVIES];
-        double posvisact[N_MOVIES][SOFTMAX];
-        double negvisact[N_MOVIES][SOFTMAX];
-        double visbiasinc[N_MOVIES][SOFTMAX];
+        float posvisact[N_MOVIES][SOFTMAX];
+        float negvisact[N_MOVIES][SOFTMAX];
+        float visbiasinc[N_MOVIES][SOFTMAX];
 
         unsigned int moviecount[N_MOVIES];
         int prevUser;

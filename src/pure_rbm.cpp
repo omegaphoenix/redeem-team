@@ -74,20 +74,20 @@ void RBM::init() {
 
 void RBM::train(std::string saveFile) {
     // Optimize current feature
-    double nrmse=2., lastRMSE = 10.;
-    double vrmse = 0, lastVRMSE = 0;
-    double prmse = 0, lastPRMSE = 0;
+    float nrmse=2., lastRMSE = 10.;
+    float vrmse = 0, lastVRMSE = 0;
+    float prmse = 0, lastPRMSE = 0;
     int loopcount=0;
-    double epsilonW = EPSILONW;
-    double epsilonVB = EPSILONVB;
-    double epsilonHB = EPSILONHB;
-    double momentum = MOMENTUM;
+    float epsilonW = EPSILONW;
+    float epsilonVB = EPSILONVB;
+    float epsilonHB = EPSILONHB;
+    float momentum = MOMENTUM;
     ZERO(CDinc);
     ZERO(visbiasinc);
     ZERO(hidbiasinc);
     int tSteps = 1;
 
-    std::string scoreFileName = "out/rbm/scores.txt";
+    std::string scoreFileName = "out/rbm/scores1.txt";
     FILE *validateFile = fopen(scoreFileName.c_str(), "a");
     fprintf(validateFile, "New run\n");
     fclose(validateFile);
@@ -130,7 +130,7 @@ void RBM::train(std::string saveFile) {
             int userStart = rowIndex[u];
 
             // For all rated movies, accumulate contributions to hidden units
-            double sumW[TOTAL_FEATURES];
+            float sumW[TOTAL_FEATURES];
             ZERO(sumW);
             for (int j = userStart; j < userEnd; ++j) {
                 int m = columns[j];
@@ -208,7 +208,7 @@ void RBM::train(std::string saveFile) {
                     }
 
                     // Normalize probabilities
-                    double tsum  = 0.0;
+                    float tsum  = 0.0;
                     for (int k = 0; k < SOFTMAX; ++k) {
                         tsum += negvisprobs[m][k];
                     }
@@ -222,7 +222,7 @@ void RBM::train(std::string saveFile) {
                         for (int k = 0; k < SOFTMAX; ++k) {
                             nvp2[m][k] = 1./(1 + exp(-nvp2[m][k] - visbiases[m][k]));
                         }
-                        double tsum2  = 0.0;
+                        float tsum2  = 0.0;
                         for (int k = 0; k < SOFTMAX; ++k) {
                             tsum2 += nvp2[m][k];
                         }
@@ -234,7 +234,7 @@ void RBM::train(std::string saveFile) {
                     }
 
                     // sample v[1][j] from P(v[1][j] = 1 | h[0])
-                    double randval = randn();
+                    float randval = randn();
                     if ((randval -= negvisprobs[m][0]) <= 0.0 ) {
                         negvissoftmax[m] = 0;
                     }
@@ -247,7 +247,7 @@ void RBM::train(std::string saveFile) {
                     else if ((randval -= negvisprobs[m][3]) <= 0.0 ) {
                         negvissoftmax[m] = 3;
                     }
-                    else if ((randval -= negvisprobs[m][4]) <= 0.0 ) {
+                    else if ((randval -= negvisprobs[m][4]) <= 0.01 ) {
                         negvissoftmax[m] = 4;
                     }
                     else {
@@ -297,8 +297,8 @@ void RBM::train(std::string saveFile) {
                         assert(r >= 0 && r < SOFTMAX);
 
                         //# Compute some error function like sum of squared difference between Si in 1) and Si in 5)
-                        double expectedV = nvp2[m][1] + 2.0 * nvp2[m][2] + 3.0 * nvp2[m][3] + 4.0 * nvp2[m][4];
-                        double vdelta = (((double)r)-expectedV);
+                        float expectedV = nvp2[m][1] + 2.0 * nvp2[m][2] + 3.0 * nvp2[m][3] + 4.0 * nvp2[m][4];
+                        float vdelta = (((float)r)-expectedV);
                         nrmse += (vdelta * vdelta);
                     }
                     ntrain += count;
@@ -331,7 +331,7 @@ void RBM::train(std::string saveFile) {
                     }
 
                     // 7. now use Si and Sj to compute (Si.Sj)1 (fig.3)
-                    CDneg[m][negvissoftmax[m]][h] += (double) neghidstates[h];
+                    CDneg[m][negvissoftmax[m]][h] += (float) neghidstates[h];
                 }
             }
 
@@ -354,11 +354,11 @@ void RBM::train(std::string saveFile) {
                         for (int rr = 0; rr < SOFTMAX; rr++) {
                             //# At the end compute average of CDpos and CDneg by dividing them by number of data points.
                             //# Compute CD = < Si.Sj >0  < Si.Sj >n = CDpos  CDneg
-                            double CDp = CDpos[m][rr][h];
-                            double CDn = CDneg[m][rr][h];
+                            float CDp = CDpos[m][rr][h];
+                            float CDn = CDneg[m][rr][h];
                             if (CDp != 0.0 || CDn != 0.0) {
-                                CDp /= ((double)moviecount[m]);
-                                CDn /= ((double)moviecount[m]);
+                                CDp /= ((float)moviecount[m]);
+                                CDn /= ((float)moviecount[m]);
 
                                 // W += epsilon * (h[0] * v[0]' - Q(h[1][.] = 1 | v[1]) * v[1]')
                                 //# Update weights and biases W = W + alpha*CD (biases are just weights to neurons that stay always 1.0)
@@ -374,8 +374,8 @@ void RBM::train(std::string saveFile) {
                     // for all softmax
                     for (int rr = 0; rr < SOFTMAX; rr++) {
                         if (posvisact[m][rr] != 0.0 || negvisact[m][rr] != 0.0) {
-                            posvisact[m][rr] /= ((double)moviecount[m]);
-                            negvisact[m][rr] /= ((double)moviecount[m]);
+                            posvisact[m][rr] /= ((float)moviecount[m]);
+                            negvisact[m][rr] /= ((float)moviecount[m]);
                             visbiasinc[m][rr] = momentum * visbiasinc[m][rr] + epsilonVB * ((posvisact[m][rr] - negvisact[m][rr]));
                             //visbiasinc[m][rr] = momentum * visbiasinc[m][rr] + epsilonVB * ((posvisact[m][rr] - negvisact[m][rr]) - WEIGHTCOST * visbiases[m][rr]);
                             visbiases[m][rr]  += visbiasinc[m][rr];
@@ -388,8 +388,8 @@ void RBM::train(std::string saveFile) {
                 // b += epsilon * (h[0] - Q(h[1][.] = 1 | v[1]))
                 for (int h = 0; h < TOTAL_FEATURES; ++h) {
                     if (poshidact[h]  != 0.0 || neghidact[h]  != 0.0) {
-                        poshidact[h]  /= ((double)(numcases));
-                        neghidact[h]  /= ((double)(numcases));
+                        poshidact[h]  /= ((float)(numcases));
+                        neghidact[h]  /= ((float)(numcases));
                         hidbiasinc[h] = momentum * hidbiasinc[h] + epsilonHB * ((poshidact[h] - neghidact[h]));
                         //hidbiasinc[h] = momentum * hidbiasinc[h] + epsilonHB * ((poshidact[h] - neghidact[h]) - WEIGHTCOST * hidbiases[h]);
                         hidbiases[h]  += hidbiasinc[h];
@@ -418,7 +418,7 @@ void RBM::train(std::string saveFile) {
         printf("epoch: %d nrmse: %f vrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, vrmse, prmse, ms1);
         fprintf(validateFile, "epoch: %d nrmse: %f vrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, vrmse, prmse, ms1);
         fclose(validateFile);
-        output("out/rbm/pure_rbm_v2_factors_" + std::to_string(TOTAL_FEATURES)
+        output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
                 + "_epoch_" + std::to_string(loopcount) + "_T_" +
                 std::to_string(tSteps) + ".txt");
 
@@ -459,7 +459,7 @@ float RBM::predict(int n, int i) {
     ZERO(negvisprobs);
     int userEnd = rowIndex[n + 1];
     int userStart = rowIndex[n];
-    double sumW[TOTAL_FEATURES];
+    float sumW[TOTAL_FEATURES];
     ZERO(sumW);
     for (int j = userStart; j < userEnd; ++j) {
         int m = columns[j];
@@ -489,7 +489,7 @@ float RBM::predict(int n, int i) {
             negvisprobs[m][k]  = 1./(1 + exp(-negvisprobs[m][k] - visbiases[m][k]));
         }
 
-        double tsum = 0.0;
+        float tsum = 0.0;
         for (int k = 0; k < SOFTMAX; ++k) {
             tsum += negvisprobs[m][k];
         }
@@ -505,7 +505,7 @@ float RBM::predict(int n, int i) {
         }
     }
 
-    double expVal = 0.0;
+    float expVal = 0.0;
     for (int k = 0; k < SOFTMAX; ++k) {
         expVal += negvisprobs[i][k] * (k + 1);
     }
