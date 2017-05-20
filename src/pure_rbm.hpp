@@ -26,29 +26,30 @@ class RBM : public Model {
     private:
         // vishid are the weights.
         float vishid[N_MOVIES][SOFTMAX][TOTAL_FEATURES];
+        float CDpos[N_MOVIES][TOTAL_FEATURES][SOFTMAX];
+        float CDneg[N_MOVIES][TOTAL_FEATURES][SOFTMAX];
+        float CDinc[N_MOVIES][TOTAL_FEATURES][SOFTMAX];
+
         float visbiases[N_MOVIES][SOFTMAX];
-        float hidbiases[TOTAL_FEATURES];
-        float CDpos[N_MOVIES][SOFTMAX][TOTAL_FEATURES];
-        float CDneg[N_MOVIES][SOFTMAX][TOTAL_FEATURES];
-        float CDinc[N_MOVIES][SOFTMAX][TOTAL_FEATURES];
-
-        float poshidprobs[TOTAL_FEATURES];
-        char   poshidstates[TOTAL_FEATURES];
-        char   curposhidstates[TOTAL_FEATURES];
-        float poshidact[TOTAL_FEATURES];
-        float neghidact[TOTAL_FEATURES];
-        float neghidprobs[TOTAL_FEATURES];
-        char   neghidstates[TOTAL_FEATURES];
-        float hidbiasinc[TOTAL_FEATURES];
-
         float nvp2[N_MOVIES][SOFTMAX];
         float negvisprobs[N_MOVIES][SOFTMAX];
-        unsigned char   negvissoftmax[N_MOVIES];
         float posvisact[N_MOVIES][SOFTMAX];
         float negvisact[N_MOVIES][SOFTMAX];
         float visbiasinc[N_MOVIES][SOFTMAX];
 
         unsigned int moviecount[N_MOVIES];
+        unsigned char negvissoftmax[N_MOVIES];
+
+        float hidbiases[TOTAL_FEATURES];
+        float poshidprobs[TOTAL_FEATURES];
+        char  poshidstates[TOTAL_FEATURES];
+        char  curposhidstates[TOTAL_FEATURES];
+        float poshidact[TOTAL_FEATURES];
+        float neghidact[TOTAL_FEATURES];
+        float neghidprobs[TOTAL_FEATURES];
+        char  neghidstates[TOTAL_FEATURES];
+        float hidbiasinc[TOTAL_FEATURES];
+
         int prevUser;
 
 };

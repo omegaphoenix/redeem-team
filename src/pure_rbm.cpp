@@ -75,7 +75,6 @@ void RBM::init() {
 void RBM::train(std::string saveFile) {
     // Optimize current feature
     float nrmse=2., lastRMSE = 10.;
-    float vrmse = 0, lastVRMSE = 0;
     float prmse = 0, lastPRMSE = 0;
     int loopcount=0;
     float epsilonW = EPSILONW;
@@ -99,7 +98,6 @@ void RBM::train(std::string saveFile) {
         }
 
         lastRMSE = nrmse;
-        lastVRMSE = vrmse;
         lastPRMSE = prmse;
         clock_t time0 = clock();
         loopcount++;
@@ -327,11 +325,11 @@ void RBM::train(std::string saveFile) {
                     if (poshidstates[h] == 1) {
                         // 4. now Si and Sj values can be used to compute (Si.Sj)0  here () means just values not average
                         // accumulate CDpos = CDpos + (Si.Sj)0
-                        CDpos[m][r][h] += 1.0;
+                        CDpos[m][h][r] += 1.0;
                     }
 
                     // 7. now use Si and Sj to compute (Si.Sj)1 (fig.3)
-                    CDneg[m][negvissoftmax[m]][h] += (float) neghidstates[h];
+                    CDneg[m][h][negvissoftmax[m]]+= (float) neghidstates[h];
                 }
             }
 
@@ -354,8 +352,8 @@ void RBM::train(std::string saveFile) {
                         for (int rr = 0; rr < SOFTMAX; rr++) {
                             //# At the end compute average of CDpos and CDneg by dividing them by number of data points.
                             //# Compute CD = < Si.Sj >0  < Si.Sj >n = CDpos  CDneg
-                            float CDp = CDpos[m][rr][h];
-                            float CDn = CDneg[m][rr][h];
+                            float CDp = CDpos[m][h][rr];
+                            float CDn = CDneg[m][h][rr];
                             if (CDp != 0.0 || CDn != 0.0) {
                                 CDp /= ((float)moviecount[m]);
                                 CDn /= ((float)moviecount[m]);
@@ -363,8 +361,8 @@ void RBM::train(std::string saveFile) {
                                 // W += epsilon * (h[0] * v[0]' - Q(h[1][.] = 1 | v[1]) * v[1]')
                                 //# Update weights and biases W = W + alpha*CD (biases are just weights to neurons that stay always 1.0)
                                 //e.g between data and reconstruction.
-                                CDinc[m][rr][h] = momentum * CDinc[m][rr][h] + epsilonW * ((CDp - CDn) - WEIGHTCOST * vishid[m][rr][h]);
-                                vishid[m][rr][h] += CDinc[m][rr][h];
+                                CDinc[m][h][rr] = momentum * CDinc[m][h][rr] + epsilonW * ((CDp - CDn) - WEIGHTCOST * vishid[m][rr][h]);
+                                vishid[m][rr][h] += CDinc[m][h][rr];
                             }
                         }
                     }
@@ -409,18 +407,19 @@ void RBM::train(std::string saveFile) {
         printf("ntrain: %d \n", ntrain);
         nrmse = sqrt(nrmse / ntrain);
         printf("nrmse: %f \n", nrmse);
-        vrmse = validate("2.dta");
-        prmse = validate("4.dta");
+        prmse = 0;//validate("4.dta");
 
         clock_t time1 = clock();
         float ms1 = diffclock(time1, time0);
         validateFile = fopen(scoreFileName.c_str(), "a");
-        printf("epoch: %d nrmse: %f vrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, vrmse, prmse, ms1);
-        fprintf(validateFile, "epoch: %d nrmse: %f vrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, vrmse, prmse, ms1);
+        printf("epoch: %d nrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, prmse, ms1);
+        fprintf(validateFile, "epoch: %d nrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, prmse, ms1);
         fclose(validateFile);
-        output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
-                + "_epoch_" + std::to_string(loopcount) + "_T_" +
-                std::to_string(tSteps) + ".txt");
+        if (loopcount % 10 == 0) {
+            output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+                    + "_epoch_" + std::to_string(loopcount) + "_T_" +
+                    std::to_string(tSteps) + ".txt");
+        }
 
         if (TOTAL_FEATURES >= 200) {
             if (loopcount > 6) {
@@ -452,6 +451,9 @@ void RBM::train(std::string saveFile) {
             }
         }
     }
+    output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+            + "_epoch_" + std::to_string(loopcount) + "_T_" +
+            std::to_string(tSteps) + ".txt");
 }
 
 // Return the predicted rating for user n, movie i
