@@ -22,10 +22,10 @@ NaiveSVD::~NaiveSVD() {
     delete this->V;
 }
 
-void NaiveSVD::setParams(int K, float eta, float lambda) {
-    this->K = K;
-    this->eta = eta;
-    this->lambda = lambda;
+void NaiveSVD::setParams(int _K, float _eta, float _lambda) {
+    this->K = _K;
+    this->eta = _eta;
+    this->lambda = _lambda;
 
     this->MAX_EPOCHS = 120;
     this->EPSILON = 0.0001;

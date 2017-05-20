@@ -4,7 +4,7 @@
 #include "model.hpp"
 
 #define N_FACTORS 100
-#define RBM_EPOCHS 50
+#define RBM_EPOCHS 2
 #define STD_DEV 0.01
 #define BATCH_SIZE 1000
 
@@ -45,11 +45,14 @@ class RBM : public Model {
 
     private:
         float* W;
-        float* dW; // So we don't have to reallocate each time.
+        float* dW;
+        float* incW;
         float* hidBiases; // bias of feature j
         float* dHidBiases; // delta of bias of feature j
+        float* incHidBiases;
         float* visBiases; // bias of rating k for movie i
         float* dVisBiases; // delta of bias of rating k for movie i
+        float* incVisBiases;
         float* hidProbs; // hidden probabilities
         float* visProbs; // visible probabilities
         std::bitset<N_USERS * N_FACTORS>* hidVars; // bitset
