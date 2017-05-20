@@ -414,7 +414,7 @@ void RBM::train(std::string saveFile) {
         printf("ntrain: %d \n", ntrain);
         nrmse = sqrt(nrmse / ntrain);
         printf("nrmse: %f \n", nrmse);
-        if (loopcount % 5 == 0 || loopcount > 40) {
+        if (loopcount % 5 == 0 || loopcount > 40 || loopcount == 1) {
             prmse = validate("4.dta");
         }
 
@@ -427,7 +427,7 @@ void RBM::train(std::string saveFile) {
         save("model/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
                 + "_epoch_" + std::to_string(loopcount) + "_T_" +
                 std::to_string(tSteps) + ".txt");
-        if (loopcount % 5 == 0) {
+        if (loopcount % 5 == 0 || loopcount > 40 || loopcount == 1) {
             output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
                     + "_epoch_" + std::to_string(loopcount) + "_T_" +
                     std::to_string(tSteps) + ".txt");
