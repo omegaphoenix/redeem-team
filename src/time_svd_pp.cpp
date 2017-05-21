@@ -105,12 +105,12 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
     FILE *fp = fopen(trainFile.c_str(),"r");
     int userId,itemId,rating,t;
     while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating)!=EOF){
-        train_data[userId].push_back(make_pair(make_pair(itemId,rating),t));
+        train_data[userId - 1].push_back(make_pair(make_pair(itemId - 1,rating - 1),t - 1));
     }
     fclose(fp);
     fp = fopen(crossFile.c_str(),"r");
     while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating)!=EOF){
-        test_data.push_back(make_pair(make_pair(userId, itemId),make_pair(t,rating)));
+        test_data.push_back(make_pair(make_pair(userId - 1, itemId - 1),make_pair(t - 1,rating - 1)));
     }
     fclose(fp);
 
@@ -145,9 +145,10 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
         Dev.push_back(tmp);
     }
 
+    debugPrint("Done Initializing...\n");
 }
 
-TimeSVDPP::~TimeSVDPP(){
+TimeSVDPP::~TimeSVDPP() {
     delete[] Bi;
     delete[] Bu;
     delete[] Alpha_u;
@@ -187,11 +188,12 @@ int TimeSVDPP::calcBin(int timeArg) {
 //main function for training
 //terminate when RMSE varies less than 0.00005
 void TimeSVDPP::train(std::string saveFile) {
+    debugPrint("Training...\n");
     float preRmse = 1000;
     ofstream fout(outFile.c_str());
     srand(time(NULL));
     FILE *fp = fopen(testFile.c_str(),"r");
-    int user, item, date;
+    int user, item, date, rating;
     float curRmse;
     for(size_t i=0;i<1000;i++) {
         sgd();
@@ -204,7 +206,7 @@ void TimeSVDPP::train(std::string saveFile) {
             preRmse = curRmse;
         }
     }
-    while (fscanf(fp,"%d,%d,%d",&user, &item, &date)!=EOF) {
+    while (fscanf(fp,"%d %d %d %d",&user, &item, &date, &rating)!=EOF) {
         fout << predictScore(AVG,user,item,date) << endl;
     }
     fclose(fp);
@@ -263,6 +265,7 @@ float TimeSVDPP::predictScore(float avg,int userId, int itemId,int time){
 //update using stochastic gradient descent
 
 void TimeSVDPP::sgd(){
+    debugPrint("Updating using sgd...\n");
     int userId,itemId,rating,time;
     for (userId = 0; userId < N_USERS; ++userId) {
         int sz = train_data[userId].size();
@@ -321,5 +324,6 @@ void TimeSVDPP::sgd(){
     }
     G *= Decay;
     G_alpha *= Decay;
+    debugPrint("Done updating using sgd...\n");
 }
 
