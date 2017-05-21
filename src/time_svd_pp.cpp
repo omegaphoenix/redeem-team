@@ -29,7 +29,6 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
     debugPrint("Initializing...\n");
     clock_t time0 = clock();
 
-    train_data.resize(N_USERS);
     if (bi == NULL) {
         Bi = new float[N_MOVIES];
         for (size_t i = 0; i < N_MOVIES; ++i) {
@@ -105,15 +104,11 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
     }
     debugPrint("Loading data...\n");
     clock_t time1 = clock();
-    FILE *fp = fopen(trainFile.c_str(),"r");
     int userId,itemId,rating,t;
+    load("1.dta");
+    FILE *fp = fopen(crossFile.c_str(),"r");
     while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating)!=EOF) {
-        train_data[userId - 1].push_back(make_pair(make_pair(itemId - 1,rating - 1),t - 1));
-    }
-    fclose(fp);
-    fp = fopen(crossFile.c_str(),"r");
-    while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating)!=EOF) {
-        test_data.push_back(make_pair(make_pair(userId - 1, itemId - 1),make_pair(t - 1,rating - 1)));
+        test_data.push_back(make_pair(make_pair(userId - 1, itemId - 1),make_pair(t - 1,rating)));
     }
     fclose(fp);
     clock_t time2 = clock();
@@ -123,23 +118,30 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
     Tu = new float[N_USERS];
     for (size_t i = 0; i < N_USERS; ++i) {
         float tmp = 0;
-        if(train_data[i].size()==0)
-        {
+        int userEnd = rowIndex[i + 1];
+        int userStart = rowIndex[i];
+        int sz = userEnd - userStart;
+        if(sz == 0) {
             Tu[i] = 0;
             continue;
         }
-        for (size_t j = 0; j < train_data[i].size(); ++j) {
-            tmp += train_data[i][j].second;
+        for (size_t j = userStart; j < userEnd; ++j) {
+            tmp += dates[j];
         }
-        Tu[i] = tmp/train_data[i].size();
+        Tu[i] = tmp/sz;
     }
 
     for (size_t i = 0; i < N_USERS; ++i) {
         map<int,float> tmp;
-        for (size_t j = 0; j < train_data[i].size(); ++j) {
-            if(tmp.count(train_data[i][j].second)==0)
+        int userEnd = rowIndex[i + 1];
+        int userStart = rowIndex[i];
+        int sz = userEnd - userStart;
+        for (size_t j = 0; j < sz; ++j) {
+            int dateIdx = userStart + j;
+            int date = dates[dateIdx];
+            if(tmp.count(date) == 0)
             {
-                tmp[train_data[i][j].second] = 0.0000001;
+                tmp[date] = 0.0000001;
             }
             else continue;
         }
@@ -265,7 +267,7 @@ float TimeSVDPP::predict(int user, int movie, int date) {
 //   + Qi^T(Pu + |R(u)|^-1/2 \sum yi
 float TimeSVDPP::predictScore(float avg,int userId, int itemId,int time) {
     float tmp = 0.0;
-    int sz = train_data[userId].size();
+    int sz = rowIndex[userId + 1] - rowIndex[userId];
     float sqrtNum = 0;
     if (sz>1) sqrtNum = 1/(sqrt(sz));
     for (size_t i = 0; i < factor; ++i) {
@@ -290,23 +292,27 @@ void TimeSVDPP::sgd() {
     clock_t time0 = clock();
     int userId,itemId,rating,time;
     for (userId = 0; userId < N_USERS; ++userId) {
-        int sz = train_data[userId].size();
+        int userEnd = rowIndex[userId + 1];
+        int userStart = rowIndex[userId];
+        int sz = userEnd - userStart;
         float sqrtNum = 0;
         vector <float> tmpSum(factor,0);
-        if (sz>1) sqrtNum = 1/(sqrt(sz));
+        if (sz>1) {
+            sqrtNum = 1/(sqrt(sz));
+        }
         for (int k = 0; k < factor; ++k) {
             float sumy = 0;
-            for (int i = 0; i < sz; ++i) {
-                int itemI = train_data[userId][i].first.first;
+            for (int colIdx = userStart; colIdx < userEnd; ++colIdx) {
+                int itemI = columns[colIdx];
                 sumy += y[itemI][k];
             }
             sumMW[userId][k] = sumy;
         }
-        for (int i = 0; i < sz; ++i) {
-            itemId = train_data[userId][i].first.first;
-            rating = train_data[userId][i].first.second;
-            time = train_data[userId][i].second;
-            float prediction = predictScore(AVG,userId,itemId,time);
+        for (int colIdx = userStart; colIdx < userEnd; ++colIdx) {
+            itemId = columns[colIdx];
+            rating = values[colIdx];
+            time = dates[colIdx];
+            float prediction = predictScore(AVG, userId, itemId, time);
             float error = rating - prediction;
             Bu[userId] += G * (error - L * Bu[userId]);
             Bi[itemId] += G * (error - L * Bi[itemId]);
@@ -322,8 +328,8 @@ void TimeSVDPP::sgd() {
                 tmpSum[k] += error*sqrtNum*mf;
             }
         }
-        for (int j = 0; j < sz; ++j) {
-            itemId = train_data[userId][j].first.first;
+        for (int colIdx = userStart; colIdx < userEnd; ++colIdx) {
+            itemId = columns[colIdx];
             for (int k = 0; k < factor; ++k) {
                 float tmpMW = y[itemId][k];
                 y[itemId][k] += G*(tmpSum[k]- L_pq *tmpMW);
@@ -336,13 +342,17 @@ void TimeSVDPP::sgd() {
     printf("First half SGD took %f ms\n", ms1);
 
     for (userId = 0; userId < N_USERS; ++userId) {
-        auto sz = train_data[userId].size();
+        int userEnd = rowIndex[userId + 1];
+        int userStart = rowIndex[userId];
+        int sz = userEnd - userStart;
         float sqrtNum = 0;
-        if (sz>1) sqrtNum = 1.0/sqrt(sz);
+        if (sz>1) {
+            sqrtNum = 1.0/sqrt(sz);
+        }
         for (int k = 0; k < factor; ++k) {
             float sumy = 0;
-            for (int i = 0; i < sz; ++i) {
-                int itemI = train_data[userId][i].first.first;
+            for (int colIdx = userStart; colIdx < userEnd; ++colIdx) {
+                int itemI = columns[colIdx];
                 sumy += y[itemI][k];
             }
             sumMW[userId][k] = sumy;

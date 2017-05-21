@@ -44,7 +44,6 @@ class TimeSVDPP : public Model {
         string crossFile;
         string testFile;
         string outFile;
-        vector <vector<pair <pair<int,int>, int> > > train_data;
         vector <pair <pair<int,int>, pair <int, int> > > test_data;
  };
 
