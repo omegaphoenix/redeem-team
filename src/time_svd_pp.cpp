@@ -54,15 +54,9 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
         Alpha_u[i] = 0;
     }
 
-    Bi_Bin = new float* [N_MOVIES];
-    for (size_t i = 0; i < N_MOVIES; ++i) {
-        Bi_Bin[i] = new float[binNum];
-    }
-
-    for (size_t i = 0; i < N_MOVIES; ++i) {
-        for (size_t j = 0; j < binNum; ++j) {
-            Bi_Bin[i][j] = 0.0;
-        }
+    Bi_Bin = new float[N_MOVIES * binNum];
+    for (size_t i = 0; i < N_MOVIES * binNum; ++i) {
+        Bi_Bin[i] = 0.0;
     }
 
 
@@ -168,7 +162,6 @@ TimeSVDPP::~TimeSVDPP() {
         delete[] sumMW[i];
     }
     for (size_t i = 0; i < N_MOVIES; ++i) {
-        delete[] Bi_Bin[i];
         delete[] Qi[i];
         delete[] y[i];
     }
@@ -273,7 +266,7 @@ float TimeSVDPP::predictScore(float avg,int userId, int itemId,int time) {
     for (size_t i = 0; i < factor; ++i) {
         tmp += (Pu[userId][i] +sumMW[userId][i]*sqrtNum) * Qi[itemId][i];
     }
-    float score = avg + Bu[userId] + Bi[itemId] + Bi_Bin[itemId][calcBin(time)] + Alpha_u[userId]*calcDev(userId,time) + Bu_t[userId][time] + tmp;
+    float score = avg + Bu[userId] + Bi[itemId] + Bi_Bin[itemId * binNum + calcBin(time)] + Alpha_u[userId]*calcDev(userId,time) + Bu_t[userId][time] + tmp;
 
     if(score > 5) {
         score = 5;
@@ -316,7 +309,7 @@ void TimeSVDPP::sgd() {
             float error = rating - prediction;
             Bu[userId] += G * (error - L * Bu[userId]);
             Bi[itemId] += G * (error - L * Bi[itemId]);
-            Bi_Bin[itemId][calcBin(time)] += G * (error - L * Bi_Bin[itemId][calcBin(time)]);
+            Bi_Bin[itemId * binNum + calcBin(time)] += G * (error - L * Bi_Bin[itemId * binNum + calcBin(time)]);
             Alpha_u[userId] += G_alpha * (error * calcDev(userId,time)  - L_alpha * Alpha_u[userId]);
             Bu_t[userId][time] += G * (error - L * Bu_t[userId][time]);
 

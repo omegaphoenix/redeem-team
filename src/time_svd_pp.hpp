@@ -32,7 +32,7 @@ class TimeSVDPP : public Model {
         float* Tu; //variable for mean time of user
         float* Alpha_u;
         float* Bi;
-        float** Bi_Bin;
+        float* Bi_Bin;
         float* Bu;
         vector<map<int,float> > Bu_t;
         vector<map<int,float> > Dev; //save the result of calcDev(userId,time)
