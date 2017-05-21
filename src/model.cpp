@@ -324,6 +324,43 @@ void Model::output(std::string saveFile) {
     delete validator;
 }
 
+void Model::outputResiduals(std::string saveFile) {
+    debugPrint("Outputing residuals...\n");
+    clock_t timeStart = clock();
+    Model *validator = new Model();
+    validator->load("all.dta");
+    unsigned int userStartIdx, userEndIdx, n, i, k, colIdx;
+
+    // Open file
+    std::ofstream outputFile;
+    outputFile << std::setprecision(3);
+    outputFile.open(saveFile);
+    for (n = 0; n < N_USERS; ++n) {
+#ifdef ISRBM
+        prepPredict(validator, n);
+#endif
+        userStartIdx = validator->rowIndex[n];
+        userEndIdx = validator->rowIndex[n + 1];
+        for (colIdx = userStartIdx; colIdx < userEndIdx;
+                colIdx++) {
+            i = validator->columns[colIdx]; // movie
+            k = validator->values[colIdx]; // rating
+            assert (i >= 0 && i < N_MOVIES);
+            assert (k > 0 && k <= MAX_RATING);
+            float prediction = predict(n, i); // jump
+            float residual = k - (float) prediction;
+            outputFile << residual << "\n"; // jump
+        }
+    }
+    outputFile.close();
+
+    clock_t timeEnd = clock();
+    float msTotal = diffclock(timeEnd, timeStart);
+    printf("Outputing residuals took %f ms\n", msTotal);
+
+    delete validator;
+}
+
 void Model::train(std::string saveFile) {
 }
 

@@ -11,13 +11,13 @@ class Model {
         Model();
         int* ratings; // COO format, movies and users 0-indexed
         unsigned int numRatings;
-        unsigned char* values; // CSR values/ratings
+        float* values; // CSR values/ratings
         unsigned short* columns; // CSR columns/movies, 0-indexed
         unsigned int* rowIndex; // CSR row index, where user i starts in values/columns, 0-indexed
 
         // MU variables
         int* muratings; // COO format
-        unsigned char* muvalues; // CSR values/ratings
+        float* muvalues; // CSR values/ratings
         int* mucolumns; // CSR columns/user
         int* murowIndex; // CSR row index, where user i starts in values/columns
         dataPoint* sortStruct;     
@@ -29,6 +29,7 @@ class Model {
         float validate(std::string valFile);
         float trainingError();
         void output(std::string saveFile);
+        void outputResiduals(std::string saveFile);
         void initLoad(std::string fname, std::string dataFile);
         void load(std::string dataFile);
         void transposeMU();

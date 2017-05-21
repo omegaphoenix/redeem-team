@@ -153,6 +153,7 @@ float kNN::pearson(int i_start, int i_end, int j_start, int j_end) {
 
 void kNN::buildMatrix(std::string saveFile) {
     std::cout << "entered buildMatrix()\n";
+    clock_t time0 = clock();
 
     // Initialize corrMatrix with three rows
     // 0: index at which user i's correlations begin (int) 0-indexed
@@ -236,6 +237,10 @@ void kNN::buildMatrix(std::string saveFile) {
         delete[] arr;
     }
     corrMatrix[0].push_back(num_correlations);
+
+    clock_t time1 = clock();
+    float ms1 = diffclock(time1, time0);
+    std::cout << "Building matrix took " << ms1 << "ms";
 
     std::cout<< "Number of nan coeffs = " << nan_coeff << "\n";
     std::cout << "size of corrMatrix[0] (should be 1 greater than N_USERS) = "
@@ -442,6 +447,7 @@ int kNN::getRatingCSR(int user, int movie) {
     return -1;
 }
 
+/*
 int main(int argc, char **argv) {
     // Process cmd line args
     if ((argc > 1 && argc < 4) || argc > 4) {
@@ -537,3 +543,4 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+*/
