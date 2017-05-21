@@ -13,12 +13,14 @@ class Model {
         unsigned int numRatings;
         float* values; // CSR values/ratings
         unsigned short* columns; // CSR columns/movies, 0-indexed
+        unsigned short* dates; // CSR columns/movies, 0-indexed
         unsigned int* rowIndex; // CSR row index, where user i starts in values/columns, 0-indexed
 
         // MU variables
         int* muratings; // COO format
         float* muvalues; // CSR values/ratings
         int* mucolumns; // CSR columns/user
+        int* mudates;
         int* murowIndex; // CSR row index, where user i starts in values/columns
         dataPoint* sortStruct;     
 
