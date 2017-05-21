@@ -31,9 +31,9 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
     clock_t time0 = clock();
 
     train_data.resize(N_USERS);
-    if (bi == NULL){
+    if (bi == NULL) {
         Bi = new float[N_MOVIES];
-        for (size_t i = 0; i < N_MOVIES; ++i){
+        for (size_t i = 0; i < N_MOVIES; ++i) {
             Bi[i] = 0.0;
         }
     }
@@ -41,9 +41,9 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
         Bi = bi;
     }
 
-    if (bu == NULL){
+    if (bu == NULL) {
         Bu = new float[N_USERS];
-        for (size_t i = 0;i < N_USERS; ++i){
+        for (size_t i = 0; i < N_USERS; ++i) {
             Bu[i] = 0.0;
         }
     }
@@ -52,32 +52,32 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
     }
 
     Alpha_u = new float[N_USERS];
-    for (size_t i = 0; i < N_USERS; ++i){
+    for (size_t i = 0; i < N_USERS; ++i) {
         Alpha_u[i] = 0;
     }
 
     Bi_Bin = new float* [N_MOVIES];
-    for (size_t i = 0; i < N_MOVIES; ++i){
+    for (size_t i = 0; i < N_MOVIES; ++i) {
         Bi_Bin[i] = new float[binNum];
     }
 
-    for (size_t i = 0; i < N_MOVIES; ++i){
-        for (size_t j = 0; j < binNum; ++j){
+    for (size_t i = 0; i < N_MOVIES; ++i) {
+        for (size_t j = 0; j < binNum; ++j) {
             Bi_Bin[i][j] = 0.0;
         }
     }
 
 
-    if(qi == NULL){
+    if(qi == NULL) {
         Qi = new float* [N_MOVIES];
         y = new float* [N_MOVIES];
-        for (size_t i = 0; i < N_MOVIES; ++i){
+        for (size_t i = 0; i < N_MOVIES; ++i) {
             Qi[i] = new float[factor];
             y[i] = new float[factor];
         }
 
-        for (size_t i = 0; i < N_MOVIES; ++i){
-            for (size_t j = 0; j < factor; ++j){
+        for (size_t i = 0; i < N_MOVIES; ++i) {
+            for (size_t j = 0; j < factor; ++j) {
                 Qi[i][j] = 0.1 * (rand() / (RAND_MAX + 1.0)) / sqrt(factor);
                 y[i][j] = 0;
             }
@@ -87,16 +87,16 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
         Qi = qi;
     }
 
-    if(pu == NULL){
+    if(pu == NULL) {
         sumMW = new float* [N_USERS];
         Pu = new float* [N_USERS];
-        for (size_t i = 0; i < N_USERS; ++i){
+        for (size_t i = 0; i < N_USERS; ++i) {
             Pu[i] = new float[factor];
             sumMW[i] = new float[factor];
         }
 
-        for (size_t i = 0; i < N_USERS; ++i){
-            for (size_t j=0;j<factor;++j){
+        for (size_t i = 0; i < N_USERS; ++i) {
+            for (size_t j=0; j<factor; ++j) {
                 sumMW[i][j] = 0.1 * (rand() / (RAND_MAX + 1.0)) / sqrt(factor);
                 Pu[i][j] = 0.1 * (rand() / (RAND_MAX + 1.0)) / sqrt(factor);
             }
@@ -106,33 +106,33 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
     }
     FILE *fp = fopen(trainFile.c_str(),"r");
     int userId,itemId,rating,t;
-    while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating)!=EOF){
+    while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating)!=EOF) {
         train_data[userId - 1].push_back(make_pair(make_pair(itemId - 1,rating - 1),t - 1));
     }
     fclose(fp);
     fp = fopen(crossFile.c_str(),"r");
-    while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating)!=EOF){
+    while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating)!=EOF) {
         test_data.push_back(make_pair(make_pair(userId - 1, itemId - 1),make_pair(t - 1,rating - 1)));
     }
     fclose(fp);
 
     Tu = new float[N_USERS];
-    for (size_t i = 0;i<N_USERS;++i){
+    for (size_t i = 0; i < N_USERS; ++i) {
         float tmp = 0;
         if(train_data[i].size()==0)
         {
             Tu[i] = 0;
             continue;
         }
-        for (size_t j=0;j<train_data[i].size();++j){
+        for (size_t j=0; j<train_data[i].size(); ++j) {
             tmp += train_data[i][j].second;
         }
         Tu[i] = tmp/train_data[i].size();
     }
 
-    for (size_t i = 0;i<N_USERS;++i){
+    for (size_t i = 0; i < N_USERS; ++i) {
         map<int,float> tmp;
-        for (size_t j=0;j<train_data[i].size();++j){
+        for (size_t j=0; j<train_data[i].size(); ++j) {
             if(tmp.count(train_data[i][j].second)==0)
             {
                 tmp[train_data[i][j].second] = 0.0000001;
@@ -142,7 +142,7 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
         Bu_t.push_back(tmp);
     }
 
-    for (size_t i = 0;i<N_USERS;++i){
+    for (size_t i = 0; i < N_USERS; ++i) {
         map<int,float> tmp;
         Dev.push_back(tmp);
     }
@@ -157,11 +157,11 @@ TimeSVDPP::~TimeSVDPP() {
     delete[] Bu;
     delete[] Alpha_u;
     delete[] Tu;
-    for (size_t i = 0;i<N_USERS;++i){
+    for (size_t i = 0; i < N_USERS; ++i) {
         delete[] Pu[i];
         delete[] sumMW[i];
     }
-    for (size_t i = 0;i<N_MOVIES;++i){
+    for (size_t i = 0; i < N_MOVIES; ++i) {
         delete[] Bi_Bin[i];
         delete[] Qi[i];
         delete[] y[i];
@@ -199,11 +199,11 @@ void TimeSVDPP::train(std::string saveFile) {
     FILE *fp = fopen(testFile.c_str(),"r");
     int user, item, date, rating;
     float curRmse;
-    for (size_t i = 0;i<2;++i) {
+    for (size_t i = 0; i<2; ++i) {
         sgd();
         curRmse = cValidate(AVG,Bu,Bi,Pu,Qi);
         cout << "test_Rmse in step " << i << ": " << curRmse << endl;
-        if(curRmse >= preRmse-0.00005){
+        if(curRmse >= preRmse-0.00005) {
             break;
         }
         else{
@@ -220,13 +220,13 @@ void TimeSVDPP::train(std::string saveFile) {
 
 
 //function for cross validation
-float TimeSVDPP::cValidate(float avg,float* bu,float* bi,float** pu,float** qi){
+float TimeSVDPP::cValidate(float avg,float* bu,float* bi,float** pu,float** qi) {
     debugPrint("Cross validating...\n");
     clock_t time0 = clock();
     int userId,itemId,rating,t;
     int n = 0;
     float rmse = 0;
-    for (const auto &ch:test_data){
+    for (const auto &ch:test_data) {
         userId = ch.first.first;
         itemId = ch.first.second;
         t = ch.second.first;
@@ -251,20 +251,20 @@ float TimeSVDPP::predict(int user, int movie, int date) {
 //   avg + Bu + Bi
 //   + Bi_Bin,t + Alpha_u*Dev + Bu_t
 //   + Qi^T(Pu + |R(u)|^-1/2 \sum yi
-float TimeSVDPP::predictScore(float avg,int userId, int itemId,int time){
+float TimeSVDPP::predictScore(float avg,int userId, int itemId,int time) {
     float tmp = 0.0;
     int sz = train_data[userId].size();
     float sqrtNum = 0;
     if (sz>1) sqrtNum = 1/(sqrt(sz));
-    for (size_t i = 0;i<factor;++i){
+    for (size_t i = 0; i<factor; ++i) {
         tmp += (Pu[userId][i] +sumMW[userId][i]*sqrtNum) * Qi[itemId][i];
     }
     float score = avg + Bu[userId] + Bi[itemId] + Bi_Bin[itemId][calcBin(time)] + Alpha_u[userId]*calcDev(userId,time) + Bu_t[userId][time] + tmp;
 
-    if(score > 5){
+    if(score > 5) {
         score = 5;
     }
-    if(score < 1){
+    if(score < 1) {
         score = 1;
     }
     return score;
@@ -273,7 +273,7 @@ float TimeSVDPP::predictScore(float avg,int userId, int itemId,int time){
 //function for training
 //update using stochastic gradient descent
 
-void TimeSVDPP::sgd(){
+void TimeSVDPP::sgd() {
     debugPrint("Updating using sgd...\n");
     clock_t time0 = clock();
     int userId,itemId,rating,time;
@@ -302,7 +302,7 @@ void TimeSVDPP::sgd(){
             Alpha_u[userId] += G_alpha * (error * calcDev(userId,time)  - L_alpha * Alpha_u[userId]);
             Bu_t[userId][time] += G * (error - L * Bu_t[userId][time]);
 
-            for (size_t k=0;k<factor;k++){
+            for (size_t k=0; k<factor; k++) {
                 auto uf = Pu[userId][k];
                 auto mf = Qi[itemId][k];
                 Pu[userId][k] += G * (error * mf - L_pq * uf);
