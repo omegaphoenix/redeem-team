@@ -13,13 +13,13 @@ using namespace std;
 
 class TimeSVDPP : public Model {
     public:
-        TimeSVDPP(float*,float*,int,float*,float**, string, string, string, string);
+        TimeSVDPP(float*,float*,int,float*,float*, string, string, string, string);
         ~TimeSVDPP();
         void sgd();
         float predictScore(float,int,int,int);
         float calcDev(int,int);    //calculate dev_u(t)
         int calcBin(int);    //calculate time bins
-        float cValidate(float,float*,float*,float**);
+        float cValidate(float);
         void train(std::string saveFile);
         float predict(int user, int movie, int date);
     protected:
@@ -37,9 +37,9 @@ class TimeSVDPP : public Model {
         vector<map<int,float> > Bu_t;
         vector<map<int,float> > Dev; //save the result of calcDev(userId,time)
         float* Qi;
-        float** Pu;
+        float* Pu;
         float* y;
-        float** sumMW;    //save the sum of Pu
+        float* sumMW;    //save the sum of Pu
         string trainFile;
         string crossFile;
         string testFile;
