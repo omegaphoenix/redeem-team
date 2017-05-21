@@ -39,7 +39,7 @@ class Model {
 #ifdef ISRBM
         virtual void prepPredict(Model *mod, int n);
 #endif
-        virtual float predict(int n, int i);
+        virtual float predict(int n, int i, int d);
 };
 
 #endif // MODEL_HPP
