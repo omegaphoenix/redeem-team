@@ -10,7 +10,6 @@
 #include <utility>
 
 #include "utils.hpp"
-#define sign(n) (n==0? 0 : (n<0?-1:1))    //define sign function
 
 using namespace std;
 
@@ -96,7 +95,7 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
         }
 
         for (size_t i = 0; i < N_USERS; ++i) {
-            for (size_t j=0; j<factor; ++j) {
+            for (size_t j = 0; j<factor; ++j) {
                 sumMW[i][j] = 0.1 * (rand() / (RAND_MAX + 1.0)) / sqrt(factor);
                 Pu[i][j] = 0.1 * (rand() / (RAND_MAX + 1.0)) / sqrt(factor);
             }
@@ -104,6 +103,8 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
     }   else{
         Pu = pu;
     }
+    debugPrint("Loading data...\n");
+    clock_t time1 = clock();
     FILE *fp = fopen(trainFile.c_str(),"r");
     int userId,itemId,rating,t;
     while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating)!=EOF) {
@@ -115,6 +116,9 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
         test_data.push_back(make_pair(make_pair(userId - 1, itemId - 1),make_pair(t - 1,rating - 1)));
     }
     fclose(fp);
+    clock_t time2 = clock();
+    float ms1 = diffclock(time2, time1);
+    printf("Loading data took %f\n", ms1);
 
     Tu = new float[N_USERS];
     for (size_t i = 0; i < N_USERS; ++i) {
@@ -124,7 +128,7 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
             Tu[i] = 0;
             continue;
         }
-        for (size_t j=0; j<train_data[i].size(); ++j) {
+        for (size_t j = 0; j < train_data[i].size(); ++j) {
             tmp += train_data[i][j].second;
         }
         Tu[i] = tmp/train_data[i].size();
@@ -132,7 +136,7 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
 
     for (size_t i = 0; i < N_USERS; ++i) {
         map<int,float> tmp;
-        for (size_t j=0; j<train_data[i].size(); ++j) {
+        for (size_t j = 0; j < train_data[i].size(); ++j) {
             if(tmp.count(train_data[i][j].second)==0)
             {
                 tmp[train_data[i][j].second] = 0.0000001;
@@ -147,9 +151,9 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
         Dev.push_back(tmp);
     }
 
-    clock_t time1 = clock();
-    float ms1 = diffclock(time1, time0);
-    printf("Initializing took %f\n", ms1);
+    clock_t time3 = clock();
+    float ms2 = diffclock(time3, time0);
+    printf("Initializing took %f\n", ms2);
 }
 
 TimeSVDPP::~TimeSVDPP() {
@@ -193,13 +197,13 @@ int TimeSVDPP::calcBin(int timeArg) {
 //terminate when RMSE varies less than 0.00005
 void TimeSVDPP::train(std::string saveFile) {
     debugPrint("Training...\n");
+    clock_t time0 = clock();
     float preRmse = 1000;
-    ofstream fout(outFile.c_str());
     srand(time(NULL));
     FILE *fp = fopen(testFile.c_str(),"r");
     int user, item, date, rating;
     float curRmse;
-    for (size_t i = 0; i<2; ++i) {
+    for (size_t i = 0; i < 1; ++i) {
         sgd();
         curRmse = cValidate(AVG,Bu,Bi,Pu,Qi);
         cout << "test_Rmse in step " << i << ": " << curRmse << endl;
@@ -210,11 +214,19 @@ void TimeSVDPP::train(std::string saveFile) {
             preRmse = curRmse;
         }
     }
+    debugPrint("Outputting...\n");
+    clock_t time1 = clock();
+    ofstream fout(outFile.c_str());
     while (fscanf(fp,"%d %d %d %d",&user, &item, &date, &rating)!=EOF) {
         fout << predictScore(AVG, user - 1, item - 1, date - 1) << endl;
     }
     fclose(fp);
     fout.close();
+    clock_t time2 = clock();
+    float ms1 = diffclock(time1, time0);
+    float ms2 = diffclock(time2, time0);
+    printf("Outputing took %f ms\n", ms1);
+    printf("Total took %f ms\n", ms2);
     cout << "final RMSE: " << curRmse << endl;
 }
 
@@ -256,7 +268,7 @@ float TimeSVDPP::predictScore(float avg,int userId, int itemId,int time) {
     int sz = train_data[userId].size();
     float sqrtNum = 0;
     if (sz>1) sqrtNum = 1/(sqrt(sz));
-    for (size_t i = 0; i<factor; ++i) {
+    for (size_t i = 0; i < factor; ++i) {
         tmp += (Pu[userId][i] +sumMW[userId][i]*sqrtNum) * Qi[itemId][i];
     }
     float score = avg + Bu[userId] + Bi[itemId] + Bi_Bin[itemId][calcBin(time)] + Alpha_u[userId]*calcDev(userId,time) + Bu_t[userId][time] + tmp;
@@ -302,7 +314,7 @@ void TimeSVDPP::sgd() {
             Alpha_u[userId] += G_alpha * (error * calcDev(userId,time)  - L_alpha * Alpha_u[userId]);
             Bu_t[userId][time] += G * (error - L * Bu_t[userId][time]);
 
-            for (size_t k=0; k<factor; k++) {
+            for (size_t k = 0; k < factor; ++k) {
                 auto uf = Pu[userId][k];
                 auto mf = Qi[itemId][k];
                 Pu[userId][k] += G * (error * mf - L_pq * uf);
@@ -319,6 +331,10 @@ void TimeSVDPP::sgd() {
             }
         }
     }
+    clock_t time1 = clock();
+    float ms1 = diffclock(time1, time0);
+    printf("First half SGD took %f ms\n", ms1);
+
     for (userId = 0; userId < N_USERS; ++userId) {
         auto sz = train_data[userId].size();
         float sqrtNum = 0;
@@ -332,10 +348,12 @@ void TimeSVDPP::sgd() {
             sumMW[userId][k] = sumy;
         }
     }
+    clock_t time2 = clock();
+    float ms2 = diffclock(time2, time1);
+    printf("Second half SGD took %f ms\n", ms2);
     G *= Decay;
     G_alpha *= Decay;
-    debugPrint("Done updating using sgd...\n");
-    clock_t time1 = clock();
-    float ms1 = diffclock(time1, time0);
-    printf("SGD took %f ms\n", ms1);
+    clock_t time3 = clock();
+    float ms3 = diffclock(time3, time0);
+    printf("SGD took %f ms\n", ms3);
 }

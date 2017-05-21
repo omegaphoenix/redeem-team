@@ -26,6 +26,7 @@ using namespace std;
 #define DATA_POINT_SIZE 4
 
 #define ZERO(v) memset(v,0,sizeof(v))
+#define sign(n) (n==0? 0 : (n<0?-1:1))    //define sign function
 
 struct dataPoint {
     int userID;

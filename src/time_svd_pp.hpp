@@ -16,10 +16,10 @@ class TimeSVDPP : public Model {
         TimeSVDPP(float*,float*,int,float**,float**, string, string, string, string);
         ~TimeSVDPP();
         void sgd();
-        float predictScore(float,int,int,int);    //prediction function
+        float predictScore(float,int,int,int);
         float calcDev(int,int);    //calculate dev_u(t)
         int calcBin(int);    //calculate time bins
-        float cValidate(float,float*,float*,float**,float**);    //validation function
+        float cValidate(float,float*,float*,float**,float**);
         void train(std::string saveFile);
         float predict(int user, int movie, int date);
     protected:

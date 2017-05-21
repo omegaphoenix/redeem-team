@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -O2 -DISRBM
+CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -DISRBM
 PROG = naive_svd
 RBM_PROG = rbm
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
@@ -38,6 +38,7 @@ svd_plus: $(SVD_PLUS_FILES:.cpp=.o)
 	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
 
 timesvdpp: $(TIME_SVD_PLUS_FILES:.cpp=.o)
+	mkdir -p bin out model out/timesvdpp model/timesvdpp
 	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
 
 knn: $(KNN_FILES:.cpp=.o)

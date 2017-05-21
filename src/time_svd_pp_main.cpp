@@ -14,8 +14,8 @@ using namespace std;
 
 int main() {
     string trainFile = "data/um/1.dta";  //set train data
-    string crossFile = "data/um/2.dta";  //set cross validation data
-    string testFile = "data/um/4.dta";  //set test data
+    string crossFile = "data/um/4.dta";  //set cross validation data
+    string testFile = "data/um/5-1.dta";  //set test data
     string outFile = "out/test.txt";  //set output data
     TimeSVDPP svd(NULL,NULL,0,NULL,NULL, trainFile, crossFile, testFile, outFile);
     svd.train("");
