@@ -20,6 +20,7 @@ Model::Model() {
     ratings = new int[N_TRAINING * DATA_POINT_SIZE];
     values = new unsigned char[N_TRAINING];
     columns = new unsigned short[N_TRAINING];
+    dates = new unsigned short[N_TRAINING];
     rowIndex = new unsigned int[N_USERS + 1];
 
     // MU
@@ -27,6 +28,7 @@ Model::Model() {
     muratings = new int[N_TRAINING * DATA_POINT_SIZE];
     muvalues = new unsigned char[N_TRAINING];
     mucolumns = new int[N_TRAINING];
+    mudates = new int[N_TRAINING];
     murowIndex = new int[N_MOVIES + 1];
 }
 
@@ -35,6 +37,7 @@ Model::~Model() {
     delete ratings;
     delete values;
     delete columns;
+    delete dates;
     delete rowIndex;
 
     delete sortStruct;
@@ -42,6 +45,7 @@ Model::~Model() {
     delete muratings;
     delete muvalues;
     delete mucolumns;
+    delete mudates;
     delete murowIndex;
 }
 
@@ -72,6 +76,7 @@ void Model::transposeMU() {
         }
         muvalues[i] = sortStruct[i].value;
         mucolumns[i] = sortStruct[i].userID;
+        mudates[i] = sortStruct[i].date;
     }
     murowIndex[N_MOVIES] = numRatings;
     clock_t time1 = clock();
@@ -112,10 +117,16 @@ void Model::loadFresh(std::string inFname, std::string outFname) {
         }
         if (rating != 0) {
             movie--;
+            date--;
             movieNo = (unsigned short) movie;
             assert (movieNo >= 0 && movieNo < N_MOVIES);
             high = (movieNo >> CHAR_BIT) & UCHAR_MAX;
             low = movieNo & UCHAR_MAX;
+            fwrite(&high, sizeof(unsigned char), 1, out);
+            fwrite(&low, sizeof(unsigned char), 1, out);
+            assert (date >= 0 && date < N_DAYS);
+            high = (date >> CHAR_BIT) & UCHAR_MAX;
+            low = date & UCHAR_MAX;
             fwrite(&high, sizeof(unsigned char), 1, out);
             fwrite(&low, sizeof(unsigned char), 1, out);
             val = (unsigned char) rating;
@@ -136,6 +147,7 @@ void Model::loadCSR(std::string fname) {
     unsigned char rating, high, low;
     int user = 0;
     unsigned short movie = 0;
+    unsigned short date = 0;
 
     off_t size = lseek(f, 0, SEEK_END);
     unsigned char* buffer = (unsigned char*) mmap(NULL, size, PROT_READ, MAP_PRIVATE, f, 0);
@@ -144,10 +156,10 @@ void Model::loadCSR(std::string fname) {
     int ratingsIdx = 0;
     int idx = 0;
     rowIndex[user] = idx;
-    // short for end of user marker, short + char per data point
+    // short for end of user marker, short + short + char per data point
 #ifndef NDEBUG
     int numPoints = (bytes - N_USERS * sizeof(short))
-                    / (sizeof(short) + sizeof(char));
+                    / (2 * sizeof(short) + sizeof(char));
     assert (numPoints <= N_TRAINING);
 #endif
     unsigned char* p = buffer;
@@ -164,6 +176,7 @@ void Model::loadCSR(std::string fname) {
         }
         // We have number of zeroes and a rating
         else {
+            // Read movie
             high = *p;
             p++;
             bytes--;
@@ -173,16 +186,32 @@ void Model::loadCSR(std::string fname) {
             p++;
             bytes--;
             movie += low;
+            // Read date
+            high = *p;
+            p++;
+            bytes--;
+            date = high;
+            date = date << CHAR_BIT;
+            low = *p;
+            p++;
+            bytes--;
+            date += low;
+            // Read rating
             rating = *p;
             p++;
             bytes--;
+            // Validate
             assert (movie >= 0 && movie < N_MOVIES);
+            assert (date >= 0 && date < N_DAYS);
             assert (rating >= 0 && rating <= MAX_RATING);
+            // Save data
             ratings[ratingsIdx + USER_IDX] = user;
             ratings[ratingsIdx + MOVIE_IDX] = movie;
+            ratings[ratingsIdx + TIME_IDX] = date;
             ratings[ratingsIdx + RATING_IDX] = rating;
             values[idx] = rating;
             columns[idx] = movie;
+            dates[idx] = date;
             idx++;
             ratingsIdx += DATA_POINT_SIZE;
         }
