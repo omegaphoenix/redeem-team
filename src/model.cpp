@@ -274,7 +274,8 @@ float Model::validate(std::string valFile) {
             k = validator->values[colIdx]; // rating
             assert (i >= 0 && i < N_MOVIES);
             assert (k > 0 && k <= MAX_RATING);
-            float prediction = predict(n, i); // jump
+            unsigned int d = validator->dates[colIdx]; // date
+            float prediction = predict(n, i, d); // jump
             float error = prediction - (float) k;
             squareError += error * error;
             assert (squareError >= 0); // jump
@@ -305,7 +306,8 @@ float Model::trainingError() {
             k = values[colIdx]; // rating
             assert (i >= 0 && i < N_MOVIES);
             assert (k > 0 && k <= MAX_RATING);
-            float prediction = predict(n, i);
+            unsigned int d = dates[colIdx]; // date
+            float prediction = predict(n, i, d); // jump
             float error = prediction - (float) k;
             squareError += error * error;
             assert (squareError >= 0);
@@ -340,7 +342,8 @@ void Model::output(std::string saveFile) {
                 colIdx++) {
             i = validator->columns[colIdx]; // movie
             assert (i >= 0 && i < N_MOVIES);
-            float prediction = predict(n, i); // jump
+            unsigned int d = validator->dates[colIdx]; // date
+            float prediction = predict(n, i, d); // jump
             outputFile << prediction << "\n"; // jump
         }
     }
@@ -354,6 +357,7 @@ void Model::output(std::string saveFile) {
 }
 
 void Model::train(std::string saveFile) {
+    printf("Not doing anything on %s\n", saveFile.c_str());
 }
 
 #ifdef ISRBM
@@ -361,7 +365,8 @@ void Model::prepPredict(Model *mod, int n) {
 }
 #endif
 
-float Model::predict(int n, int i) {
+float Model::predict(int n, int i, int d) {
+    printf("Not predicting %d %d %d\n", n, i, d);
     return 0.0;
 }
 

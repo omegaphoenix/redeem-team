@@ -255,7 +255,7 @@ void kNN::buildMatrix(std::string saveFile) {
 
 // Find "closest" users and average their ratings of given movie
 // Change this to: go through all users that have rated a certain movie
-float kNN::predict(int user, int movie) {
+float kNN::predict(int user, int movie, int date) {
     // TODO: get stats?
     std::priority_queue<corrUser> top_corr;
 

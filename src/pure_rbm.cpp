@@ -78,7 +78,7 @@ void RBM::train(std::string saveFile) {
     ZERO(CDinc);
     ZERO(visbiasinc);
     ZERO(hidbiasinc);
-    int tSteps = 1;
+    int tSteps = 1; // Set this value if you are continuing run
 
     std::string scoreFileName = "out/rbm/scores_"
         + std::to_string(TOTAL_FEATURES) + ".txt";
@@ -532,10 +532,12 @@ void RBM::prepPredict(Model *mod, int n) {
             negvisprobs[m * SOFTMAX + 2] = 1.0;
         }
     }
+    prevUser = n;
 }
 
 // Return the predicted rating for user n, movie i
-float RBM::predict(int n, int i) {
+float RBM::predict(int n, int i, int d) {
+    assert (n == prevUser);
     float expVal = 0.0;
     for (int k = 0; k < SOFTMAX; ++k) {
         expVal += negvisprobs[i * SOFTMAX + k] * (k + 1);

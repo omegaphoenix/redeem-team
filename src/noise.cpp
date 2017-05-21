@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
     std::ios_base::sync_with_stdio(false);
 
     // Get filenames and check that they aren't the same
-    std::string inFname = "out/rbm/pure_rbm_v3_factors_200_epoch_44_T_9";
+    std::string inFname = "out/rbm/pure_rbm_v3_factors_200_epoch_44_T_9.txt";
     std::string outFname = inFname + "_noisy.txt";
     inFname = inFname + ".txt";
 
