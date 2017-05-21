@@ -13,15 +13,15 @@
 
 using namespace std;
 
-const int binNum = 30;       //number of time bins
-const float AVG = 3.60073;  //average score
-float G_alpha = 0.00001;        //gamma for alpha
-const float L_alpha = 0.0004;   //learning rate for alpha
-const float L_pq = 0.015;       //learning rate for Pu & Qi
-float G = 0.007;                //general gamma
-const float Decay = 0.9;        //learning rate decay factor
-const float L = 0.005;          //general learning rate
-const int factor = 50;           //number of factors
+const int binNum = 30;         // number of time bins
+const float AVG = 3.60073;     // average score
+float G_alpha = 0.00001;       // gamma for alpha
+const float L_alpha = 0.0004;  // learning rate for alpha
+const float L_pq = 0.015;      // learning rate for Pu & Qi
+float G = 0.007;               // general gamma
+const float Decay = 0.9;       // learning rate decay factor
+const float L = 0.005;         // general learning rate
+const int factor = 50;         // number of factors
 
 //initialization
 TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string cross_file, string test_file, string out_file):
@@ -91,7 +91,7 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string cross
     int userId,itemId,rating,t;
     load("1.dta");
     FILE *fp = fopen(crossFile.c_str(),"r");
-    while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating)!=EOF) {
+    while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating) != EOF) {
         test_data.push_back(make_pair(make_pair(userId - 1, itemId - 1),make_pair(t - 1,rating)));
     }
     fclose(fp);
@@ -154,7 +154,7 @@ TimeSVDPP::~TimeSVDPP() {
 
 //calculate dev_u(t) = sign(t-tu)*|t-tu|^0.4 and save the result for saving the time
 float TimeSVDPP::calcDev(int user, int timeArg) {
-    if(Dev[user].count(timeArg)!=0) {
+    if(Dev[user].count(timeArg) != 0) {
         return Dev[user][timeArg];
     }
     float tmp = sign(timeArg - Tu[user]) * pow(float(abs(timeArg - Tu[user])), 0.4);
@@ -177,7 +177,7 @@ void TimeSVDPP::train(std::string saveFile) {
     srand(time(NULL));
     int user, item, date, rating;
     float curRmse;
-    for (size_t i = 0; i < 1; ++i) {
+    for (size_t i = 0; i < 1000; ++i) {
         sgd();
         curRmse = cValidate(AVG);
         cout << "test_Rmse in step " << i << ": " << curRmse << endl;
@@ -192,15 +192,15 @@ void TimeSVDPP::train(std::string saveFile) {
     clock_t time1 = clock();
     FILE *fp = fopen(testFile.c_str(),"r");
     ofstream fout(outFile.c_str());
-    while (fscanf(fp,"%d %d %d %d",&user, &item, &date, &rating)!=EOF) {
+    while (fscanf(fp,"%d %d %d %d",&user, &item, &date, &rating) != EOF) {
         fout << predictScore(AVG, user - 1, item - 1, date - 1) << endl;
     }
     fclose(fp);
     fout.close();
     clock_t time2 = clock();
-    float ms1 = diffclock(time1, time0);
+    float ms1 = diffclock(time2, time1);
     float ms2 = diffclock(time2, time0);
-    printf("Outputing took %f ms\n", ms1);
+    printf("Outputting took %f ms\n", ms1);
     printf("Total took %f ms\n", ms2);
     cout << "final RMSE: " << curRmse << endl;
 }
@@ -271,7 +271,7 @@ void TimeSVDPP::sgd() {
         int userStart = rowIndex[userId];
         int sz = userEnd - userStart;
         float sqrtNum = 0;
-        vector <float> tmpSum(factor,0);
+        vector <float> tmpSum(factor, 0);
         if (sz > 1) {
             sqrtNum = 1/(sqrt(sz));
         }
@@ -296,8 +296,8 @@ void TimeSVDPP::sgd() {
             Bu_t[userId][time] += G * (error - L * Bu_t[userId][time]);
 
             for (size_t k = 0; k < factor; ++k) {
-                auto uf = Pu[userId * factor + k];
-                auto mf = Qi[itemId * factor + k];
+                float uf = Pu[userId * factor + k];
+                float mf = Qi[itemId * factor + k];
                 Pu[userId * factor + k] += G * (error * mf - L_pq * uf);
                 Qi[itemId * factor + k] += G * (error * (uf+sqrtNum*sumMW[userId * factor + k]) - L_pq * mf);
                 tmpSum[k] += error*sqrtNum*mf;
