@@ -89,7 +89,7 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string cross
     debugPrint("Loading data...\n");
     clock_t time1 = clock();
     int userId,itemId,rating,t;
-    load("1.dta");
+    load("all.dta");
     FILE *fp = fopen(crossFile.c_str(),"r");
     while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating) != EOF) {
         test_data.push_back(make_pair(make_pair(userId - 1, itemId - 1),make_pair(t - 1,rating)));
@@ -181,7 +181,7 @@ void TimeSVDPP::train(std::string saveFile) {
         sgd();
         curRmse = cValidate(AVG);
         cout << "test_Rmse in step " << i << ": " << curRmse << endl;
-        if(curRmse >= preRmse-0.00005) {
+        if(curRmse >= preRmse - 0.00005) {
             break;
         }
         else{
