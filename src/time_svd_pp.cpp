@@ -24,7 +24,7 @@ const float L = 0.005;          //general learning rate
 const int factor = 50;           //number of factors
 
 //initialization
-TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string train_file, string cross_file, string test_file, string out_file):
+TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float** pu, string train_file, string cross_file, string test_file, string out_file):
     trainFile(train_file), crossFile(cross_file), testFile(test_file), outFile(out_file) {
     debugPrint("Initializing...\n");
     clock_t time0 = clock();
@@ -61,17 +61,12 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
 
 
     if(qi == NULL) {
-        Qi = new float* [N_MOVIES];
-        y = new float* [N_MOVIES];
-        for (size_t i = 0; i < N_MOVIES; ++i) {
-            Qi[i] = new float[factor];
-            y[i] = new float[factor];
-        }
-
+        Qi = new float[N_MOVIES * factor];
+        y = new float[N_MOVIES * factor];
         for (size_t i = 0; i < N_MOVIES; ++i) {
             for (size_t j = 0; j < factor; ++j) {
-                Qi[i][j] = 0.1 * (rand() / (RAND_MAX + 1.0)) / sqrt(factor);
-                y[i][j] = 0;
+                Qi[i * factor + j] = 0.1 * (rand() / (RAND_MAX + 1.0)) / sqrt(factor);
+                y[i * factor + j] = 0;
             }
         }
     }
@@ -161,10 +156,6 @@ TimeSVDPP::~TimeSVDPP() {
         delete[] Pu[i];
         delete[] sumMW[i];
     }
-    for (size_t i = 0; i < N_MOVIES; ++i) {
-        delete[] Qi[i];
-        delete[] y[i];
-    }
     delete[] Bi_Bin;
     delete[] sumMW;
     delete[] y;
@@ -200,7 +191,7 @@ void TimeSVDPP::train(std::string saveFile) {
     float curRmse;
     for (size_t i = 0; i < 1; ++i) {
         sgd();
-        curRmse = cValidate(AVG,Bu,Bi,Pu,Qi);
+        curRmse = cValidate(AVG,Bu,Bi,Pu);
         cout << "test_Rmse in step " << i << ": " << curRmse << endl;
         if(curRmse >= preRmse-0.00005) {
             break;
@@ -227,7 +218,7 @@ void TimeSVDPP::train(std::string saveFile) {
 
 
 //function for cross validation
-float TimeSVDPP::cValidate(float avg,float* bu,float* bi,float** pu,float** qi) {
+float TimeSVDPP::cValidate(float avg, float* bu, float* bi, float** pu) {
     debugPrint("Cross validating...\n");
     clock_t time0 = clock();
     int userId,itemId,rating,t;
@@ -264,7 +255,7 @@ float TimeSVDPP::predictScore(float avg,int userId, int itemId,int time) {
     float sqrtNum = 0;
     if (sz>1) sqrtNum = 1/(sqrt(sz));
     for (size_t i = 0; i < factor; ++i) {
-        tmp += (Pu[userId][i] +sumMW[userId][i]*sqrtNum) * Qi[itemId][i];
+        tmp += (Pu[userId][i] +sumMW[userId][i]*sqrtNum) * Qi[itemId * factor + i];
     }
     float score = avg + Bu[userId] + Bi[itemId] + Bi_Bin[itemId * binNum + calcBin(time)] + Alpha_u[userId]*calcDev(userId,time) + Bu_t[userId][time] + tmp;
 
@@ -297,7 +288,7 @@ void TimeSVDPP::sgd() {
             float sumy = 0;
             for (int colIdx = userStart; colIdx < userEnd; ++colIdx) {
                 int itemI = columns[colIdx];
-                sumy += y[itemI][k];
+                sumy += y[itemI * factor + k];
             }
             sumMW[userId][k] = sumy;
         }
@@ -315,18 +306,18 @@ void TimeSVDPP::sgd() {
 
             for (size_t k = 0; k < factor; ++k) {
                 auto uf = Pu[userId][k];
-                auto mf = Qi[itemId][k];
+                auto mf = Qi[itemId * factor + k];
                 Pu[userId][k] += G * (error * mf - L_pq * uf);
-                Qi[itemId][k] += G * (error * (uf+sqrtNum*sumMW[userId][k]) - L_pq * mf);
+                Qi[itemId * factor + k] += G * (error * (uf+sqrtNum*sumMW[userId][k]) - L_pq * mf);
                 tmpSum[k] += error*sqrtNum*mf;
             }
         }
         for (int colIdx = userStart; colIdx < userEnd; ++colIdx) {
             itemId = columns[colIdx];
             for (int k = 0; k < factor; ++k) {
-                float tmpMW = y[itemId][k];
-                y[itemId][k] += G*(tmpSum[k]- L_pq *tmpMW);
-                sumMW[userId][k] += y[itemId][k] - tmpMW;
+                float tmpMW = y[itemId * factor + k];
+                y[itemId * factor + k] += G*(tmpSum[k]- L_pq *tmpMW);
+                sumMW[userId][k] += y[itemId * factor + k] - tmpMW;
             }
         }
     }
@@ -346,7 +337,7 @@ void TimeSVDPP::sgd() {
             float sumy = 0;
             for (int colIdx = userStart; colIdx < userEnd; ++colIdx) {
                 int itemI = columns[colIdx];
-                sumy += y[itemI][k];
+                sumy += y[itemI * factor + k];
             }
             sumMW[userId][k] = sumy;
         }
