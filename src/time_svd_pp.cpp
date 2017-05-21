@@ -26,7 +26,9 @@ const int factor = 50;           //number of factors
 
 //initialization
 TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string train_file, string cross_file, string test_file, string out_file):
- trainFile(train_file), crossFile(cross_file), testFile(test_file), outFile(out_file){
+    trainFile(train_file), crossFile(cross_file), testFile(test_file), outFile(out_file) {
+    debugPrint("Initializing...\n");
+    clock_t time0 = clock();
 
     train_data.resize(N_USERS);
     if (bi == NULL){
@@ -145,7 +147,9 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float** qi,float** pu, string tra
         Dev.push_back(tmp);
     }
 
-    debugPrint("Done Initializing...\n");
+    clock_t time1 = clock();
+    float ms1 = diffclock(time1, time0);
+    printf("Initializing took %f\n", ms1);
 }
 
 TimeSVDPP::~TimeSVDPP() {
@@ -217,6 +221,8 @@ void TimeSVDPP::train(std::string saveFile) {
 
 //function for cross validation
 float TimeSVDPP::cValidate(float avg,float* bu,float* bi,float** pu,float** qi){
+    debugPrint("Cross validating...\n");
+    clock_t time0 = clock();
     int userId,itemId,rating,t;
     int n = 0;
     float rmse = 0;
@@ -229,6 +235,9 @@ float TimeSVDPP::cValidate(float avg,float* bu,float* bi,float** pu,float** qi){
         float pScore = predictScore(avg,userId,itemId,t);
         rmse += (rating - pScore) * (rating - pScore);
     }
+    clock_t time1 = clock();
+    float ms1 = diffclock(time1, time0);
+    printf("Cross validation took %f ms\n", ms1);
     return sqrt(rmse/n);
 }
 
@@ -266,6 +275,7 @@ float TimeSVDPP::predictScore(float avg,int userId, int itemId,int time){
 
 void TimeSVDPP::sgd(){
     debugPrint("Updating using sgd...\n");
+    clock_t time0 = clock();
     int userId,itemId,rating,time;
     for (userId = 0; userId < N_USERS; ++userId) {
         int sz = train_data[userId].size();
@@ -325,5 +335,8 @@ void TimeSVDPP::sgd(){
     G *= Decay;
     G_alpha *= Decay;
     debugPrint("Done updating using sgd...\n");
+    clock_t time1 = clock();
+    float ms1 = diffclock(time1, time0);
+    printf("SGD took %f ms\n", ms1);
 }
 
