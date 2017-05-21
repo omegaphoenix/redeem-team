@@ -13,7 +13,7 @@ using namespace std;
 
 class TimeSVDPP : public Model {
     public:
-        TimeSVDPP(float*,float*,int,float*,float*, string, string, string, string);
+        TimeSVDPP(float*,float*,int,float*,float*, string, string, string);
         ~TimeSVDPP();
         void sgd();
         float predictScore(float,int,int,int);
@@ -29,18 +29,17 @@ class TimeSVDPP : public Model {
         //   + Bi_Bin,t + Alpha_u*Dev + Bu_t
         //   + Qi^T(Pu + |R(u)|^-1/2 \sum yi
 
+        vector<map<int,float> > Bu_t;
+        vector<map<int,float> > Dev; //save the result of calcDev(userId,time)
         float* Tu; //variable for mean time of user
         float* Alpha_u;
         float* Bi;
         float* Bi_Bin;
         float* Bu;
-        vector<map<int,float> > Bu_t;
-        vector<map<int,float> > Dev; //save the result of calcDev(userId,time)
         float* Qi;
         float* Pu;
         float* y;
         float* sumMW;    //save the sum of Pu
-        string trainFile;
         string crossFile;
         string testFile;
         string outFile;

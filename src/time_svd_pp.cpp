@@ -24,8 +24,8 @@ const float L = 0.005;          //general learning rate
 const int factor = 50;           //number of factors
 
 //initialization
-TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string train_file, string cross_file, string test_file, string out_file):
-    trainFile(train_file), crossFile(cross_file), testFile(test_file), outFile(out_file) {
+TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string cross_file, string test_file, string out_file):
+    crossFile(cross_file), testFile(test_file), outFile(out_file) {
     debugPrint("Initializing...\n");
     clock_t time0 = clock();
 
@@ -109,8 +109,8 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string train
             Tu[i] = 0;
             continue;
         }
-        for (size_t j = userStart; j < userEnd; ++j) {
-            tmp += dates[j];
+        for (size_t dateIdx = userStart; dateIdx < userEnd; ++dateIdx) {
+            tmp += dates[dateIdx];
         }
         Tu[i] = tmp/sz;
     }
@@ -119,9 +119,7 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string train
         map<int,float> tmp;
         int userEnd = rowIndex[i + 1];
         int userStart = rowIndex[i];
-        int sz = userEnd - userStart;
-        for (size_t j = 0; j < sz; ++j) {
-            int dateIdx = userStart + j;
+        for (size_t dateIdx = userStart; dateIdx < userEnd; ++dateIdx) {
             int date = dates[dateIdx];
             if(tmp.count(date) == 0)
             {
@@ -143,15 +141,15 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string train
 }
 
 TimeSVDPP::~TimeSVDPP() {
-    delete[] Bi;
-    delete[] Bu;
-    delete[] Alpha_u;
     delete[] Tu;
+    delete[] Alpha_u;
+    delete[] Bi;
     delete[] Bi_Bin;
-    delete[] sumMW;
-    delete[] y;
-    delete[] Pu;
+    delete[] Bu;
     delete[] Qi;
+    delete[] Pu;
+    delete[] y;
+    delete[] sumMW;
 }
 
 //calculate dev_u(t) = sign(t-tu)*|t-tu|^0.4 and save the result for saving the time
@@ -177,7 +175,6 @@ void TimeSVDPP::train(std::string saveFile) {
     clock_t time0 = clock();
     float preRmse = 1000;
     srand(time(NULL));
-    FILE *fp = fopen(testFile.c_str(),"r");
     int user, item, date, rating;
     float curRmse;
     for (size_t i = 0; i < 1; ++i) {
@@ -193,6 +190,7 @@ void TimeSVDPP::train(std::string saveFile) {
     }
     debugPrint("Outputting...\n");
     clock_t time1 = clock();
+    FILE *fp = fopen(testFile.c_str(),"r");
     ofstream fout(outFile.c_str());
     while (fscanf(fp,"%d %d %d %d",&user, &item, &date, &rating)!=EOF) {
         fout << predictScore(AVG, user - 1, item - 1, date - 1) << endl;
@@ -244,7 +242,9 @@ float TimeSVDPP::predictScore(float avg,int userId, int itemId,int time) {
     float tmp = 0.0;
     int sz = rowIndex[userId + 1] - rowIndex[userId];
     float sqrtNum = 0;
-    if (sz>1) sqrtNum = 1/(sqrt(sz));
+    if (sz > 1) {
+        sqrtNum = 1. / (sqrt(sz));
+    }
     for (size_t i = 0; i < factor; ++i) {
         tmp += (Pu[userId * factor + i] +sumMW[userId * factor + i]*sqrtNum) * Qi[itemId * factor + i];
     }
@@ -272,7 +272,7 @@ void TimeSVDPP::sgd() {
         int sz = userEnd - userStart;
         float sqrtNum = 0;
         vector <float> tmpSum(factor,0);
-        if (sz>1) {
+        if (sz > 1) {
             sqrtNum = 1/(sqrt(sz));
         }
         for (int k = 0; k < factor; ++k) {
@@ -321,7 +321,7 @@ void TimeSVDPP::sgd() {
         int userStart = rowIndex[userId];
         int sz = userEnd - userStart;
         float sqrtNum = 0;
-        if (sz>1) {
+        if (sz > 1) {
             sqrtNum = 1.0/sqrt(sz);
         }
         for (int k = 0; k < factor; ++k) {
