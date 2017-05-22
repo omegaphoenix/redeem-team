@@ -11,6 +11,8 @@
 
 #include "utils.hpp"
 
+#define SAVE_EVERY_K 2
+
 using namespace std;
 
 const int kBinNum = 30;         // number of time bins
@@ -193,26 +195,55 @@ TimeSVDPP::~TimeSVDPP() {
 struct KeyValue {
     int key;
     float value;
+    bool next;
 };
 
 void saveVectorMap(const vector<map<int,float> >& vec, FILE* out) {
     int nPairs = 0;
-    for (int i = 0; i < vec.size(); i++) {
+    for (int i = 0; i < vec.size(); ++i) {
         nPairs += vec[i].size();
     }
     KeyValue* buf = new KeyValue[nPairs];
 
     int cur = 0;
-    for (int i = 0; i < vec.size(); i++) {
+    for (int i = 0; i < vec.size(); ++i) {
         for (auto& it: vec[i]) {
             buf[cur].key = it.first;
             buf[cur].value = it.second;
+            buf[cur].next = false;
             cur++;
         }
+        buf[cur].next = true;
     }
 
+    fwrite(&nPairs, sizeof(int), 1, out);
     fwrite(buf, sizeof(KeyValue), nPairs, out);
     delete[] buf;
+}
+
+vector<map<int,float> >* loadVectorMap(FILE* in) {
+    vector<map<int,float> >* vec = new vector<map<int,float> >();
+    int nPairs;
+    fread(&nPairs, sizeof(int), 1, in);
+    KeyValue* buf = new KeyValue[nPairs];
+    fread(buf, sizeof(KeyValue), nPairs, in);
+
+    int maps = 0;
+    map<int,float> init;
+    vec->push_back(init);
+    for (int i = 0; i < nPairs; ++i) {
+        int key = buf[i].key;
+        float value = buf[i].value;
+        bool next = buf[i].next;
+        if (next) {
+            map<int,float> tmp;
+            vec->push_back(tmp);
+            maps++;
+        }
+        (*vec)[maps][key] = value;
+    }
+    delete[] buf;
+    return vec;
 }
 
 // Save progress
@@ -227,9 +258,14 @@ void TimeSVDPP::save(string nickname) {
                    to_string(numEpochs) + "epochs.save";
 
     FILE *out = fopen(fname.c_str(), "wb");
+    if (out == NULL) {
+        printf("File %s not found.\n", fname.c_str());
+    }
     printf("Saving raw arrays...");
     clock_t time0 = clock();
     fwrite(&numEpochs, sizeof(int), 1, out);
+    fwrite(&binNum, sizeof(int), 1, out);
+    fwrite(&factor, sizeof(int), 1, out);
     fwrite(Alpha_u, sizeof(float), N_USERS, out);
     fwrite(Bi, sizeof(float), N_MOVIES, out);
     fwrite(Bi_Bin, sizeof(float), N_MOVIES * binNum, out);
@@ -249,6 +285,54 @@ void TimeSVDPP::save(string nickname) {
 
     printf("Total save time: %f ms\n", diffclock(time2, time0));
     fclose(out);
+}
+
+TimeSVDPP* loadTSVDpp(string saveFile, string train_file,
+        string cross_file, string test_file, string out_file) {
+    int numEpochs, binNum, factor;
+    FILE *in = fopen(saveFile.c_str(), "r");
+    if (in == NULL) {
+        printf("File %s not found.\n", saveFile.c_str());
+    }
+
+    printf("Loading raw arrays...");
+    clock_t time0 = clock();
+    fread(&numEpochs, sizeof(int), 1, in);
+    fread(&binNum, sizeof(int), 1, in);
+    fread(&factor, sizeof(int), 1, in);
+    float* Alpha_u = new float[N_USERS];
+    float* Bi = new float[N_MOVIES];
+    float* Bi_Bin = new float[N_MOVIES * binNum];
+    float* Bu = new float[N_USERS];
+    float* Qi = new float[N_MOVIES * factor];
+    float* Pu = new float[N_USERS * factor];
+    float* ys = new float[N_MOVIES * factor];
+    float* sumMW = new float[N_USERS * factor];
+
+    fread(Alpha_u, sizeof(float), N_USERS, in);
+    fread(Bi, sizeof(float), N_MOVIES, in);
+    fread(Bi_Bin, sizeof(float), N_MOVIES * binNum, in);
+    fread(Bu, sizeof(float), N_USERS, in);
+    fread(Qi, sizeof(float), N_MOVIES * factor, in);
+    fread(Pu, sizeof(float), N_USERS * factor, in);
+    fread(ys, sizeof(float), N_MOVIES * factor, in);
+    fread(sumMW, sizeof(float), N_USERS * factor, in);
+    clock_t time1 = clock();
+    printf(" this took %f ms\n", diffclock(time1, time0));
+
+    vector<map<int,float> > *Bu_t, *Dev;
+    printf("Loading Bu_t and Dev (vector<map<int,float> >)...");
+    Bu_t = loadVectorMap(in);
+    Dev = loadVectorMap(in);
+    clock_t time2 = clock();
+    printf(" this took %f ms\n", diffclock(time2, time1));
+
+    printf("Total load time: %f ms\n", diffclock(time2, time0));
+    fclose(in);
+    assert (numEpochs > 0 && binNum > 0 && factor > 0);
+    return new TimeSVDPP(numEpochs, binNum, factor, Alpha_u, Bi,
+        Bi_Bin, Bu, Qi, Pu, ys, sumMW, Bu_t, Dev,
+        train_file, cross_file, test_file, out_file);
 }
 
 //calculate dev_u(t) = sign(t-tu)*|t-tu|^0.4 and save the result for saving the time
@@ -276,10 +360,16 @@ void TimeSVDPP::train(std::string saveFile) {
     srand(time(NULL));
     int user, item, date, rating;
     float curRmse;
+    printf("Starting with %d epochs\n", numEpochs);
     for (size_t i = 0; i < 1000; ++i) {
         sgd();
         curRmse = cValidate(AVG);
-        cout << "test_Rmse in step " << i << ": " << curRmse << endl;
+        cout << "test_Rmse in step " << numEpochs << ": " << curRmse << endl;
+        numEpochs++;
+        if (numEpochs % SAVE_EVERY_K == 0) {
+            save(saveFile);
+        }
+
         if(curRmse < preRmse - 0.00005) {
             preRmse = curRmse;
         }

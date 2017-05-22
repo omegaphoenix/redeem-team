@@ -56,5 +56,8 @@ class TimeSVDPP : public Model {
         int numEpochs;
  };
 
+TimeSVDPP* loadTSVDpp(string saveFile, string train_file,
+    string cross_file, string test_file, string out_file);
+
 
 #endif // TIME_SVD_PP_HPP
