@@ -114,8 +114,8 @@ static inline float sigmoid(float x) {
 
 // bounds the prediction to between 1 and 5
 static inline float bound(float x) {
-    if (x > 5) return 5;
-    if (x < 1) return 1;
+    if (x > 5.0) return 5.0;
+    if (x < 1.0) return 1.0;
     return x;
 }
 

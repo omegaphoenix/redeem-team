@@ -244,17 +244,13 @@ float TimeSVDPP::predictScore(float avg,int userId, int itemId,int time) {
         sqrtNum = 1. / (sqrt(sz));
     }
     for (size_t i = 0; i < factor; ++i) {
-        tmp += (Pu[userId * factor + i] +sumMW[userId * factor + i]*sqrtNum) * Qi[itemId * factor + i];
+        tmp += (Pu[userId * factor + i] + sumMW[userId * factor + i]*sqrtNum)
+            * Qi[itemId * factor + i];
     }
-    float score = avg + Bu[userId] + Bi[itemId] + Bi_Bin[itemId * binNum + calcBin(time)] + Alpha_u[userId]*calcDev(userId,time) + Bu_t[userId][time] + tmp;
-
-    if(score > 5) {
-        score = 5;
-    }
-    if(score < 1) {
-        score = 1;
-    }
-    return score;
+    tmp += avg + Bu[userId] + Bi[itemId] + Bi_Bin[itemId * binNum
+            + calcBin(time)] + Alpha_u[userId]*calcDev(userId,time)
+            + Bu_t[userId][time];
+    return bound(tmp);
 }
 
 //function for training
