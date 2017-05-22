@@ -17,7 +17,9 @@ int main() {
     string crossFile = "data/um/4.dta";  //set cross validation data
     string testFile = "data/um/5-1.dta";  //set test data
     string outFile = "out/timesvdpp/test.txt";  //set output data
-    TimeSVDPP svd(NULL,NULL,0,NULL,NULL, trainFile, crossFile, testFile, outFile);
+    TimeSVDPP svd(0,0,0,NULL,NULL,NULL,NULL,
+                  NULL,NULL,NULL,NULL,NULL,NULL,
+                  trainFile, crossFile, testFile, outFile);
     svd.train("");
     return 0;
 }

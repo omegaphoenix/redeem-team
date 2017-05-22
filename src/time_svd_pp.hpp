@@ -13,7 +13,11 @@ using namespace std;
 
 class TimeSVDPP : public Model {
     public:
-        TimeSVDPP(float*,float*,int,float*,float*, string, string, string, string);
+        TimeSVDPP(int,int,int,float*,float*,float*,float*,
+                  float*,float*,float*,float*,
+                  vector<map<int,float> >*,
+                  vector<map<int,float> >*,
+                  string,string,string,string);
         ~TimeSVDPP();
         void sgd();
         float predictScore(float,int,int,int);
@@ -23,6 +27,8 @@ class TimeSVDPP : public Model {
         void train(std::string saveFile);
         float predict(int user, int movie, int date);
     protected:
+        int binNum;
+        int factor;
 
         //   prediction formula:
         //   avg + Bu + Bi
@@ -45,6 +51,8 @@ class TimeSVDPP : public Model {
         string testFile;
         string outFile;
         vector <pair <pair<int,int>, pair <int, int> > > test_data;
+    private:
+        int numEpochs;
  };
 
 

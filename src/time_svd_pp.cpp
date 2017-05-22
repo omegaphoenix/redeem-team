@@ -13,7 +13,7 @@
 
 using namespace std;
 
-const int binNum = 30;         // number of time bins
+const int kBinNum = 30;         // number of time bins
 const float AVG = 3.60073;     // average score
 float G_alpha = 0.00001;       // gamma for alpha
 const float L_alpha = 0.0004;  // learning rate for alpha
@@ -21,13 +21,32 @@ const float L_pq = 0.015;      // learning rate for Pu & Qi
 float G = 0.007;               // general gamma
 const float Decay = 0.9;       // learning rate decay factor
 const float L = 0.005;         // general learning rate
-const int factor = 50;         // number of factors
+const int kFactor = 50;         // number of factors
 
 //initialization
-TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string train_file, string cross_file, string test_file, string out_file):
+TimeSVDPP::TimeSVDPP(int epochs, int bnum, int k, float* alpha_u, float* bi,
+        float* bi_bin, float* bu, float* qi, float* pu, float* ys, float* summw,
+        vector<map<int,float> >* bu_t, vector<map<int,float> >* dev,
+        string train_file, string cross_file, string test_file, string out_file):
     trainFile(train_file), crossFile(cross_file), testFile(test_file), outFile(out_file) {
     debugPrint("Initializing...\n");
     clock_t time0 = clock();
+
+    numEpochs = epochs;
+
+    if (bnum == 0) {
+        binNum = kBinNum;
+    }
+    else {
+        binNum = bnum;
+    }
+
+    if (k == 0) {
+        factor = kFactor;
+    }
+    else {
+        factor = k;
+    }
 
     if (bi == NULL) {
         Bi = new float[N_MOVIES];
@@ -49,16 +68,25 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string train
         Bu = bu;
     }
 
-    Alpha_u = new float[N_USERS];
-    for (size_t i = 0; i < N_USERS; ++i) {
-        Alpha_u[i] = 0;
+    if (alpha_u == NULL) {
+        Alpha_u = new float[N_USERS];
+        for (size_t i = 0; i < N_USERS; ++i) {
+            Alpha_u[i] = 0;
+        }
+    }
+    else {
+        Alpha_u = alpha_u;
     }
 
-    Bi_Bin = new float[N_MOVIES * binNum];
-    for (size_t i = 0; i < N_MOVIES * binNum; ++i) {
-        Bi_Bin[i] = 0.0;
+    if (bi_bin == NULL) {
+        Bi_Bin = new float[N_MOVIES * binNum];
+        for (size_t i = 0; i < N_MOVIES * binNum; ++i) {
+            Bi_Bin[i] = 0.0;
+        }
     }
-
+    else {
+        Bi_Bin = bi_bin;
+    }
 
     if(qi == NULL) {
         Qi = new float[N_MOVIES * factor];
@@ -72,6 +100,7 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string train
     }
     else{
         Qi = qi;
+        y = ys;
     }
 
     if(pu == NULL) {
@@ -85,6 +114,7 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string train
         }
     }   else{
         Pu = pu;
+        sumMW = summw;
     }
     debugPrint("Loading data...\n");
     clock_t time1 = clock();
@@ -115,22 +145,32 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string train
         Tu[i] = tmp/sz;
     }
 
-    for (size_t i = 0; i < N_USERS; ++i) {
-        map<int,float> tmp;
-        int userEnd = rowIndex[i + 1];
-        int userStart = rowIndex[i];
-        for (size_t dateIdx = userStart; dateIdx < userEnd; ++dateIdx) {
-            int date = dates[dateIdx];
-            if(tmp.count(date) == 0) {
-                tmp[date] = 0.0000001;
+    if (bu_t == NULL) {
+        for (size_t i = 0; i < N_USERS; ++i) {
+            map<int,float> tmp;
+            int userEnd = rowIndex[i + 1];
+            int userStart = rowIndex[i];
+            for (size_t dateIdx = userStart; dateIdx < userEnd; ++dateIdx) {
+                int date = dates[dateIdx];
+                if(tmp.count(date) == 0) {
+                    tmp[date] = 0.0000001;
+                }
             }
+            Bu_t.push_back(tmp);
         }
-        Bu_t.push_back(tmp);
+    }
+    else {
+        Bu_t = *bu_t;
     }
 
-    for (size_t i = 0; i < N_USERS; ++i) {
-        map<int,float> tmp;
-        Dev.push_back(tmp);
+    if (dev == NULL) {
+        for (size_t i = 0; i < N_USERS; ++i) {
+            map<int,float> tmp;
+            Dev.push_back(tmp);
+        }
+    }
+    else {
+        Dev = *dev;
     }
 
     clock_t time3 = clock();
