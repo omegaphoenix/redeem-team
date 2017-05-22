@@ -17,7 +17,7 @@ class TimeSVDPP : public Model {
                   float*,float*,float*,float*,
                   vector<map<int,float> >*,
                   vector<map<int,float> >*,
-                  string,string,string,string);
+                  string,string,string);
         ~TimeSVDPP();
         void sgd();
         float predictScore(float,int,int,int);
@@ -25,7 +25,7 @@ class TimeSVDPP : public Model {
         int calcBin(int);    //calculate time bins
         float cValidate(float);
         void train(std::string saveFile);
-        void save(string nickname);
+        void save(void);
         float predict(int user, int movie, int date);
     protected:
         int binNum;
@@ -50,14 +50,15 @@ class TimeSVDPP : public Model {
         string trainFile;
         string crossFile;
         string testFile;
-        string outFile;
         vector <pair <pair<int,int>, pair <int, int> > > test_data;
     private:
+        string getBasename(void);
+        string nickname;
         int numEpochs;
  };
 
 TimeSVDPP* loadTSVDpp(string saveFile, string train_file,
-    string cross_file, string test_file, string out_file);
+                      string cross_file, string test_file);
 
 
 #endif // TIME_SVD_PP_HPP

@@ -29,8 +29,8 @@ const int kFactor = 50;         // number of factors
 TimeSVDPP::TimeSVDPP(int epochs, int bnum, int k, float* alpha_u, float* bi,
         float* bi_bin, float* bu, float* qi, float* pu, float* ys, float* summw,
         vector<map<int,float> >* bu_t, vector<map<int,float> >* dev,
-        string train_file, string cross_file, string test_file, string out_file):
-    trainFile(train_file), crossFile(cross_file), testFile(test_file), outFile(out_file) {
+        string train_file, string cross_file, string test_file):
+    trainFile(train_file), crossFile(cross_file), testFile(test_file) {
     debugPrint("Initializing...\n");
     clock_t time0 = clock();
 
@@ -207,13 +207,14 @@ void saveVectorMap(const vector<map<int,float> >& vec, FILE* out) {
 
     int cur = 0;
     for (int i = 0; i < vec.size(); ++i) {
-        for (auto& it: vec[i]) {
-            buf[cur].key = it.first;
-            buf[cur].value = it.second;
-            buf[cur].next = false;
+        auto begin = vec[i].begin();
+        auto end = vec[i].end();
+        for (auto it = begin; it != end; ++it) {
+            buf[cur].key = it->first;
+            buf[cur].value = it->second;
+            buf[cur].next = (it == begin);
             cur++;
         }
-        buf[cur].next = true;
     }
 
     fwrite(&nPairs, sizeof(int), 1, out);
@@ -246,16 +247,15 @@ vector<map<int,float> >* loadVectorMap(FILE* in) {
     return vec;
 }
 
+string TimeSVDPP::getBasename(void) {
+    return nickname + to_string(factor) + "factors_" +
+           to_string(binNum) + "bins_" +
+           to_string(numEpochs) + "epochs";
+}
+
 // Save progress
-void TimeSVDPP::save(string nickname) {
-    if (nickname != "") {
-        nickname += "_";
-    }
-    string fname = "model/timesvdpp/" + nickname +
-                   to_string(factor) + "factors_" +
-                   to_string(binNum) + "bins_" +
-                   to_string(G) + "G_" +
-                   to_string(numEpochs) + "epochs.save";
+void TimeSVDPP::save() {
+    string fname = "model/timesvdpp/" + getBasename() + ".save";
 
     FILE *out = fopen(fname.c_str(), "wb");
     if (out == NULL) {
@@ -288,7 +288,7 @@ void TimeSVDPP::save(string nickname) {
 }
 
 TimeSVDPP* loadTSVDpp(string saveFile, string train_file,
-        string cross_file, string test_file, string out_file) {
+        string cross_file, string test_file) {
     int numEpochs, binNum, factor;
     FILE *in = fopen(saveFile.c_str(), "r");
     if (in == NULL) {
@@ -332,7 +332,7 @@ TimeSVDPP* loadTSVDpp(string saveFile, string train_file,
     assert (numEpochs > 0 && binNum > 0 && factor > 0);
     return new TimeSVDPP(numEpochs, binNum, factor, Alpha_u, Bi,
         Bi_Bin, Bu, Qi, Pu, ys, sumMW, Bu_t, Dev,
-        train_file, cross_file, test_file, out_file);
+        train_file, cross_file, test_file);
 }
 
 //calculate dev_u(t) = sign(t-tu)*|t-tu|^0.4 and save the result for saving the time
@@ -354,6 +354,11 @@ int TimeSVDPP::calcBin(int timeArg) {
 //main function for training
 //terminate when RMSE varies less than 0.00005
 void TimeSVDPP::train(std::string saveFile) {
+    nickname = saveFile;
+    if (nickname != "") {
+        nickname += "_";
+    }
+
     debugPrint("Training...\n");
     clock_t time0 = clock();
     float preRmse = 1000;
@@ -367,7 +372,7 @@ void TimeSVDPP::train(std::string saveFile) {
         cout << "test_Rmse in step " << numEpochs << ": " << curRmse << endl;
         numEpochs++;
         if (numEpochs % SAVE_EVERY_K == 0) {
-            save(saveFile);
+            save();
         }
 
         if(curRmse < preRmse - 0.00005) {
@@ -379,6 +384,7 @@ void TimeSVDPP::train(std::string saveFile) {
     }
     debugPrint("Outputting...\n");
     clock_t time1 = clock();
+    string outFile = "out/timesvdpp/" + getBasename() + ".out";
     FILE *fp = fopen(testFile.c_str(),"r");
     ofstream fout(outFile.c_str());
     while (fscanf(fp,"%d %d %d %d",&user, &item, &date, &rating) != EOF) {
