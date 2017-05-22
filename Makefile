@@ -1,5 +1,6 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -DISRBM
+# Add -DMU if running KNN
+CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized
 PROG = naive_svd
 RBM_PROG = rbm
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
