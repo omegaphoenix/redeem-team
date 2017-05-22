@@ -1,4 +1,5 @@
 CXX = g++
+# Add -DMU if running KNN
 CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -DISRBM
 PROG = naive_svd
 RBM_PROG = rbm

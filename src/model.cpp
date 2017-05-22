@@ -17,38 +17,46 @@
 // Initialize ratings.
 Model::Model() {
     // UM
+#if defined(COO) || defined(MU)
     ratings = new int[N_TRAINING * DATA_POINT_SIZE];
+#endif
     values = new unsigned char[N_TRAINING];
     columns = new unsigned short[N_TRAINING];
     dates = new unsigned short[N_TRAINING];
     rowIndex = new unsigned int[N_USERS + 1];
 
     // MU
+#ifdef MU
     sortStruct = new dataPoint[N_TRAINING];
     muratings = new int[N_TRAINING * DATA_POINT_SIZE];
     muvalues = new unsigned char[N_TRAINING];
     mucolumns = new int[N_TRAINING];
     mudates = new int[N_TRAINING];
     murowIndex = new int[N_MOVIES + 1];
+#endif
 }
 
 // Clean up ratings.
 Model::~Model() {
+#if defined(COO) || defined(MU)
     delete ratings;
+#endif
     delete values;
     delete columns;
     delete dates;
     delete rowIndex;
 
+#ifdef MU
     delete sortStruct;
-
     delete muratings;
     delete muvalues;
     delete mucolumns;
     delete mudates;
     delete murowIndex;
+#endif
 }
 
+#ifdef MU
 void Model::transposeMU() {
     clock_t time0 = clock();
     for (unsigned int i = 0; i < numRatings; i++) {
@@ -84,6 +92,7 @@ void Model::transposeMU() {
     float ms1 = diffclock(time1, time0);
     printf("Transposing took %f ms\n", ms1);;
 }
+#endif
 
 // Load new ratings array into CSR format.
 void Model::loadFresh(std::string inFname, std::string outFname) {
@@ -153,7 +162,9 @@ void Model::loadCSR(std::string fname) {
     unsigned char* buffer = (unsigned char*) mmap(NULL, size, PROT_READ, MAP_PRIVATE, f, 0);
 
     int bytes = size;
+#if defined(COO) || defined(MU)
     int ratingsIdx = 0;
+#endif
     int idx = 0;
     rowIndex[user] = idx;
     // short for end of user marker, short + short + char per data point
@@ -205,15 +216,19 @@ void Model::loadCSR(std::string fname) {
             assert (date >= 0 && date < N_DAYS);
             assert (rating >= 0 && rating <= MAX_RATING);
             // Save data
+#if defined(COO) || defined(MU)
             ratings[ratingsIdx + USER_IDX] = user;
             ratings[ratingsIdx + MOVIE_IDX] = movie;
             ratings[ratingsIdx + TIME_IDX] = date;
             ratings[ratingsIdx + RATING_IDX] = rating;
+#endif
             values[idx] = rating;
             columns[idx] = movie;
             dates[idx] = date;
             idx++;
+#if defined(COO) || defined(MU)
             ratingsIdx += DATA_POINT_SIZE;
+#endif
         }
     }
     numRatings = idx;
@@ -370,6 +385,7 @@ float Model::predict(int n, int i, int d) {
     return 0.0;
 }
 
+#ifdef MU
 void testTranspose() {
 #ifndef NDEBUG
     clock_t time0 = clock();
@@ -424,3 +440,4 @@ void testTranspose() {
     printf("Testing took %f ms\n", ms4);
 #endif
 }
+#endif
