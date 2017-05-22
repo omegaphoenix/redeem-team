@@ -18,10 +18,11 @@ int main() {
     string testFile = "data/um/5-1.dta";  //set test data
 
     // Run this after saving the 2 epoch run
-
+    /*
     TimeSVDPP* load = loadTSVDpp("model/timesvdpp/50factors_30bins_2epochs.save",
         trainFile, crossFile, testFile);
     load->train("");
+    */
 
     TimeSVDPP svd(0,0,0,NULL,NULL,NULL,NULL,
                   NULL,NULL,NULL,NULL,NULL,NULL,
