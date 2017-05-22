@@ -13,10 +13,11 @@
 using namespace std;
 
 int main() {
+    string trainFile = "1.dta";  //set cross validation data
     string crossFile = "data/um/4.dta";  //set cross validation data
     string testFile = "data/um/5-1.dta";  //set test data
-    string outFile = "out/timesvdpp/v0_all.txt";  //set output data
-    TimeSVDPP svd(NULL,NULL,0,NULL,NULL, crossFile, testFile, outFile);
+    string outFile = "out/timesvdpp/test.txt";  //set output data
+    TimeSVDPP svd(NULL,NULL,0,NULL,NULL, trainFile, crossFile, testFile, outFile);
     svd.train("");
     return 0;
 }

@@ -13,7 +13,7 @@ using namespace std;
 
 class TimeSVDPP : public Model {
     public:
-        TimeSVDPP(float*,float*,int,float*,float*, string, string, string);
+        TimeSVDPP(float*,float*,int,float*,float*, string, string, string, string);
         ~TimeSVDPP();
         void sgd();
         float predictScore(float,int,int,int);
@@ -40,6 +40,7 @@ class TimeSVDPP : public Model {
         float* Pu;
         float* y;
         float* sumMW;    //save the sum of Pu
+        string trainFile;
         string crossFile;
         string testFile;
         string outFile;

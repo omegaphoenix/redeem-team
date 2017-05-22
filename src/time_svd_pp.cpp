@@ -24,8 +24,8 @@ const float L = 0.005;         // general learning rate
 const int factor = 50;         // number of factors
 
 //initialization
-TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string cross_file, string test_file, string out_file):
-    crossFile(cross_file), testFile(test_file), outFile(out_file) {
+TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string train_file, string cross_file, string test_file, string out_file):
+    trainFile(train_file), crossFile(cross_file), testFile(test_file), outFile(out_file) {
     debugPrint("Initializing...\n");
     clock_t time0 = clock();
 
@@ -89,7 +89,7 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string cross
     debugPrint("Loading data...\n");
     clock_t time1 = clock();
     int userId,itemId,rating,t;
-    load("all.dta");
+    load(trainFile);
     FILE *fp = fopen(crossFile.c_str(),"r");
     while(fscanf(fp,"%d %d %d %d",&userId, &itemId, &t, &rating) != EOF) {
         test_data.push_back(make_pair(make_pair(userId - 1, itemId - 1),make_pair(t - 1,rating)));
@@ -121,11 +121,9 @@ TimeSVDPP::TimeSVDPP(float* bi,float* bu,int k,float* qi,float* pu, string cross
         int userStart = rowIndex[i];
         for (size_t dateIdx = userStart; dateIdx < userEnd; ++dateIdx) {
             int date = dates[dateIdx];
-            if(tmp.count(date) == 0)
-            {
+            if(tmp.count(date) == 0) {
                 tmp[date] = 0.0000001;
             }
-            else continue;
         }
         Bu_t.push_back(tmp);
     }
@@ -181,11 +179,11 @@ void TimeSVDPP::train(std::string saveFile) {
         sgd();
         curRmse = cValidate(AVG);
         cout << "test_Rmse in step " << i << ": " << curRmse << endl;
-        if(curRmse >= preRmse - 0.00005) {
-            break;
+        if(curRmse < preRmse - 0.00005) {
+            preRmse = curRmse;
         }
         else{
-            preRmse = curRmse;
+            break;
         }
     }
     debugPrint("Outputting...\n");
