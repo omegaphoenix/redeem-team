@@ -190,6 +190,31 @@ TimeSVDPP::~TimeSVDPP() {
     delete[] sumMW;
 }
 
+struct KeyValue {
+    int key;
+    float value;
+};
+
+void saveVectorMap(const vector<map<int,float> >& vec, FILE* out) {
+    int nPairs = 0;
+    for (int i = 0; i < vec.size(); i++) {
+        nPairs += vec[i].size();
+    }
+    KeyValue* buf = new KeyValue[nPairs];
+
+    int cur = 0;
+    for (int i = 0; i < vec.size(); i++) {
+        for (auto& it: vec[i]) {
+            buf[cur].key = it.first;
+            buf[cur].value = it.second;
+            cur++;
+        }
+    }
+
+    fwrite(buf, sizeof(KeyValue), nPairs, out);
+    delete[] buf;
+}
+
 // Save progress
 void TimeSVDPP::save(string nickname) {
     if (nickname != "") {
@@ -202,6 +227,8 @@ void TimeSVDPP::save(string nickname) {
                    to_string(numEpochs) + "epochs.save";
 
     FILE *out = fopen(fname.c_str(), "wb");
+    printf("Saving raw arrays...");
+    clock_t time0 = clock();
     fwrite(&numEpochs, sizeof(int), 1, out);
     fwrite(Alpha_u, sizeof(float), N_USERS, out);
     fwrite(Bi, sizeof(float), N_MOVIES, out);
@@ -211,6 +238,17 @@ void TimeSVDPP::save(string nickname) {
     fwrite(Pu, sizeof(float), N_USERS * factor, out);
     fwrite(y, sizeof(float), N_MOVIES * factor, out);
     fwrite(sumMW, sizeof(float), N_USERS * factor, out);
+    clock_t time1 = clock();
+    printf(" this took %f ms\n", diffclock(time1, time0));
+
+    printf("Saving Bu_t and Dev (vector<map<int,float> >)...");
+    saveVectorMap(Bu_t, out);
+    saveVectorMap(Dev, out);
+    clock_t time2 = clock();
+    printf(" this took %f ms\n", diffclock(time2, time1));
+
+    printf("Total save time: %f ms\n", diffclock(time2, time0));
+    fclose(out);
 }
 
 //calculate dev_u(t) = sign(t-tu)*|t-tu|^0.4 and save the result for saving the time
