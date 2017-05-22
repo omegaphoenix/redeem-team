@@ -25,6 +25,7 @@ class TimeSVDPP : public Model {
         int calcBin(int);    //calculate time bins
         float cValidate(float);
         void train(std::string saveFile);
+        void save(string nickname);
         float predict(int user, int movie, int date);
     protected:
         int binNum;

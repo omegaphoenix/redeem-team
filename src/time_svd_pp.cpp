@@ -190,6 +190,21 @@ TimeSVDPP::~TimeSVDPP() {
     delete[] sumMW;
 }
 
+// Save progress
+void TimeSVDPP::save(string nickname) {
+    if (nickname != "") {
+        nickname += "_";
+    }
+    string fname = "model/timesvdpp/" + nickname +
+                   to_string(factor) + "factors_" +
+                   to_string(binNum) + "bins_" +
+                   to_string(G) + "G_" +
+                   to_string(numEpochs) + "epochs.save";
+
+    FILE *out = fopen(fname.c_str(), "wb");
+    fwrite(&numEpochs, sizeof(int), 1, out);
+}
+
 //calculate dev_u(t) = sign(t-tu)*|t-tu|^0.4 and save the result for saving the time
 float TimeSVDPP::calcDev(int user, int timeArg) {
     if(Dev[user].count(timeArg) != 0) {
