@@ -11,7 +11,7 @@
 
 #include "utils.hpp"
 
-#define SAVE_EVERY_K 2
+#define SAVE_EVERY_K 10
 
 using namespace std;
 
