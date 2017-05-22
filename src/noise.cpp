@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
     std::ios_base::sync_with_stdio(false);
 
     // Get filenames and check that they aren't the same
-    std::string inFname = "out/rbm/pure_rbm_v3_factors_200_epoch_44_T_9.txt";
+    std::string inFname = "out/timesvdpp/v0_timeSVDpp_0.89615RMSE"; // leave off the .txt
     std::string outFname = inFname + "_noisy.txt";
     inFname = inFname + ".txt";
 
@@ -25,11 +25,13 @@ int main(int argc, char **argv) {
     int itemsRead = fscanf(in, "%f\n", &rating);
     bool noiseFlag = true;
     float noise = 0.25;
+    int count = 0;
     while (itemsRead == 1) {
         if (noiseFlag) {
             rating += noise;
             if (rating <= 5.) {
                 noiseFlag = false;
+                count++;
             }
             else {
                 rating -= noise;
@@ -39,6 +41,7 @@ int main(int argc, char **argv) {
             rating -= noise;
             if (rating >= 1.) {
                 noiseFlag = true;
+                count++;
             }
             else {
                 rating += noise;
@@ -51,5 +54,6 @@ int main(int argc, char **argv) {
     // Close files
     fclose(in);
     outputFile.close();
+    printf("Points modified: %d\n", count);
     return 0;
 }

@@ -33,7 +33,9 @@ class Model {
         void output(std::string saveFile);
         void initLoad(std::string fname, std::string dataFile);
         void load(std::string dataFile);
+#ifdef MU
         void transposeMU();
+#endif
 
         virtual void train(std::string saveFile);
 #ifdef ISRBM

@@ -1,5 +1,6 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -O2 -DISRBM
+# Add -DMU if running KNN
+CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized
 PROG = naive_svd
 RBM_PROG = rbm
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
@@ -7,6 +8,7 @@ NAIVE_SVD_CV_FILES = $(addprefix src/, validate_naive_svd.cpp naive_svd.cpp mode
 BASELINE_FILES = $(addprefix src/, baseline.cpp baseline_main.cpp model.cpp)
 SVD_PLUS_FILES = $(addprefix src/, svd_plusplus_main.cpp svd_plusplus.cpp baseline.cpp model.cpp)
 SVD_PLUS_CV_FILES = $(addprefix src/, validate_svd_plusplus.cpp svd_plusplus.cpp baseline.cpp model.cpp)
+TIME_SVD_PLUS_FILES = $(addprefix src/, time_svd_pp_main.cpp time_svd_pp.cpp baseline.cpp model.cpp)
 KNN_FILES = $(addprefix src/, knn.cpp baseline.cpp model.cpp)
 RBM_FILES = $(addprefix src/, pure_rbm.cpp model.cpp)
 NOISE_FILES = $(addprefix src/, noise.cpp)
@@ -34,6 +36,10 @@ naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 svd_plus: $(SVD_PLUS_FILES:.cpp=.o)
+	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
+
+timesvdpp: $(TIME_SVD_PLUS_FILES:.cpp=.o)
+	mkdir -p bin out model out/timesvdpp model/timesvdpp
 	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
 
 knn: $(KNN_FILES:.cpp=.o)

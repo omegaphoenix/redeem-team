@@ -168,9 +168,8 @@ void RBM::train(std::string saveFile) {
             }
 
             // Load up a copy of poshidstates for use in loop
-            for (int h = 0; h < TOTAL_FEATURES; ++h) {
-                curposhidstates[h] = poshidstates[h];
-            }
+            std::copy(&poshidstates[0], &poshidstates[TOTAL_FEATURES],
+                      curposhidstates);
 
             // Make T Contrastive Divergence steps
             int stepT = 0;
@@ -285,15 +284,17 @@ void RBM::train(std::string saveFile) {
                     // Sample the hidden units state again.
                     if  (neghidprobs[h] >  randn()) {
                         neghidstates[h]=1;
-                        if ( finalTStep )
+                        if ( finalTStep ) {
                             neghidact[h] += 1.0;
-                    } else {
+                        }
+                    }
+                    else {
                         neghidstates[h]=0;
                     }
                 }
 
                 // Compute error rmse and prmse before we start iterating on T
-                if ( stepT == 0 ) {
+                if (stepT == 0) {
 
                     // Compute rmse on training data
                     for (int j = userStart; j < userEnd; ++j) {
@@ -311,8 +312,8 @@ void RBM::train(std::string saveFile) {
 
                 // If looping again, load the curposvisstates
                 if (!finalTStep) {
-                    for (int h = 0; h < TOTAL_FEATURES; h++ )
-                        curposhidstates[h] = neghidstates[h];
+                    std::copy(&neghidstates[0], &neghidstates[TOTAL_FEATURES],
+                              curposhidstates);
                     ZERO(negvisprobs);
                 }
 
