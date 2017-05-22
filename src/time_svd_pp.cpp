@@ -203,6 +203,14 @@ void TimeSVDPP::save(string nickname) {
 
     FILE *out = fopen(fname.c_str(), "wb");
     fwrite(&numEpochs, sizeof(int), 1, out);
+    fwrite(Alpha_u, sizeof(float), N_USERS, out);
+    fwrite(Bi, sizeof(float), N_MOVIES, out);
+    fwrite(Bi_Bin, sizeof(float), N_MOVIES * binNum, out);
+    fwrite(Bu, sizeof(float), N_USERS, out);
+    fwrite(Qi, sizeof(float), N_MOVIES * factor, out);
+    fwrite(Pu, sizeof(float), N_USERS * factor, out);
+    fwrite(y, sizeof(float), N_MOVIES * factor, out);
+    fwrite(sumMW, sizeof(float), N_USERS * factor, out);
 }
 
 //calculate dev_u(t) = sign(t-tu)*|t-tu|^0.4 and save the result for saving the time
