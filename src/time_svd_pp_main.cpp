@@ -24,7 +24,7 @@ int main() {
     load->train("");
     */
 
-    TimeSVDPP svd(0,0,0,NULL,NULL,NULL,NULL,
+    TimeSVDPP svd(false,0,0,0,NULL,NULL,NULL,NULL,
                   NULL,NULL,NULL,NULL,NULL,NULL,
                   trainFile, crossFile, testFile);
     svd.train("");
