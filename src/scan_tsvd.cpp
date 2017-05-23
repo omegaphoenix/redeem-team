@@ -40,7 +40,7 @@ int main() {
             for (int epoch = 100; epoch > 0; --epoch) {
                 fname = "model/timesvdpp/" + std::to_string(factor)
                         + "factors_" + std::to_string(binNum) + "bins_"
-                        + std::to_string(epoch) + ".save";
+                        + std::to_string(epoch) + "epochs.save";
                 std::ifstream f(fname.c_str());
                 if (f.good()) {
                     fileExists = true;
