@@ -31,7 +31,7 @@ struct dataPoint {
     int userID;
     int movieID;
     int date;
-    int value;
+    float value;
 
     dataPoint() {
         userID = 0;
@@ -40,7 +40,7 @@ struct dataPoint {
         value = 0;
     }
 
-    dataPoint(int a, int b, int c, int d) :
+    dataPoint(int a, int b, int c, float d) :
         userID(a), movieID(b), date(c), value(d) {
     }
 

@@ -240,7 +240,7 @@ void kNN::buildMatrix(std::string saveFile) {
 
     clock_t time1 = clock();
     float ms1 = diffclock(time1, time0);
-    std::cout << "Building matrix took " << ms1 << "ms";
+    std::cout << "Building matrix took " << ms1 << "ms\n";
 
     std::cout<< "Number of nan coeffs = " << nan_coeff << "\n";
     std::cout << "size of corrMatrix[0] (should be 1 greater than N_USERS) = "
@@ -261,6 +261,9 @@ void kNN::buildMatrix(std::string saveFile) {
 // Find "closest" users and average their ratings of given movie
 // Change this to: go through all users that have rated a certain movie
 float kNN::predict(int user, int movie) {
+    if (num_correlations == 0) {
+        return avg_array[user];
+    }
     // TODO: get stats?
     std::priority_queue<corrUser> top_corr;
 
@@ -278,9 +281,10 @@ float kNN::predict(int user, int movie) {
 
         // to look up correlation, we need first_user < second_user
         if (other_user == user) {
-            std::cout << "user " << user << " already rated movie " << movie
-            << "! gave it a " << muvalues[movie_idx] << "\n";
-            exit(0);
+            // std::cout << "user " << user << " already rated movie " << movie
+            // << "! gave it a " << muvalues[movie_idx] << "\n";
+            // exit(0);
+            continue;
         }
         first_user = (user < other_user) ? user : other_user;
         second_user = (user > other_user) ? user : other_user;
@@ -323,21 +327,21 @@ float kNN::predict(int user, int movie) {
     }
 
     if (actualK <= 0) {
-        return avg_array[user];
+        return avg_array[user]; // return 0 for residuals?
     }
 
-    if (user % 10 == 0) {
+    if (user % 100 == 0) {
         std::cout << "predicting for user " << user << "\n";
     }
 
     float prediction = float(total / actualK);
 
-    if (prediction < 1) {
-        prediction = 1;
-    }
-    else if (prediction > 5) {
-        prediction = 5;
-    }
+    // if (prediction < 1) {
+    //     prediction = 1;
+    // }
+    // else if (prediction > 5) {
+    //     prediction = 5;
+    // }
 
     return prediction;
 }
@@ -352,6 +356,7 @@ void kNN::loadSaved(std::string fname) {
 
     if (num_correlations == 0) {
         // TODO: handle special case
+        return;
     }
 
     std::cout << "Reading file...\n";
@@ -421,9 +426,11 @@ std::string kNN::getFilename(std::string data_file) {
         metric_name = "unknown";
     }
 
-    // remove '.' from file name
+    // remove '.' and '/' from file name
     data_file.erase(
         std::remove(data_file.begin(), data_file.end(), '.'), data_file.end());
+    data_file.erase(
+        std::remove(data_file.begin(), data_file.end(), '/'), data_file.end());
 
     std::string fname = "knn_" + metric_name
         + "_s" + std::to_string(shared_threshold)

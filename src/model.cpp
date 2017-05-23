@@ -18,7 +18,7 @@
 Model::Model() {
     // UM
     ratings = new int[N_TRAINING * DATA_POINT_SIZE];
-    values = new unsigned char[N_TRAINING];
+    values = new float[N_TRAINING];
     columns = new unsigned short[N_TRAINING];
     dates = new unsigned short[N_TRAINING];
     rowIndex = new unsigned int[N_USERS + 1];
@@ -26,7 +26,7 @@ Model::Model() {
     // MU
     sortStruct = new dataPoint[N_TRAINING];
     muratings = new int[N_TRAINING * DATA_POINT_SIZE];
-    muvalues = new unsigned char[N_TRAINING];
+    muvalues = new float[N_TRAINING];
     mucolumns = new int[N_TRAINING];
     mudates = new int[N_TRAINING];
     murowIndex = new int[N_MOVIES + 1];
@@ -51,13 +51,26 @@ Model::~Model() {
 
 void Model::transposeMU() {
     clock_t time0 = clock();
-    for (unsigned int i = 0; i < numRatings; i++) {
-        int u = ratings[i * DATA_POINT_SIZE + USER_IDX];
-        int m = ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
-        int d = ratings[i * DATA_POINT_SIZE + TIME_IDX];
-        int r = ratings[i * DATA_POINT_SIZE + RATING_IDX];
-        sortStruct[i] = dataPoint(u, m, d, r);
+    int count = 0;
+    for (int i = 0; i < N_USERS - 1; i++) {
+        for (int j = rowIndex[i]; j < rowIndex[i + 1]; j++) {
+            int u = i;
+            int m = columns[j];
+            int d = dates[j];
+            float r = values[j];
+            sortStruct[count] = dataPoint(u, m, d, r);
+            count++;
+        }
     }
+    // for (unsigned int i = 0; i < numRatings; i++) {
+    //     int u = ratings[i * DATA_POINT_SIZE + USER_IDX];
+    //     int m = ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+    //     int d = ratings[i * DATA_POINT_SIZE + TIME_IDX];
+    //     int r = ratings[i * DATA_POINT_SIZE + RATING_IDX];
+    //     std::cout << "r = " << r << "\n";
+    //     sortStruct[i] = dataPoint(u, m, d, r);
+    // }
+
     std::sort(sortStruct, sortStruct + numRatings);
 
     int current = 0; //CSR counter
@@ -77,6 +90,8 @@ void Model::transposeMU() {
         muvalues[i] = sortStruct[i].value;
         mucolumns[i] = sortStruct[i].userID;
         mudates[i] = sortStruct[i].date;
+
+        // std::cout << "value = " <<  muvalues[i] << "\n";
     }
     murowIndex[N_MOVIES] = numRatings;
     clock_t time1 = clock();
@@ -222,6 +237,36 @@ void Model::loadCSR(std::string fname) {
     munmap(buffer, size);
 }
 
+// Replace ratings with residuals
+void Model::loadResiduals(std::string fname) {
+    printf("Loading residuals from %s\n", fname.c_str());
+    assert (numRatings > 0); // must load data first
+
+    clock_t time0 = clock();
+
+    FILE* f = fopen(fname.c_str(), "r");
+
+    int numResiduals = 0;
+    float residual;
+    int itemsRead = fscanf(f, "%f\n", &residual);
+
+    while (itemsRead == 1) {
+        values[numResiduals] = residual;
+        // ratings[numResiduals * DATA_POINT_SIZE + RATING_IDX] = residual;
+        numResiduals++;
+        itemsRead = fscanf(f, "%f\n", &residual);
+    }
+
+    std::cout << "Number of residuals: " << numResiduals << "\n";
+    assert (numResiduals == numRatings);
+
+    fclose(f);
+
+    clock_t time1 = clock();
+    float ms1 = diffclock(time1, time0);
+    printf("Loading residuals took %f ms\n", ms1);
+}
+
 // Run this function once first to preprocess data.
 void Model::initLoad(std::string fname, std::string dataFile) {
     debugPrint("Preprocessing...\n");
@@ -319,11 +364,11 @@ float Model::trainingError() {
 }
 
 // Output submission
-void Model::output(std::string saveFile) {
+void Model::output(std::string saveFile, std::string loadFile) {
     debugPrint("Outputing...\n");
     clock_t timeStart = clock();
     Model *validator = new Model();
-    validator->load("5-1.dta");
+    validator->load(loadFile);
     unsigned int userStartIdx, userEndIdx, n, i, colIdx;
 
     // Open file
@@ -402,12 +447,13 @@ float Model::predict(int n, int i) {
     return 0.0;
 }
 
-void testTranspose() {
+void Model::testTranspose() {
 #ifndef NDEBUG
     clock_t time0 = clock();
     Model* mod = new Model();
     clock_t time1 = clock();
-    mod->load("1.dta");
+    mod->load("4.dta");
+    mod->loadResiduals("rbm_residuals_4dta.out");
     clock_t time2 = clock();
     printf("Transpose\n");
     mod->transposeMU();
@@ -423,7 +469,7 @@ void testTranspose() {
 
         // CSR values
         int csrUser = mod->mucolumns[i];
-        int csrRating = mod->muvalues[i];
+        // float csrRating = mod->muvalues[i];
         assert (user == csrUser);
 
         // Check order of COO
@@ -433,7 +479,7 @@ void testTranspose() {
         }
 
         // Check order of CSR
-        assert (csrRating > 0 && csrRating <= MAX_RATING);
+        // assert (csrRating > 0 && csrRating <= MAX_RATING);
         if (i < N_MOVIES) {
             int csrUserIdx = mod->murowIndex[i];
             int csrNextUserIdx = mod->murowIndex[j];

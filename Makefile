@@ -54,6 +54,7 @@ rbm: $(RBM_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/rbm $^
 
 res: $(RES_FILES:.cpp=.o)
+	mkdir -p bin out model model/res out/res
 	$(CXX) $(CFLAGS) -o bin/res $^
 
 noise: $(NOISE_FILES:.cpp=.o)

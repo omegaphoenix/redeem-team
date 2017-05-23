@@ -11,30 +11,32 @@ class Model {
         Model();
         int* ratings; // COO format, movies and users 0-indexed
         unsigned int numRatings;
-        unsigned char* values; // CSR values/ratings
+        float* values; // CSR values/ratings
         unsigned short* columns; // CSR columns/movies, 0-indexed
         unsigned short* dates; // CSR columns/movies, 0-indexed
         unsigned int* rowIndex; // CSR row index, where user i starts in values/columns, 0-indexed
 
         // MU variables
         int* muratings; // COO format
-        unsigned char* muvalues; // CSR values/ratings
+        float* muvalues; // CSR values/ratings
         int* mucolumns; // CSR columns/user
         int* mudates;
         int* murowIndex; // CSR row index, where user i starts in values/columns
-        dataPoint* sortStruct;     
+        dataPoint* sortStruct;
 
         virtual ~Model();
         void loadFresh(std::string inFname, std::string outFname);
         void loadCSR(std::string fname);
         void loadSaved(std::string fname);
+        void loadResiduals(std::string fname);
         float validate(std::string valFile);
         float trainingError();
-        void output(std::string saveFile);
+        void output(std::string saveFile, std::string loadFile = "5-1.dta");
         void outputResiduals(std::string saveFile);
         void initLoad(std::string fname, std::string dataFile);
         void load(std::string dataFile);
         void transposeMU();
+        void testTranspose();
 
         virtual void train(std::string saveFile);
 #ifdef ISRBM
