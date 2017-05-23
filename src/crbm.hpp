@@ -43,7 +43,6 @@ class CRBM : public Model {
         float negvisact[N_MOVIES][SOFTMAX];
         float visbiasinc[N_MOVIES][SOFTMAX];
 
-        unsigned int moviercount[SOFTMAX*N_MOVIES];
         unsigned int moviecount[N_MOVIES];
         unsigned char negvissoftmax[N_MOVIES];
         unsigned int movieseencount[N_MOVIES];
@@ -59,5 +58,7 @@ class CRBM : public Model {
         float hidbiasinc[TOTAL_FEATURES];
 
         int prevUser, loopcount;
+
+        Model *tester;
 };
 #endif // PURE_CRBM_HPP

@@ -1,6 +1,6 @@
 CXX = g++
 # Add -DMU if running KNN
-CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized
+CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -DISRBM
 PROG = naive_svd
 RBM_PROG = rbm
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
@@ -12,6 +12,7 @@ TIME_SVD_PLUS_FILES = $(addprefix src/, time_svd_pp_main.cpp time_svd_pp.cpp bas
 SCAN_TSVD_FILES = $(addprefix src/, scan_tsvd.cpp time_svd_pp.cpp baseline.cpp model.cpp)
 KNN_FILES = $(addprefix src/, knn.cpp baseline.cpp model.cpp)
 RBM_FILES = $(addprefix src/, pure_rbm.cpp model.cpp)
+CRBM_FILES = $(addprefix src/, crbm.cpp model.cpp)
 NOISE_FILES = $(addprefix src/, noise.cpp)
 # MODEL_FILES = $(addprefix src/, model.cpp)
 # BASELINE_FILES = $(addprefix src/, baseline.cpp model.cpp)
@@ -63,6 +64,10 @@ run_nsvd: validate_naive_svd
 rbm: $(RBM_FILES:.cpp=.o)
 	mkdir -p bin out model out/rbm model/rbm
 	$(CXX) $(CFLAGS) -o bin/rbm $^
+
+crbm: $(CRBM_FILES:.cpp=.o)
+	mkdir -p bin out model out/crbm model/crbm
+	$(CXX) $(CFLAGS) -o bin/crbm $^
 
 noise: $(NOISE_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/noise $^

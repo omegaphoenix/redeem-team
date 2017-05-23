@@ -38,7 +38,9 @@ CRBM::~CRBM() {
 }
 
 void CRBM::init() {
-    load("all.dta");
+    load("1.dta");
+    tester = new Model();
+    tester->load("4.dta");
     clock_t time0 = clock();
     debugPrint("Initializing visible biases...\n");
 
@@ -83,6 +85,7 @@ void CRBM::train(std::string saveFile) {
     ZERO(hidbiasinc);
     int tSteps = 1; // Set this value if you are continuing run
 
+    debugPrint("Testing score output\n");
     std::string scoreFileName = "out/crbm/scores_"
         + std::to_string(TOTAL_FEATURES) + ".txt";
     FILE *validateFile = fopen(scoreFileName.c_str(), "a");
@@ -90,7 +93,9 @@ void CRBM::train(std::string saveFile) {
     fclose(validateFile);
 
     loadSaved(loadFile);
+    debugPrint("Testing validation\n");
     prmse = validate("4.dta");
+    debugPrint("Testing quiz/test output\n");
     output("out/crbm/crbm_v0_factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
             std::to_string(tSteps) + ".txt");
@@ -122,14 +127,12 @@ void CRBM::train(std::string saveFile) {
         ZERO(negvisact);
         ZERO(moviecount);
 
-        // TODO: Updated up to here
         for (int u = 0; u < N_USERS; ++u) {
 
             // Clear summations for probabilities
             ZERO(negvisprobs);
             ZERO(nvp2);
 
-            // perform steps 1 to 8
             int userEnd = rowIndex[u + 1];
             int userStart = rowIndex[u];
 
@@ -152,6 +155,24 @@ void CRBM::train(std::string saveFile) {
                 for (int h = 0; h < TOTAL_FEATURES; ++h) {
                     // sum_j(W[i][j] * v[0][j]))
                     sumW[h]  += vishid[m][r][h];
+                }
+
+                // Add to hidden probabilities based on existence of a rating
+                movieseencount[m]++;
+                for(int h=0; h<TOTAL_FEATURES; h++) {
+                    // sum_j(Dij * rij)
+                    sumW[h]  += Dij[m][h];
+                }
+            }
+            int testUserEnd = tester->rowIndex[u + 1];
+            int testUserStart = tester->rowIndex[u];
+            for (int j = testUserStart; j < testUserEnd; ++j) {
+                int m = tester->columns[j];
+                // Add to hidden probabilities based on existence of a rating
+                movieseencount[m]++;
+                for(int h=0; h<TOTAL_FEATURES; h++) {
+                    // sum_j(Dij * rij)
+                    sumW[h]  += Dij[m][h];
                 }
             }
 
@@ -280,7 +301,23 @@ void CRBM::train(std::string saveFile) {
                     for (int h = 0; h < TOTAL_FEATURES; ++h) {
                         sumW[h]  += vishid[m][negvissoftmax[m]][h];
                     }
+
+                    // Add to hidden probabilities based on existence of a rating
+                    for(int h = 0; h < TOTAL_FEATURES; ++h) {
+                        // sum_j(Dij * rij)
+                        sumW[h]  += Dij[m][h];
+                    }
                 }
+
+                for (int j = testUserStart; j < testUserEnd; ++j) {
+                    int m = tester->columns[j];
+                    // Add to hidden probabilities based on existence of a rating
+                    for(int h = 0; h < TOTAL_FEATURES; ++h) {
+                        // sum_j(Dij * rij)
+                        sumW[h]  += Dij[m][h];
+                    }
+                }
+
                 // for all hidden units h:
                 for (int h = 0; h < TOTAL_FEATURES; ++h) {
                     // compute Q(h[1][i] = 1 | v[1]) # for binomial units, sigmoid(b[i] + sum_j(W[i][j] * v[1][j]))
@@ -289,7 +326,7 @@ void CRBM::train(std::string saveFile) {
                     // Sample the hidden units state again.
                     if  (neghidprobs[h] >  randn()) {
                         neghidstates[h]=1;
-                        if ( finalTStep ) {
+                        if (finalTStep) {
                             neghidact[h] += 1.0;
                         }
                     }
@@ -362,7 +399,7 @@ void CRBM::train(std::string saveFile) {
                     // for all hidden units h:
                     for (int h = 0; h < TOTAL_FEATURES; ++h) {
                         // for all softmax
-                        for (int rr = 0; rr < SOFTMAX; rr++) {
+                        for (int rr = 0; rr < SOFTMAX; ++rr) {
                             //# At the end compute average of CDpos and CDneg by dividing them by number of data points.
                             //# Compute CD = < Si.Sj >0  < Si.Sj >n = CDpos  CDneg
                             float CDp = CDpos[m][h][rr];
@@ -406,6 +443,18 @@ void CRBM::train(std::string saveFile) {
                         hidbiases[h]  += hidbiasinc[h];
                     }
                 }
+                // Update all DIJ factors
+                for(int m = 0; m < N_MOVIES; ++m) {
+                    if (movieseencount[m] == 0) {
+                        continue;   // This seems correct given what I'm doing for training on rated movies
+                    }
+                    // for all hidden units h:
+                    for(int h=0;h<TOTAL_FEATURES;h++) {
+                        // Update conditional Dij factors
+                        DIJinc[m][h] = momentum * DIJinc[m][h] + epsilonD * ((poshidact[h] - neghidact[h]) /*- weightcost * Dij[m][h]*/);
+                        Dij[m][h]   += DIJinc[m][h];
+                    }
+                }
                 ZERO(CDpos);
                 ZERO(CDneg);
                 ZERO(poshidact);
@@ -413,6 +462,7 @@ void CRBM::train(std::string saveFile) {
                 ZERO(posvisact);
                 ZERO(negvisact);
                 ZERO(moviecount);
+                ZERO(movieseencount);
             }
         }
 
@@ -439,48 +489,27 @@ void CRBM::train(std::string saveFile) {
                     std::to_string(tSteps) + ".txt");
         }
 
-        if (TOTAL_FEATURES >= 400) {
-            if (loopcount > 6) {
-                epsilonW  *= 0.88;
-                epsilonVB *= 0.88;
-                epsilonHB *= 0.88;
-            } else if (loopcount > 5) {  // With 200 hidden variables, you need to slow things down a little more
-                epsilonW  *= 0.50; // This could probably use some more optimization
-                epsilonVB *= 0.50;
-                epsilonHB *= 0.50;
-            } else if (loopcount > 2) {
-                epsilonW  *= 0.66;
-                epsilonVB *= 0.66;
-                epsilonHB *= 0.66;
-            }
-        } else if (TOTAL_FEATURES >= 200) {
-            if (loopcount > 6) {
-                epsilonW  *= 0.90;
-                epsilonVB *= 0.90;
-                epsilonHB *= 0.90;
-            } else if (loopcount > 5) {  // With 200 hidden variables, you need to slow things down a little more
-                epsilonW  *= 0.50; // This could probably use some more optimization
-                epsilonVB *= 0.50;
-                epsilonHB *= 0.50;
-            } else if (loopcount > 2) {
-                epsilonW  *= 0.70;
-                epsilonVB *= 0.70;
-                epsilonHB *= 0.70;
-            }
-        } else {  // The 100 hidden variable case
-            if (loopcount > 8) {
-                epsilonW  *= 0.92;
-                epsilonVB *= 0.92;
-                epsilonHB *= 0.92;
-            } else if (loopcount > 6) {
-                epsilonW  *= 0.90;
-                epsilonVB *= 0.90;
-                epsilonHB *= 0.90;
-            } else if (loopcount > 2) {
-                epsilonW  *= 0.78;
-                epsilonVB *= 0.78;
-                epsilonHB *= 0.78;
-            }
+
+        if ( loopcount > 10 ) {
+            epsilonW  *= 0.91;
+            epsilonD  *= 0.91;
+            epsilonVB *= 0.91;
+            epsilonHB *= 0.91;
+        } else if ( loopcount > 9 ) {
+            epsilonW  *= 0.75;
+            epsilonD  *= 0.75;
+            epsilonVB *= 0.75;
+            epsilonHB *= 0.75;
+        } else if ( loopcount > 5 ) {
+            epsilonW  *= 0.91;
+            epsilonD  *= 0.91;
+            epsilonVB *= 0.91;
+            epsilonHB *= 0.91;
+        } else if ( loopcount > 4 ) {
+            epsilonW  *= 0.80;
+            epsilonD  *= 0.80;
+            epsilonVB *= 0.80;
+            epsilonHB *= 0.80;
         }
     }
     output("out/crbm/pure_crbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
@@ -502,6 +531,22 @@ void CRBM::prepPredict(Model *mod, int n) {
         for (int h = 0; h < TOTAL_FEATURES; ++h) {
             sumW[h] += vishid[m][r][h];
         }
+
+        // Add to hidden probabilities based on existence of a rating
+        for(int h = 0; h < TOTAL_FEATURES; ++h) {
+            // sum_j(Dij * rij)
+            sumW[h]  += Dij[m][h];
+        }
+    }
+    int testUserEnd = mod->rowIndex[n + 1];
+    int testUserStart = mod->rowIndex[n];
+    for (int j = testUserStart; j < testUserEnd; ++j) {
+        int m = mod->columns[j];
+        // Add to hidden probabilities based on existence of a rating
+        for(int h = 0; h < TOTAL_FEATURES; ++h) {
+            // sum_j(Dij * rij)
+            sumW[h]  += Dij[m][h];
+        }
     }
 
     // Compute hidden probabilities
@@ -509,10 +554,7 @@ void CRBM::prepPredict(Model *mod, int n) {
         poshidprobs[h] = 1.0 / (1.0 + exp(-sumW[h] - hidbiases[h]));
     }
 
-    userEnd = mod->rowIndex[n + 1];
-    userStart = mod->rowIndex[n];
-    for (int j = userStart; j < userEnd; ++j)
-    {
+    for (int j = testUserStart; j < testUserEnd; ++j) {
         int m = mod->columns[j];
         for (int h = 0; h < TOTAL_FEATURES; ++h) {
             for (int k = 0; k < SOFTMAX; ++k) {
@@ -563,7 +605,12 @@ void CRBM::save(std::string fname) {
     fwrite(buf, sizeof(int), 1, out);
     fwrite(vishid, sizeof(float), N_MOVIES * SOFTMAX * TOTAL_FEATURES, out);
     fwrite(visbiases, sizeof(float), N_MOVIES * SOFTMAX, out);
+    fwrite(visbiasinc, sizeof(float), N_MOVIES * SOFTMAX, out);
     fwrite(hidbiases, sizeof(float), TOTAL_FEATURES, out);
+    fwrite(hidbiasinc, sizeof(float), TOTAL_FEATURES, out);
+    fwrite(CDinc, sizeof(float), N_MOVIES * TOTAL_FEATURES * SOFTMAX, out);
+    fwrite(Dij, sizeof(float), N_MOVIES * TOTAL_FEATURES, out);
+    fwrite(DIJinc, sizeof(float), N_MOVIES * TOTAL_FEATURES, out);
     fclose(out);
 
     clock_t time1 = clock();
@@ -588,7 +635,12 @@ void CRBM::loadSaved(std::string fname) {
         // Initialize vishid, visbiases, hidbiases
         fread(vishid, sizeof(float), N_MOVIES * SOFTMAX * TOTAL_FEATURES, in);
         fread(visbiases, sizeof(float), N_MOVIES * SOFTMAX, in);
+        fread(visbiasinc, sizeof(float), N_MOVIES * SOFTMAX, in);
         fread(hidbiases, sizeof(float), TOTAL_FEATURES, in);
+        fread(hidbiasinc, sizeof(float), TOTAL_FEATURES, in);
+        fread(CDinc, sizeof(float), N_MOVIES * TOTAL_FEATURES * SOFTMAX, in);
+        fread(Dij, sizeof(float), N_MOVIES * TOTAL_FEATURES, in);
+        fread(DIJinc, sizeof(float), N_MOVIES * TOTAL_FEATURES, in);
         fclose(in);
     }
 
