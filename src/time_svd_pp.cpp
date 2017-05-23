@@ -26,7 +26,7 @@ const float L = 0.005;         // general learning rate
 const int kFactor = 50;         // number of factors
 
 //initialization
-TimeSVDPP::TimeSVDPP(int epochs, int bnum, int k, float* alpha_u, float* bi,
+TimeSVDPP::TimeSVDPP(bool isDone, int epochs, int bnum, int k, float* alpha_u, float* bi,
         float* bi_bin, float* bu, float* qi, float* pu, float* ys, float* summw,
         vector<map<int,float> >* bu_t, vector<map<int,float> >* dev,
         string train_file, string cross_file, string test_file):
@@ -35,6 +35,7 @@ TimeSVDPP::TimeSVDPP(int epochs, int bnum, int k, float* alpha_u, float* bi,
     clock_t time0 = clock();
 
     numEpochs = epochs;
+    done = isDone;
 
     if (bnum == 0) {
         binNum = kBinNum;
@@ -263,6 +264,7 @@ void TimeSVDPP::save() {
     }
     printf("Saving raw arrays...");
     clock_t time0 = clock();
+    fwrite(&done, sizeof(int), 1, out);
     fwrite(&numEpochs, sizeof(int), 1, out);
     fwrite(&binNum, sizeof(int), 1, out);
     fwrite(&factor, sizeof(int), 1, out);
@@ -289,14 +291,16 @@ void TimeSVDPP::save() {
 
 TimeSVDPP* loadTSVDpp(string saveFile, string train_file,
         string cross_file, string test_file) {
-    int numEpochs, binNum, factor;
+    int done, numEpochs, binNum, factor;
     FILE *in = fopen(saveFile.c_str(), "r");
     if (in == NULL) {
         printf("File %s not found.\n", saveFile.c_str());
+        return NULL;
     }
 
     printf("Loading raw arrays...");
     clock_t time0 = clock();
+    fread(&done, sizeof(int), 1, in);
     fread(&numEpochs, sizeof(int), 1, in);
     fread(&binNum, sizeof(int), 1, in);
     fread(&factor, sizeof(int), 1, in);
@@ -330,7 +334,7 @@ TimeSVDPP* loadTSVDpp(string saveFile, string train_file,
     printf("Total load time: %f ms\n", diffclock(time2, time0));
     fclose(in);
     assert (numEpochs > 0 && binNum > 0 && factor > 0);
-    return new TimeSVDPP(numEpochs, binNum, factor, Alpha_u, Bi,
+    return new TimeSVDPP(done, numEpochs, binNum, factor, Alpha_u, Bi,
         Bi_Bin, Bu, Qi, Pu, ys, sumMW, Bu_t, Dev,
         train_file, cross_file, test_file);
 }
@@ -365,21 +369,27 @@ void TimeSVDPP::train(std::string saveFile) {
     srand(time(NULL));
     int user, item, date, rating;
     float curRmse;
-    printf("Starting with %d epochs\n", numEpochs);
-    for (size_t i = 0; i < 1000; ++i) {
-        sgd();
-        curRmse = cValidate(AVG);
-        cout << "test_Rmse in step " << numEpochs << ": " << curRmse << endl;
-        numEpochs++;
-        if (numEpochs % SAVE_EVERY_K == 0) {
-            save();
-        }
+    if (!done) {
+        printf("Starting with %d epochs\n", numEpochs);
+        for (size_t i = 0; i < 1000; ++i) {
+            sgd();
+            curRmse = cValidate(AVG);
+            cout << "test_Rmse in step " << numEpochs << ": " << curRmse << endl;
+            numEpochs++;
+            if (numEpochs % SAVE_EVERY_K == 0) {
+                save();
+            }
 
-        if(curRmse < preRmse - 0.00005) {
-            preRmse = curRmse;
-        }
-        else{
-            break;
+            if(curRmse < preRmse - 0.00005) {
+                preRmse = curRmse;
+            }
+            else{
+                if (numEpochs % SAVE_EVERY_K != 0) {
+                    save();
+                }
+                done = true;
+                break;
+            }
         }
     }
     debugPrint("Outputting...\n");

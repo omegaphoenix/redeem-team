@@ -13,7 +13,7 @@ using namespace std;
 
 class TimeSVDPP : public Model {
     public:
-        TimeSVDPP(int,int,int,float*,float*,float*,float*,
+        TimeSVDPP(bool,int,int,int,float*,float*,float*,float*,
                   float*,float*,float*,float*,
                   vector<map<int,float> >*,
                   vector<map<int,float> >*,
@@ -55,6 +55,7 @@ class TimeSVDPP : public Model {
         string getBasename(void);
         string nickname;
         int numEpochs;
+        bool done;
  };
 
 TimeSVDPP* loadTSVDpp(string saveFile, string train_file,
