@@ -19,13 +19,13 @@ CRBM::CRBM() {
             for (int k = 0; k < SOFTMAX; ++k) {
                 vishid[j][k][i] = normalRandom() * STD_DEV;
             }
-            Dij[j][i] = normalRandom() * STD_DEV;
+            Dij[j][i] = normalRandom() * 0.001;
         }
     }
 
     // Initial biases
     for (int i = 0; i < TOTAL_FEATURES; ++i) {
-        hidbiases[i] = normalRandom() * STD_DEV;
+        hidbiases[i] = normalRandom() * STD_DEV; // TODO: See how 0 does
     }
 
     clock_t time1 = clock();
