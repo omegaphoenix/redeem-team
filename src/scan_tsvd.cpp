@@ -70,5 +70,6 @@ int main() {
         Node n = nodes[i];
         cerr << n.modelName << ": " << n.score << "\n";
     }
+    cerr << "\n";
     return 0;
 }
