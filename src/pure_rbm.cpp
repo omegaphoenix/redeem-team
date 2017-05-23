@@ -90,7 +90,7 @@ void RBM::train(std::string saveFile) {
     prmse = validate("4.dta");
     output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
-            std::to_string(tSteps) + ".txt");
+            std::to_string(tSteps) + ".txt", "1.dta");
 
     // Iterate through the model while the RMSE is decreasing
     while (((nrmse < (lastRMSE-E)) || loopcount < 14) && loopcount < 80)  {
@@ -431,7 +431,10 @@ void RBM::train(std::string saveFile) {
         if (loopcount % 5 == 0 || loopcount > 40 || loopcount == 1) {
             output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
                     + "_epoch_" + std::to_string(loopcount) + "_T_" +
-                    std::to_string(tSteps) + ".txt");
+                    std::to_string(tSteps) + ".txt", "1.dta");
+            output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+                    + "_epoch_" + std::to_string(loopcount) + "_T_" +
+                    std::to_string(tSteps) + "all.txt", "all.dta");
         }
 
         if (TOTAL_FEATURES >= 400) {
@@ -480,7 +483,10 @@ void RBM::train(std::string saveFile) {
     }
     output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
-            std::to_string(tSteps) + ".txt");
+            std::to_string(tSteps) + ".txt", "5-1.dta");
+    output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+            + "_epoch_" + std::to_string(loopcount) + "_T_" +
+            std::to_string(tSteps) + "all.txt", "all.dta");
 }
 
 void RBM::prepPredict(Model *mod, int n) {

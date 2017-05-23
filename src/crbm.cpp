@@ -38,9 +38,9 @@ CRBM::~CRBM() {
 }
 
 void CRBM::init() {
-    load("1.dta");
+    load("all.dta");
     tester = new Model();
-    tester->load("4.dta");
+    tester->load("5.dta");
     clock_t time0 = clock();
     debugPrint("Initializing visible biases...\n");
 
@@ -86,7 +86,7 @@ void CRBM::train(std::string saveFile) {
     int tSteps = 1; // Set this value if you are continuing run
 
     debugPrint("Testing score output\n");
-    std::string scoreFileName = "out/crbm/scores_"
+    std::string scoreFileName = "out/crbm/v1_scores_"
         + std::to_string(TOTAL_FEATURES) + ".txt";
     FILE *validateFile = fopen(scoreFileName.c_str(), "a");
     fprintf(validateFile, "New run\n");
@@ -97,9 +97,9 @@ void CRBM::train(std::string saveFile) {
     prmse = validate("4.dta");
     printf("Initial prmse is %f\n", prmse);
     debugPrint("Testing quiz/test output\n");
-    output("out/crbm/crbm_v0_factors_" + std::to_string(TOTAL_FEATURES)
+    output("out/crbm/crbm_v1_factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
-            std::to_string(tSteps) + ".txt");
+            std::to_string(tSteps) + ".txt", "5-1.dta");
 
     // Iterate through the model while the RMSE is decreasing
     while (((nrmse < (lastRMSE - E) && prmse <= lastPRMSE) || loopcount < 14
@@ -481,13 +481,16 @@ void CRBM::train(std::string saveFile) {
         printf("epoch: %d nrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, prmse, ms1);
         fprintf(validateFile, "epoch: %d nrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, prmse, ms1);
         fclose(validateFile);
-        save("model/crbm/crbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+        save("model/crbm/crbm_v1_factors_" + std::to_string(TOTAL_FEATURES)
                 + "_epoch_" + std::to_string(loopcount) + "_T_" +
                 std::to_string(tSteps) + ".txt");
         if (loopcount % 5 == 0 || loopcount > 40 || loopcount == 1) {
-            output("out/crbm/crbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+            output("out/crbm/crbm_v1_factors_" + std::to_string(TOTAL_FEATURES)
                     + "_epoch_" + std::to_string(loopcount) + "_T_" +
-                    std::to_string(tSteps) + ".txt");
+                    std::to_string(tSteps) + ".txt", "5-1.dta");
+            output("out/crbm/crbm_v1_factors_" + std::to_string(TOTAL_FEATURES)
+                    + "_epoch_" + std::to_string(loopcount) + "_T_" +
+                    std::to_string(tSteps) + "all.txt", "all.dta");
         }
 
 
@@ -513,9 +516,12 @@ void CRBM::train(std::string saveFile) {
             epsilonHB *= 0.80;
         }
     }
-    output("out/crbm/crbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+    output("out/crbm/crbm_v1_factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
-            std::to_string(tSteps) + ".txt");
+            std::to_string(tSteps) + ".txt", "5-1.dta");
+    output("out/crbm/crbm_v1_factors_" + std::to_string(TOTAL_FEATURES)
+            + "_epoch_" + std::to_string(loopcount) + "_T_" +
+            std::to_string(tSteps) + "_all.txt", "all.dta");
 }
 
 void CRBM::prepPredict(Model *mod, int n) {

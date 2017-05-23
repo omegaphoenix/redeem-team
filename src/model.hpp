@@ -30,7 +30,7 @@ class Model {
         void loadSaved(std::string fname);
         float validate(std::string valFile);
         float trainingError();
-        void output(std::string saveFile);
+        void output(std::string saveFile, std::string valFile);
         void initLoad(std::string fname, std::string dataFile);
         void load(std::string dataFile);
 #ifdef MU
