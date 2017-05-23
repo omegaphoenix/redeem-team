@@ -44,11 +44,11 @@ int main(int argc, char** argv) {
 
     for (int i = 0; i < N_MODELS; ++i) {
         aTs(i) = 0.5 * (predictions[i].dot(predictions[i]) +
-                 QUIZ_SQUARE - rmses[i]);
+                 N_QUIZ * QUIZ_SQUARE * QUIZ_SQUARE - N_QUIZ * rmses[i] * rmses[i]);
     }
 
     alpha = (A.transpose() * A).inverse() * aTs;
-    cout << "Alpha: " << alpha << "\n";
+    cout << "Alpha: \n" << alpha << "\n";
 
     VectorXd newPredict(N_QUIZ);
     newPredict = A * alpha;
