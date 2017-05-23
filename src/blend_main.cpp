@@ -50,9 +50,6 @@ int main(int argc, char** argv) {
     alpha = (A.transpose() * A).inverse() * aTs;
     cout << "Alpha: " << alpha << "\n";
 
-    alpha(0) = 0.1;
-    alpha(1) = 0.8;
-    alpha(2) = 0.1;
     VectorXd newPredict(N_QUIZ);
     newPredict = A * alpha;
 
