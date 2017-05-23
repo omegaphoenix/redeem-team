@@ -102,7 +102,7 @@ void CRBM::train(std::string saveFile) {
             std::to_string(tSteps) + ".txt");
 
     // Iterate through the model while the RMSE is decreasing
-    while (((nrmse < (lastRMSE - E) && prmse < lastPRMSE) || loopcount < 14
+    while (((nrmse < (lastRMSE - E) && prmse <= lastPRMSE) || loopcount < 14
                 || (loopcount < 20 && nrmse > 0.804)) && loopcount < 80  )  {
         if (loopcount >= 10) {
             tSteps = 3 + (loopcount - 10)/5;
