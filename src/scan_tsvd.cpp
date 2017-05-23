@@ -37,7 +37,7 @@ int main() {
 
             bool fileExists = false;
             string fname;
-            for (int epoch = 100; epoch > 0; --epoch) {
+            for (int epoch = 999; epoch > 0; --epoch) {
                 fname = "model/timesvdpp/" + std::to_string(factor)
                         + "factors_" + std::to_string(binNum) + "bins_"
                         + std::to_string(epoch) + "epochs.save";
@@ -53,10 +53,11 @@ int main() {
                 cur = loadTSVDpp(fname, trainFile, crossFile, testFile);
             }
             else {
-                cur = new TimeSVDPP(false,0,0,0,NULL,NULL,NULL,NULL,
+                cur = new TimeSVDPP(false,0,binNum,factors,NULL,NULL,NULL,NULL,
                               NULL,NULL,NULL,NULL,NULL,NULL,
                               trainFile, crossFile, testFile);
             }
+            cout << "About to train " << fname << "\n";
             cur->train("");
             Node n;
             n.modelName = fname;
