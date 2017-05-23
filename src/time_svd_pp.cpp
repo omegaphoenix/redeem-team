@@ -262,6 +262,7 @@ void TimeSVDPP::save() {
     if (out == NULL) {
         printf("File %s not found.\n", fname.c_str());
     }
+    printf("Saving %s", fname);
     printf("Saving raw arrays...");
     clock_t time0 = clock();
     fwrite(&done, sizeof(int), 1, out);
