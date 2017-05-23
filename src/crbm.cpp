@@ -95,6 +95,7 @@ void CRBM::train(std::string saveFile) {
     loadSaved(loadFile);
     debugPrint("Testing validation\n");
     prmse = validate("4.dta");
+    printf("Initial prmse is %f\n", prmse);
     debugPrint("Testing quiz/test output\n");
     output("out/crbm/crbm_v0_factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
@@ -480,11 +481,11 @@ void CRBM::train(std::string saveFile) {
         printf("epoch: %d nrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, prmse, ms1);
         fprintf(validateFile, "epoch: %d nrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, prmse, ms1);
         fclose(validateFile);
-        save("model/crbm/pure_crbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+        save("model/crbm/crbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
                 + "_epoch_" + std::to_string(loopcount) + "_T_" +
                 std::to_string(tSteps) + ".txt");
         if (loopcount % 5 == 0 || loopcount > 40 || loopcount == 1) {
-            output("out/crbm/pure_crbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+            output("out/crbm/crbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
                     + "_epoch_" + std::to_string(loopcount) + "_T_" +
                     std::to_string(tSteps) + ".txt");
         }
@@ -512,7 +513,7 @@ void CRBM::train(std::string saveFile) {
             epsilonHB *= 0.80;
         }
     }
-    output("out/crbm/pure_crbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+    output("out/crbm/crbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
             std::to_string(tSteps) + ".txt");
 }

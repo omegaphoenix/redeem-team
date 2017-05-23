@@ -558,7 +558,10 @@ void RBM::save(std::string fname) {
     fwrite(buf, sizeof(int), 1, out);
     fwrite(vishid, sizeof(float), N_MOVIES * SOFTMAX * TOTAL_FEATURES, out);
     fwrite(visbiases, sizeof(float), N_MOVIES * SOFTMAX, out);
+    fwrite(visbiasinc, sizeof(float), N_MOVIES * SOFTMAX, out);
     fwrite(hidbiases, sizeof(float), TOTAL_FEATURES, out);
+    fwrite(hidbiasinc, sizeof(float), TOTAL_FEATURES, out);
+    fwrite(CDinc, sizeof(float), N_MOVIES * TOTAL_FEATURES * SOFTMAX, out);
     fclose(out);
 
     clock_t time1 = clock();
@@ -583,7 +586,10 @@ void RBM::loadSaved(std::string fname) {
         // Initialize vishid, visbiases, hidbiases
         fread(vishid, sizeof(float), N_MOVIES * SOFTMAX * TOTAL_FEATURES, in);
         fread(visbiases, sizeof(float), N_MOVIES * SOFTMAX, in);
+        fread(visbiasinc, sizeof(float), N_MOVIES * SOFTMAX, in);
         fread(hidbiases, sizeof(float), TOTAL_FEATURES, in);
+        fread(hidbiasinc, sizeof(float), TOTAL_FEATURES, in);
+        fread(CDinc, sizeof(float), N_MOVIES * TOTAL_FEATURES * SOFTMAX, in);
         fclose(in);
     }
 
