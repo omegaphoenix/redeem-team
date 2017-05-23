@@ -1,6 +1,6 @@
 CXX = g++
 # Add -DMU if running KNN
-CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -DISRBM
+CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -DISRBM -O3
 PROG = naive_svd
 RBM_PROG = rbm
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
@@ -38,15 +38,15 @@ naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 svd_plus: $(SVD_PLUS_FILES:.cpp=.o)
-	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
+	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 timesvdpp: $(TIME_SVD_PLUS_FILES:.cpp=.o)
 	mkdir -p bin out model out/timesvdpp model/timesvdpp
-	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
+	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 scan_tsvd: $(SCAN_TSVD_FILES:.cpp=.o)
 	mkdir -p bin log out model out/timesvdpp model/timesvdpp
-	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
+	$(CXX) $(CFLAGS) -o bin/$@ $^
 	./bin/scan_tsvd 2>> log/scan_tsvd
 
 knn: $(KNN_FILES:.cpp=.o)
@@ -56,7 +56,7 @@ validate_naive_svd: $(NAIVE_SVD_CV_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 validate_svd_plus: $(SVD_PLUS_CV_FILES:.cpp=.o)
-	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
+	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 run_nsvd: validate_naive_svd
 	bin/validate_naive_svd 2> log/validate_nsvd.log
