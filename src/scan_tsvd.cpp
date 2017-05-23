@@ -25,7 +25,7 @@ bool compare(Node a, Node b) {
 }
 
 int main() {
-    string trainFile = "all.dta";
+    string trainFile = "1.dta";
     string crossFile = "data/um/4.dta";
     string testFile = "data/um/5-1.dta";
 
@@ -53,7 +53,7 @@ int main() {
                 cur = loadTSVDpp(fname, trainFile, crossFile, testFile);
             }
             else {
-                cur = new TimeSVDPP(false,0,binNum,factors,NULL,NULL,NULL,NULL,
+                cur = new TimeSVDPP(false,0,binNum,factor,NULL,NULL,NULL,NULL,
                               NULL,NULL,NULL,NULL,NULL,NULL,
                               trainFile, crossFile, testFile);
             }
