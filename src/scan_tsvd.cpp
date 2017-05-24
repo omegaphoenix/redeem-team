@@ -7,7 +7,7 @@
 using namespace std;
 
 vector<int> binsize = {30, 40};
-vector<int> factors = {50, 60, 70, 80, 90, 100};
+vector<int> factors = {150, 160, 170, 180, 190};
 
 const float AVG = 3.60073;     // average score
 
@@ -63,6 +63,7 @@ int main() {
             n.modelName = fname;
             n.score = cur->cValidate(AVG);
             nodes.push_back(n);
+            delete cur;
         }
     }
     sort(nodes.begin(), nodes.end(), compare);

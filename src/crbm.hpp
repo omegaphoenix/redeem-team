@@ -2,7 +2,7 @@
 #define PURE_CRBM_HPP
 #include "model.hpp"
 
-#define TOTAL_FEATURES  100
+#define TOTAL_FEATURES  200
 #define SOFTMAX         5
 #define EPSILONW        0.00075   // Learning rate for weights
 #define EPSILOND        0.000001  // Learning rate for weights
