@@ -385,10 +385,8 @@ void TimeSVDPP::train(std::string saveFile) {
                 preRmse = curRmse;
             }
             else{
-                if (numEpochs % SAVE_EVERY_K != 0) {
-                    save();
-                }
                 done = true;
+                save();
                 break;
             }
         }
