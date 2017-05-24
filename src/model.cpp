@@ -336,11 +336,11 @@ float Model::trainingError() {
 }
 
 // Output submission
-void Model::output(std::string saveFile) {
+void Model::output(std::string saveFile, std::string valFile) {
     debugPrint("Outputing...\n");
     clock_t timeStart = clock();
     Model *validator = new Model();
-    validator->load("5-1.dta");
+    validator->load(valFile);
     unsigned int userStartIdx, userEndIdx, n, i, colIdx;
 
     // Open file

@@ -7,7 +7,7 @@
 using namespace std;
 
 vector<int> binsize = {30, 40};
-vector<int> factors = {50, 60, 70, 80, 90, 100};
+vector<int> factors = {150, 160, 170, 180, 190};
 
 const float AVG = 3.60073;     // average score
 
@@ -25,7 +25,7 @@ bool compare(Node a, Node b) {
 }
 
 int main() {
-    string trainFile = "all.dta";
+    string trainFile = "1.dta";
     string crossFile = "data/um/4.dta";
     string testFile = "data/um/5-1.dta";
 
@@ -37,7 +37,7 @@ int main() {
 
             bool fileExists = false;
             string fname;
-            for (int epoch = 100; epoch > 0; --epoch) {
+            for (int epoch = 999; epoch > 0; --epoch) {
                 fname = "model/timesvdpp/" + std::to_string(factor)
                         + "factors_" + std::to_string(binNum) + "bins_"
                         + std::to_string(epoch) + "epochs.save";
@@ -53,15 +53,17 @@ int main() {
                 cur = loadTSVDpp(fname, trainFile, crossFile, testFile);
             }
             else {
-                cur = new TimeSVDPP(false,0,0,0,NULL,NULL,NULL,NULL,
+                cur = new TimeSVDPP(false,0,binNum,factor,NULL,NULL,NULL,NULL,
                               NULL,NULL,NULL,NULL,NULL,NULL,
                               trainFile, crossFile, testFile);
             }
+            cout << "About to train " << fname << "\n";
             cur->train("");
             Node n;
             n.modelName = fname;
             n.score = cur->cValidate(AVG);
             nodes.push_back(n);
+            delete cur;
         }
     }
     sort(nodes.begin(), nodes.end(), compare);

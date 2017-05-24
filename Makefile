@@ -1,7 +1,7 @@
 CXX = g++
 # Add -DMU if running KNN
-CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized
 INCLUDE = -I ./
+CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -DISRBM -O3
 PROG = naive_svd
 RBM_PROG = rbm
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
@@ -14,6 +14,7 @@ SCAN_TSVD_FILES = $(addprefix src/, scan_tsvd.cpp time_svd_pp.cpp baseline.cpp m
 KNN_FILES = $(addprefix src/, knn.cpp baseline.cpp model.cpp)
 RBM_FILES = $(addprefix src/, pure_rbm.cpp model.cpp)
 BLEND_FILES = $(addprefix src/, blend_main.cpp)
+CRBM_FILES = $(addprefix src/, crbm.cpp model.cpp)
 NOISE_FILES = $(addprefix src/, noise.cpp)
 # MODEL_FILES = $(addprefix src/, model.cpp)
 # BASELINE_FILES = $(addprefix src/, baseline.cpp model.cpp)
@@ -39,15 +40,15 @@ naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 svd_plus: $(SVD_PLUS_FILES:.cpp=.o)
-	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
+	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 timesvdpp: $(TIME_SVD_PLUS_FILES:.cpp=.o)
 	mkdir -p bin out model out/timesvdpp model/timesvdpp
-	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
+	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 scan_tsvd: $(SCAN_TSVD_FILES:.cpp=.o)
 	mkdir -p bin log out model out/timesvdpp model/timesvdpp
-	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
+	$(CXX) $(CFLAGS) -o bin/$@ $^
 	./bin/scan_tsvd 2>> log/scan_tsvd
 
 knn: $(KNN_FILES:.cpp=.o)
@@ -57,7 +58,7 @@ validate_naive_svd: $(NAIVE_SVD_CV_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 validate_svd_plus: $(SVD_PLUS_CV_FILES:.cpp=.o)
-	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
+	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 run_nsvd: validate_naive_svd
 	bin/validate_naive_svd 2> log/validate_nsvd.log
@@ -69,6 +70,10 @@ rbm: $(RBM_FILES:.cpp=.o)
 blend: $(BLEND_FILES:.cpp=.o)
 	mkdir -p out out/blend
 	$(CXX) $(CFLAGS) $(INCLUDE) -o bin/$@ $^
+
+crbm: $(CRBM_FILES:.cpp=.o)
+	mkdir -p bin out model out/crbm model/crbm
+	$(CXX) $(CFLAGS) -o bin/crbm $^
 
 noise: $(NOISE_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/noise $^
