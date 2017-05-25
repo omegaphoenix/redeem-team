@@ -6,6 +6,7 @@ PROG = naive_svd
 RBM_PROG = rbm
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
 NAIVE_SVD_CV_FILES = $(addprefix src/, validate_naive_svd.cpp naive_svd.cpp model.cpp)
+COUNT_MOVIE_FILES = $(addprefix src/, count_movie.cpp naive_svd.cpp model.cpp)
 BASELINE_FILES = $(addprefix src/, baseline.cpp baseline_main.cpp model.cpp)
 SVD_PLUS_FILES = $(addprefix src/, svd_plusplus_main.cpp svd_plusplus.cpp baseline.cpp model.cpp)
 SVD_PLUS_CV_FILES = $(addprefix src/, validate_svd_plusplus.cpp svd_plusplus.cpp baseline.cpp model.cpp)
@@ -55,6 +56,9 @@ knn: $(KNN_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 validate_naive_svd: $(NAIVE_SVD_CV_FILES:.cpp=.o)
+	$(CXX) $(CFLAGS) -o bin/$@ $^
+
+count_movie: $(COUNT_MOVIE_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 validate_svd_plus: $(SVD_PLUS_CV_FILES:.cpp=.o)

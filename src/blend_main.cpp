@@ -21,7 +21,10 @@ VectorXd getPrediction(string fname) {
     VectorXd prediction(N_QUIZ);
     fname = "out/" + fname;
     std::ifstream f(fname.c_str());
-    assert (f.good());
+    if (!f.good()) {
+        printf("%s is missing\n", fname.c_str());
+        assert (f.good());
+    }
     for (int i = 0; i < N_QUIZ; ++i) {
         double cur;
         f >> cur;
