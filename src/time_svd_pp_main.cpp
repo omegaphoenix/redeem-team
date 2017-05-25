@@ -13,7 +13,7 @@
 using namespace std;
 
 int main() {
-    string trainFile = "1.dta";  //set cross validation data
+    string trainFile = "123.dta";  //set cross validation data
     string crossFile = "data/um/4.dta";  //set cross validation data
     string testFile = "data/um/5-1.dta";  //set test data
 
@@ -27,6 +27,6 @@ int main() {
     TimeSVDPP svd(false,0,0,0,NULL,NULL,NULL,NULL,
                   NULL,NULL,NULL,NULL,NULL,NULL,
                   trainFile, crossFile, testFile);
-    svd.train("");
+    svd.train("v2_123");
     return 0;
 }
