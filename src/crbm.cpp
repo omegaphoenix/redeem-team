@@ -485,11 +485,14 @@ void CRBM::train(std::string saveFile) {
         fclose(validateFile);
         save("model/crbm/crbm_v" + version + "_factors_" + std::to_string(TOTAL_FEATURES)
                 + "_epoch_" + std::to_string(loopcount) + "_T_" +
-                std::to_string(tSteps) + ".txt");
+                std::to_string(tSteps) + ".mod");
         if (loopcount % 5 == 0 || loopcount > 40 || loopcount == 1) {
             output("out/crbm/crbm_v" + version + "_factors_" + std::to_string(TOTAL_FEATURES)
                     + "_epoch_" + std::to_string(loopcount) + "_T_" +
                     std::to_string(tSteps) + ".txt", "5-1.dta");
+            output("out/crbm/crbm_v" + version + "_factors_" + std::to_string(TOTAL_FEATURES)
+                    + "_epoch_" + std::to_string(loopcount) + "_T_" +
+                    std::to_string(tSteps) + "_4.txt", "4.dta");
             output("out/crbm/crbm_v" + version + "_factors_" + std::to_string(TOTAL_FEATURES)
                     + "_epoch_" + std::to_string(loopcount) + "_T_" +
                     std::to_string(tSteps) + "all.txt", "all.dta");
@@ -521,6 +524,9 @@ void CRBM::train(std::string saveFile) {
     output("out/crbm/crbm_v" + version + "_factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
             std::to_string(tSteps) + ".txt", "5-1.dta");
+    output("out/crbm/crbm_v" + version + "_factors_" + std::to_string(TOTAL_FEATURES)
+            + "_epoch_" + std::to_string(loopcount) + "_T_" +
+            std::to_string(tSteps) + "_4.txt", "4.dta");
     output("out/crbm/crbm_v" + version + "_factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
             std::to_string(tSteps) + "_all.txt", "all.dta");
