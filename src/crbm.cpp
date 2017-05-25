@@ -39,9 +39,9 @@ CRBM::~CRBM() {
 }
 
 void CRBM::init() {
-    load("all.dta");
+    load("123.dta");
     tester = new Model();
-    tester->load("5.dta");
+    tester->load("4.dta");
     clock_t time0 = clock();
     debugPrint("Initializing visible biases...\n");
 
@@ -86,7 +86,7 @@ void CRBM::train(std::string saveFile) {
     ZERO(hidbiasinc);
     int tSteps = 1; // Set this value if you are continuing run
 
-    std::string version = "1";
+    std::string version = "0";
     debugPrint("Testing score output\n");
     std::string scoreFileName = "out/crbm/v" + version + "_scores_"
         + std::to_string(TOTAL_FEATURES) + ".txt";
