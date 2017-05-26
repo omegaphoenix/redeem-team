@@ -20,8 +20,9 @@ Model::Model() {
 #if defined(COO) || defined(MU)
     ratings = new int[N_TRAINING * DATA_POINT_SIZE];
     values = new float[N_TRAINING];
-#endif
+#else
     values = new unsigned char[N_TRAINING];
+#endif
     columns = new unsigned short[N_TRAINING];
     dates = new unsigned short[N_TRAINING];
     rowIndex = new unsigned int[N_USERS + 1];
@@ -430,9 +431,10 @@ void Model::outputResiduals(std::string saveFile) {
                 colIdx++) {
             i = validator->columns[colIdx]; // movie
             k = validator->values[colIdx]; // rating
+            unsigned int d = validator->dates[colIdx]; // date
             assert (i >= 0 && i < N_MOVIES);
             assert (k > 0 && k <= MAX_RATING);
-            float prediction = predict(n, i); // jump
+            float prediction = predict(n, i, d); // jump
             float residual = k - (float) prediction;
             outputFile << residual << "\n"; // jump
         }
