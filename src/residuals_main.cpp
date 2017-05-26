@@ -121,6 +121,13 @@ float validateFile(std::string pfile, std::string vfile) {
     return RMSE;
 }
 
+void generate_output() {
+    RBM* rbm = new RBM();
+    rbm->init();
+    rbm->loadSaved("model/rbm/pure_rbm_v3_factors_200_epoch_44_T_9.txt");
+    rbm->output("sample.out", "4.dta");
+}
+
 // Train kNN on RBM residuals
 int main(int argc, char **argv) {
     clock_t timestart = clock();

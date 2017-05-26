@@ -1,7 +1,7 @@
 CXX = g++
 # Add -DMU if running KNN
 INCLUDE = -I ./
-CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -DISRBM -O3
+CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -DISRBM -O3 -DMU
 PROG = naive_svd
 RBM_PROG = rbm
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
@@ -12,8 +12,8 @@ SVD_PLUS_FILES = $(addprefix src/, svd_plusplus_main.cpp svd_plusplus.cpp baseli
 SVD_PLUS_CV_FILES = $(addprefix src/, validate_svd_plusplus.cpp svd_plusplus.cpp baseline.cpp model.cpp)
 TIME_SVD_PLUS_FILES = $(addprefix src/, time_svd_pp_main.cpp time_svd_pp.cpp baseline.cpp model.cpp)
 SCAN_TSVD_FILES = $(addprefix src/, scan_tsvd.cpp time_svd_pp.cpp baseline.cpp model.cpp)
-KNN_FILES = $(addprefix src/, knn.cpp baseline.cpp model.cpp)
-RBM_FILES = $(addprefix src/, pure_rbm.cpp model.cpp)
+KNN_FILES = $(addprefix src/, knn_main.cpp knn.cpp baseline.cpp model.cpp)
+RBM_FILES = $(addprefix src/, pure_rbm_main.cpp pure_rbm.cpp model.cpp)
 RES_FILES = $(addprefix src/, residuals_main.cpp pure_rbm.cpp knn.cpp baseline.cpp model.cpp)
 BLEND_FILES = $(addprefix src/, blend_main.cpp)
 CRBM_FILES = $(addprefix src/, crbm.cpp model.cpp)
