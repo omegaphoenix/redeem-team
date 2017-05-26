@@ -13,7 +13,7 @@ class kNN : public Model {
         kNN();
         ~kNN();
         void loadSaved(std::string fname);
-        float predict(int user, int movie);
+        float predict(int user, int movie, int date = 0);
         void train(std::string saveFile);
         void save(std::string fname);
         void normalizeRatings(double average_array[], double stdev_array[]);

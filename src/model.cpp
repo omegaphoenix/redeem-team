@@ -17,38 +17,47 @@
 // Initialize ratings.
 Model::Model() {
     // UM
+#if defined(COO) || defined(MU)
     ratings = new int[N_TRAINING * DATA_POINT_SIZE];
     values = new float[N_TRAINING];
+#endif
+    values = new unsigned char[N_TRAINING];
     columns = new unsigned short[N_TRAINING];
     dates = new unsigned short[N_TRAINING];
     rowIndex = new unsigned int[N_USERS + 1];
 
     // MU
+#ifdef MU
     sortStruct = new dataPoint[N_TRAINING];
     muratings = new int[N_TRAINING * DATA_POINT_SIZE];
     muvalues = new float[N_TRAINING];
     mucolumns = new int[N_TRAINING];
     mudates = new int[N_TRAINING];
     murowIndex = new int[N_MOVIES + 1];
+#endif
 }
 
 // Clean up ratings.
 Model::~Model() {
+#if defined(COO) || defined(MU)
     delete ratings;
+#endif
     delete values;
     delete columns;
     delete dates;
     delete rowIndex;
 
+#ifdef MU
     delete sortStruct;
-
     delete muratings;
     delete muvalues;
     delete mucolumns;
     delete mudates;
     delete murowIndex;
+#endif
 }
 
+#ifdef MU
 void Model::transposeMU() {
     clock_t time0 = clock();
     int count = 0;
@@ -62,14 +71,6 @@ void Model::transposeMU() {
             count++;
         }
     }
-    // for (unsigned int i = 0; i < numRatings; i++) {
-    //     int u = ratings[i * DATA_POINT_SIZE + USER_IDX];
-    //     int m = ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
-    //     int d = ratings[i * DATA_POINT_SIZE + TIME_IDX];
-    //     int r = ratings[i * DATA_POINT_SIZE + RATING_IDX];
-    //     std::cout << "r = " << r << "\n";
-    //     sortStruct[i] = dataPoint(u, m, d, r);
-    // }
 
     std::sort(sortStruct, sortStruct + numRatings);
 
@@ -99,6 +100,7 @@ void Model::transposeMU() {
     float ms1 = diffclock(time1, time0);
     printf("Transposing took %f ms\n", ms1);;
 }
+#endif
 
 // Load new ratings array into CSR format.
 void Model::loadFresh(std::string inFname, std::string outFname) {
@@ -168,7 +170,9 @@ void Model::loadCSR(std::string fname) {
     unsigned char* buffer = (unsigned char*) mmap(NULL, size, PROT_READ, MAP_PRIVATE, f, 0);
 
     int bytes = size;
+#if defined(COO) || defined(MU)
     int ratingsIdx = 0;
+#endif
     int idx = 0;
     rowIndex[user] = idx;
     // short for end of user marker, short + short + char per data point
@@ -220,15 +224,19 @@ void Model::loadCSR(std::string fname) {
             assert (date >= 0 && date < N_DAYS);
             assert (rating >= 0 && rating <= MAX_RATING);
             // Save data
+#if defined(COO) || defined(MU)
             ratings[ratingsIdx + USER_IDX] = user;
             ratings[ratingsIdx + MOVIE_IDX] = movie;
             ratings[ratingsIdx + TIME_IDX] = date;
             ratings[ratingsIdx + RATING_IDX] = rating;
+#endif
             values[idx] = rating;
             columns[idx] = movie;
             dates[idx] = date;
             idx++;
+#if defined(COO) || defined(MU)
             ratingsIdx += DATA_POINT_SIZE;
+#endif
         }
     }
     numRatings = idx;
@@ -319,7 +327,8 @@ float Model::validate(std::string valFile) {
             k = validator->values[colIdx]; // rating
             assert (i >= 0 && i < N_MOVIES);
             assert (k > 0 && k <= MAX_RATING);
-            float prediction = predict(n, i); // jump
+            unsigned int d = validator->dates[colIdx]; // date
+            float prediction = predict(n, i, d); // jump
             float error = prediction - (float) k;
             squareError += error * error;
             assert (squareError >= 0); // jump
@@ -350,7 +359,8 @@ float Model::trainingError() {
             k = values[colIdx]; // rating
             assert (i >= 0 && i < N_MOVIES);
             assert (k > 0 && k <= MAX_RATING);
-            float prediction = predict(n, i);
+            unsigned int d = dates[colIdx]; // date
+            float prediction = predict(n, i, d); // jump
             float error = prediction - (float) k;
             squareError += error * error;
             assert (squareError >= 0);
@@ -364,11 +374,11 @@ float Model::trainingError() {
 }
 
 // Output submission
-void Model::output(std::string saveFile, std::string loadFile) {
+void Model::output(std::string saveFile, std::string valFile) {
     debugPrint("Outputing...\n");
     clock_t timeStart = clock();
     Model *validator = new Model();
-    validator->load(loadFile);
+    validator->load(valFile);
     unsigned int userStartIdx, userEndIdx, n, i, colIdx;
 
     // Open file
@@ -385,7 +395,8 @@ void Model::output(std::string saveFile, std::string loadFile) {
                 colIdx++) {
             i = validator->columns[colIdx]; // movie
             assert (i >= 0 && i < N_MOVIES);
-            float prediction = predict(n, i); // jump
+            unsigned int d = validator->dates[colIdx]; // date
+            float prediction = predict(n, i, d); // jump
             outputFile << prediction << "\n"; // jump
         }
     }
@@ -436,6 +447,7 @@ void Model::outputResiduals(std::string saveFile) {
 }
 
 void Model::train(std::string saveFile) {
+    printf("Not doing anything on %s\n", saveFile.c_str());
 }
 
 #ifdef ISRBM
@@ -443,11 +455,13 @@ void Model::prepPredict(Model *mod, int n) {
 }
 #endif
 
-float Model::predict(int n, int i) {
+float Model::predict(int n, int i, int d) {
+    printf("Not predicting %d %d %d\n", n, i, d);
     return 0.0;
 }
 
-void Model::testTranspose() {
+#ifdef MU
+void testTranspose() {
 #ifndef NDEBUG
     clock_t time0 = clock();
     Model* mod = new Model();
@@ -502,3 +516,4 @@ void Model::testTranspose() {
     printf("Testing took %f ms\n", ms4);
 #endif
 }
+#endif

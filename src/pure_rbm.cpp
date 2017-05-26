@@ -78,7 +78,7 @@ void RBM::train(std::string saveFile) {
     ZERO(CDinc);
     ZERO(visbiasinc);
     ZERO(hidbiasinc);
-    int tSteps = 1;
+    int tSteps = 1; // Set this value if you are continuing run
 
     std::string scoreFileName = "out/rbm/scores_"
         + std::to_string(TOTAL_FEATURES) + ".txt";
@@ -90,7 +90,7 @@ void RBM::train(std::string saveFile) {
     prmse = validate("4.dta");
     output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
-            std::to_string(tSteps) + ".txt");
+            std::to_string(tSteps) + ".txt", "1.dta");
 
     // Iterate through the model while the RMSE is decreasing
     while (((nrmse < (lastRMSE-E)) || loopcount < 14) && loopcount < 80)  {
@@ -168,9 +168,8 @@ void RBM::train(std::string saveFile) {
             }
 
             // Load up a copy of poshidstates for use in loop
-            for (int h = 0; h < TOTAL_FEATURES; ++h) {
-                curposhidstates[h] = poshidstates[h];
-            }
+            std::copy(&poshidstates[0], &poshidstates[TOTAL_FEATURES],
+                      curposhidstates);
 
             // Make T Contrastive Divergence steps
             int stepT = 0;
@@ -285,15 +284,17 @@ void RBM::train(std::string saveFile) {
                     // Sample the hidden units state again.
                     if  (neghidprobs[h] >  randn()) {
                         neghidstates[h]=1;
-                        if ( finalTStep )
+                        if ( finalTStep ) {
                             neghidact[h] += 1.0;
-                    } else {
+                        }
+                    }
+                    else {
                         neghidstates[h]=0;
                     }
                 }
 
                 // Compute error rmse and prmse before we start iterating on T
-                if ( stepT == 0 ) {
+                if (stepT == 0) {
 
                     // Compute rmse on training data
                     for (int j = userStart; j < userEnd; ++j) {
@@ -311,8 +312,8 @@ void RBM::train(std::string saveFile) {
 
                 // If looping again, load the curposvisstates
                 if (!finalTStep) {
-                    for (int h = 0; h < TOTAL_FEATURES; h++ )
-                        curposhidstates[h] = neghidstates[h];
+                    std::copy(&neghidstates[0], &neghidstates[TOTAL_FEATURES],
+                              curposhidstates);
                     ZERO(negvisprobs);
                 }
 
@@ -430,7 +431,10 @@ void RBM::train(std::string saveFile) {
         if (loopcount % 5 == 0 || loopcount > 40 || loopcount == 1) {
             output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
                     + "_epoch_" + std::to_string(loopcount) + "_T_" +
-                    std::to_string(tSteps) + ".txt");
+                    std::to_string(tSteps) + ".txt", "1.dta");
+            output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+                    + "_epoch_" + std::to_string(loopcount) + "_T_" +
+                    std::to_string(tSteps) + "all.txt", "all.dta");
         }
 
         if (TOTAL_FEATURES >= 400) {
@@ -479,7 +483,10 @@ void RBM::train(std::string saveFile) {
     }
     output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
-            std::to_string(tSteps) + ".txt");
+            std::to_string(tSteps) + ".txt", "5-1.dta");
+    output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+            + "_epoch_" + std::to_string(loopcount) + "_T_" +
+            std::to_string(tSteps) + "all.txt", "all.dta");
 }
 
 void RBM::prepPredict(Model *mod, int n) {
@@ -532,10 +539,12 @@ void RBM::prepPredict(Model *mod, int n) {
             negvisprobs[m * SOFTMAX + 2] = 1.0;
         }
     }
+    prevUser = n;
 }
 
 // Return the predicted rating for user n, movie i
-float RBM::predict(int n, int i) {
+float RBM::predict(int n, int i, int d) {
+    assert (n == prevUser);
     float expVal = 0.0;
     for (int k = 0; k < SOFTMAX; ++k) {
         expVal += negvisprobs[i * SOFTMAX + k] * (k + 1);
@@ -555,7 +564,10 @@ void RBM::save(std::string fname) {
     fwrite(buf, sizeof(int), 1, out);
     fwrite(vishid, sizeof(float), N_MOVIES * SOFTMAX * TOTAL_FEATURES, out);
     fwrite(visbiases, sizeof(float), N_MOVIES * SOFTMAX, out);
+    fwrite(visbiasinc, sizeof(float), N_MOVIES * SOFTMAX, out);
     fwrite(hidbiases, sizeof(float), TOTAL_FEATURES, out);
+    fwrite(hidbiasinc, sizeof(float), TOTAL_FEATURES, out);
+    fwrite(CDinc, sizeof(float), N_MOVIES * TOTAL_FEATURES * SOFTMAX, out);
     fclose(out);
 
     clock_t time1 = clock();
@@ -580,7 +592,10 @@ void RBM::loadSaved(std::string fname) {
         // Initialize vishid, visbiases, hidbiases
         fread(vishid, sizeof(float), N_MOVIES * SOFTMAX * TOTAL_FEATURES, in);
         fread(visbiases, sizeof(float), N_MOVIES * SOFTMAX, in);
+        fread(visbiasinc, sizeof(float), N_MOVIES * SOFTMAX, in);
         fread(hidbiases, sizeof(float), TOTAL_FEATURES, in);
+        fread(hidbiasinc, sizeof(float), TOTAL_FEATURES, in);
+        fread(CDinc, sizeof(float), N_MOVIES * TOTAL_FEATURES * SOFTMAX, in);
         fclose(in);
     }
 

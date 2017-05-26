@@ -1,21 +1,23 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -O2 -DISRBM
+# Add -DMU if running KNN
+INCLUDE = -I ./
+CXXFLAGS = -std=c++11 -Wall -g -Wshadow -Wuninitialized -DISRBM -O3
 PROG = naive_svd
 RBM_PROG = rbm
 NAIVE_SVD_FILES = $(addprefix src/, naive_svd_main.cpp naive_svd.cpp model.cpp)
 NAIVE_SVD_CV_FILES = $(addprefix src/, validate_naive_svd.cpp naive_svd.cpp model.cpp)
+COUNT_MOVIE_FILES = $(addprefix src/, count_movie.cpp naive_svd.cpp model.cpp)
 BASELINE_FILES = $(addprefix src/, baseline.cpp baseline_main.cpp model.cpp)
 SVD_PLUS_FILES = $(addprefix src/, svd_plusplus_main.cpp svd_plusplus.cpp baseline.cpp model.cpp)
 SVD_PLUS_CV_FILES = $(addprefix src/, validate_svd_plusplus.cpp svd_plusplus.cpp baseline.cpp model.cpp)
+TIME_SVD_PLUS_FILES = $(addprefix src/, time_svd_pp_main.cpp time_svd_pp.cpp baseline.cpp model.cpp)
+SCAN_TSVD_FILES = $(addprefix src/, scan_tsvd.cpp time_svd_pp.cpp baseline.cpp model.cpp)
 KNN_FILES = $(addprefix src/, knn.cpp baseline.cpp model.cpp)
 RBM_FILES = $(addprefix src/, pure_rbm.cpp model.cpp)
 RES_FILES = $(addprefix src/, residuals_main.cpp pure_rbm.cpp knn.cpp baseline.cpp model.cpp)
+BLEND_FILES = $(addprefix src/, blend_main.cpp)
+CRBM_FILES = $(addprefix src/, crbm.cpp model.cpp)
 NOISE_FILES = $(addprefix src/, noise.cpp)
-# MODEL_FILES = $(addprefix src/, model.cpp)
-# BASELINE_FILES = $(addprefix src/, baseline.cpp model.cpp)
-
-all: init naive_svd validate_naive_svd knn
-
 # MODEL_FILES = $(addprefix src/, model.cpp)
 # BASELINE_FILES = $(addprefix src/, baseline.cpp model.cpp)
 
@@ -35,7 +37,16 @@ naive_svd: $(NAIVE_SVD_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 svd_plus: $(SVD_PLUS_FILES:.cpp=.o)
-	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
+	$(CXX) $(CFLAGS) -o bin/$@ $^
+
+timesvdpp: $(TIME_SVD_PLUS_FILES:.cpp=.o)
+	mkdir -p bin out model out/timesvdpp model/timesvdpp
+	$(CXX) $(CFLAGS) -o bin/$@ $^
+
+scan_tsvd: $(SCAN_TSVD_FILES:.cpp=.o)
+	mkdir -p bin log out model out/timesvdpp model/timesvdpp
+	$(CXX) $(CFLAGS) -o bin/$@ $^
+	./bin/scan_tsvd 2>> log/scan_tsvd
 
 knn: $(KNN_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
@@ -43,8 +54,11 @@ knn: $(KNN_FILES:.cpp=.o)
 validate_naive_svd: $(NAIVE_SVD_CV_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/$@ $^
 
+count_movie: $(COUNT_MOVIE_FILES:.cpp=.o)
+	$(CXX) $(CFLAGS) -o bin/$@ $^
+
 validate_svd_plus: $(SVD_PLUS_CV_FILES:.cpp=.o)
-	$(CXX) -O3 $(CFLAGS) -o bin/$@ $^
+	$(CXX) $(CFLAGS) -o bin/$@ $^
 
 run_nsvd: validate_naive_svd
 	bin/validate_naive_svd 2> log/validate_nsvd.log
@@ -56,6 +70,14 @@ rbm: $(RBM_FILES:.cpp=.o)
 res: $(RES_FILES:.cpp=.o)
 	mkdir -p bin out model model/res out/res
 	$(CXX) $(CFLAGS) -o bin/res $^
+
+blend: $(BLEND_FILES:.cpp=.o)
+	mkdir -p out out/blend
+	$(CXX) $(CFLAGS) $(INCLUDE) -o bin/$@ $^
+
+crbm: $(CRBM_FILES:.cpp=.o)
+	mkdir -p bin out model out/crbm model/crbm
+	$(CXX) $(CFLAGS) -o bin/crbm $^
 
 noise: $(NOISE_FILES:.cpp=.o)
 	$(CXX) $(CFLAGS) -o bin/noise $^

@@ -31,18 +31,19 @@ class Model {
         void loadResiduals(std::string fname);
         float validate(std::string valFile);
         float trainingError();
-        void output(std::string saveFile, std::string loadFile = "5-1.dta");
+        void output(std::string saveFile, std::string valFile = "5-1.dta");
         void outputResiduals(std::string saveFile);
         void initLoad(std::string fname, std::string dataFile);
         void load(std::string dataFile);
+#ifdef MU
         void transposeMU();
-        void testTranspose();
+#endif
 
         virtual void train(std::string saveFile);
 #ifdef ISRBM
         virtual void prepPredict(Model *mod, int n);
 #endif
-        virtual float predict(int n, int i);
+        virtual float predict(int n, int i, int d);
 };
 
 #endif // MODEL_HPP

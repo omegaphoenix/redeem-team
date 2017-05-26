@@ -22,7 +22,7 @@ class RBM : public Model {
         void init();
         void train(std::string saveFile);
         void prepPredict(Model *mod, int n);
-        float predict(int n, int i);
+        float predict(int n, int i, int d = 0);
         void save(std::string fname);
         void loadSaved(std::string fname);
 
