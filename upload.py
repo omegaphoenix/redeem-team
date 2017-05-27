@@ -21,7 +21,7 @@ def scrape(html, fname):
     regex = re.search('RMSE: (.+?) .*', text)
     if regex:
         rmse = float(regex.group(1))
-        sys.stderr.write('{}: {}'.format(fname, regex.group(0)))
+        sys.stderr.write('{}: {}\n'.format(fname, regex.group(0)))
     return rmse
 
 
