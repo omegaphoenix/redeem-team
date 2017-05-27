@@ -6,7 +6,8 @@
 #include <vector>
 #include "Eigen/Dense"
 
-#define N_QUIZ 2749898
+#define N_QUIZ 1374949
+// N_QUAL: 2749898
 #define QUIZ_SQUARE 3.84358
 
 using namespace std;
