@@ -171,6 +171,9 @@ void Model::loadCSR(std::string fname) {
 #ifndef NDEBUG
     int numPoints = (bytes - N_USERS * sizeof(short))
                     / (2 * sizeof(short) + sizeof(char));
+    if (numPoints > N_TRAINING) {
+        printf("too many points: %d\n", numPoints);
+    }
     assert (numPoints <= N_TRAINING);
 #endif
     unsigned char* p = buffer;

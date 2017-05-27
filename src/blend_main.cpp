@@ -56,9 +56,18 @@ int main(int argc, char** argv) {
     VectorXd newPredict(N_QUIZ);
     newPredict = A * alpha;
 
-    ofstream outputFile;
-    outputFile.open("out/blend/blend.dta");
+    std::string outFname = "out/blend/blend_4_tsvdpp_2_crbm_2_rbm_missing"; // leave off the .txt
+    std::string noisyOutFname = outFname + "_noisy.txt";
+    outFname = outFname + ".txt";
+    ofstream outputFile, noisyOutputFile;
+    outputFile.open(outFname);
+    noisyOutputFile.open(noisyOutFname);
     outputFile << setprecision(3);
+    noisyOutputFile << setprecision(3);
+
+    bool noiseFlag = true;
+    float noise = 0.25;
+    int count = 0;
     for (int i = 0; i < N_QUIZ; ++i) {
         float rating = newPredict(i);
         if (rating < 1) {
@@ -69,8 +78,32 @@ int main(int argc, char** argv) {
         }
         // Use \n for efficiency.
         outputFile << rating << "\n";
+
+        if (noiseFlag) {
+            rating += noise;
+            if (rating <= 5.) {
+                noiseFlag = false;
+                count++;
+            }
+            else {
+                rating -= noise;
+            }
+        }
+        else {
+            rating -= noise;
+            if (rating >= 1.) {
+                noiseFlag = true;
+                count++;
+            }
+            else {
+                rating += noise;
+            }
+        }
+        noisyOutputFile << rating << "\n";
     }
     outputFile.close();
+    noisyOutputFile.close();
+    printf("Points modified: %d\n", count);
 
     return 0;
 }
