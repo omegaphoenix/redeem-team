@@ -86,7 +86,7 @@ void CRBM::train(std::string saveFile) {
     ZERO(hidbiasinc);
     int tSteps = 1; // Set this value if you are continuing run
 
-    std::string version = "0";
+    std::string version = "0_full";
     debugPrint("Testing score output\n");
     std::string scoreFileName = "out/crbm/v" + version + "_scores_"
         + std::to_string(TOTAL_FEATURES) + ".txt";
@@ -678,7 +678,7 @@ int main() {
     clock_t time2 = clock();
 
     // Learn parameters
-    crbm->train("data/um/crbm.save");
+    crbm->train("unused");
     clock_t time3 = clock();
 
     float ms1 = diffclock(time1, time0);

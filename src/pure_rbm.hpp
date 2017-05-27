@@ -2,7 +2,7 @@
 #define PURE_RBM_HPP
 #include "model.hpp"
 
-#define TOTAL_FEATURES  300
+#define TOTAL_FEATURES  100
 #define SOFTMAX         5
 #define EPSILONW        0.001   // Learning rate for weights
 #define EPSILONVB       0.008   // Learning rate for biases of visible units

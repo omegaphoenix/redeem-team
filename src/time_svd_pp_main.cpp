@@ -27,6 +27,6 @@ int main() {
     TimeSVDPP svd(false,0,0,0,NULL,NULL,NULL,NULL,
                   NULL,NULL,NULL,NULL,NULL,NULL,
                   trainFile, crossFile, testFile);
-    svd.train("v2_123");
+    svd.train("v2_full");
     return 0;
 }

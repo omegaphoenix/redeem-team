@@ -80,7 +80,8 @@ void RBM::train(std::string saveFile) {
     ZERO(hidbiasinc);
     int tSteps = 1; // Set this value if you are continuing run
 
-    std::string scoreFileName = "out/rbm/scores_"
+    std::string version = "v4_train_full_" ;
+    std::string scoreFileName = "out/rbm/" + version + "scores_"
         + std::to_string(TOTAL_FEATURES) + ".txt";
     FILE *validateFile = fopen(scoreFileName.c_str(), "a");
     fprintf(validateFile, "New run\n");
@@ -88,9 +89,10 @@ void RBM::train(std::string saveFile) {
 
     loadSaved(loadFile);
     prmse = validate("4.dta");
-    output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+    output("out/rbm/pure_rbm_" + version + "factors_"
+            + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
-            std::to_string(tSteps) + ".txt", "1.dta");
+            std::to_string(tSteps) + ".txt", "5-1.dta");
 
     // Iterate through the model while the RMSE is decreasing
     while (((nrmse < (lastRMSE-E)) || loopcount < 14) && loopcount < 80)  {
@@ -425,14 +427,14 @@ void RBM::train(std::string saveFile) {
         printf("epoch: %d nrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, prmse, ms1);
         fprintf(validateFile, "epoch: %d nrmse: %f prmse: %f time: %f ms\n", loopcount, nrmse, prmse, ms1);
         fclose(validateFile);
-        save("model/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+        save("model/rbm/pure_rbm_" + version + "factors_" + std::to_string(TOTAL_FEATURES)
                 + "_epoch_" + std::to_string(loopcount) + "_T_" +
                 std::to_string(tSteps) + ".txt");
         if (loopcount % 5 == 0 || loopcount > 40 || loopcount == 1) {
-            output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+            output("out/rbm/pure_rbm_" + version + "factors_" + std::to_string(TOTAL_FEATURES)
                     + "_epoch_" + std::to_string(loopcount) + "_T_" +
-                    std::to_string(tSteps) + ".txt", "1.dta");
-            output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+                    std::to_string(tSteps) + ".txt", "5-1.dta");
+            output("out/rbm/pure_rbm_" + version + "factors_" + std::to_string(TOTAL_FEATURES)
                     + "_epoch_" + std::to_string(loopcount) + "_T_" +
                     std::to_string(tSteps) + "all.txt", "all.dta");
         }
@@ -481,10 +483,10 @@ void RBM::train(std::string saveFile) {
             }
         }
     }
-    output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+    output("out/rbm/pure_rbm_" + version + "factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
             std::to_string(tSteps) + ".txt", "5-1.dta");
-    output("out/rbm/pure_rbm_v3_factors_" + std::to_string(TOTAL_FEATURES)
+    output("out/rbm/pure_rbm_" + version + "factors_" + std::to_string(TOTAL_FEATURES)
             + "_epoch_" + std::to_string(loopcount) + "_T_" +
             std::to_string(tSteps) + "all.txt", "all.dta");
 }

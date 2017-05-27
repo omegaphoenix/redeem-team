@@ -23,7 +23,7 @@ const float L_pq = 0.015;      // learning rate for Pu & Qi
 float G = 0.007;               // general gamma
 const float Decay = 0.9;       // learning rate decay factor
 const float L = 0.005;         // general learning rate
-const int kFactor = 50;         // number of factors
+const int kFactor = 200;         // number of factors
 
 //initialization
 TimeSVDPP::TimeSVDPP(bool isDone, int epochs, int bnum, int k, float* alpha_u, float* bi,
