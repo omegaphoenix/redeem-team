@@ -6,8 +6,8 @@
 
 using namespace std;
 
-vector<int> binsize = {30, 40};
-vector<int> factors = {150, 160, 170, 180, 190};
+vector<int> binsize = {30};
+vector<int> factors = {240, 270, 700, 900};
 
 const float AVG = 3.60073;     // average score
 
@@ -24,11 +24,8 @@ bool compare(Node a, Node b) {
     return a.score < b.score;
 }
 
-int main() {
-    string trainFile = "1.dta";
-    string crossFile = "data/um/4.dta";
-    string testFile = "data/um/5-1.dta";
-
+void run(string trainFile, string crossFile, string testFile,
+         string dir) {
     vector<Node> nodes;
     for (int i = 0; i < binsize.size(); ++i) {
         int binNum = binsize[i];
@@ -38,7 +35,8 @@ int main() {
             bool fileExists = false;
             string fname;
             for (int epoch = 999; epoch > 0; --epoch) {
-                fname = "model/timesvdpp/" + std::to_string(factor)
+                fname = dir + trainFile + "-trained_"
+                        + std::to_string(factor)
                         + "factors_" + std::to_string(binNum) + "bins_"
                         + std::to_string(epoch) + "epochs.save";
                 std::ifstream f(fname.c_str());
@@ -73,5 +71,21 @@ int main() {
         cerr << n.modelName << ": " << n.score << "\n";
     }
     cerr << "\n";
+}
+
+int main() {
+    string trainFile = "1.dta";
+    string crossFile = "data/um/4.dta";
+    string testFile = "data/um/5-1.dta";
+    string dir = "model/timesvd/";
+    testFile = "data/um/5-1.dta"; // For nn-blending
+    // dir = "/Volumes/dqu/cs156/timesvdpp/models/30bin/";
+
+    // nn Training data
+    run("1.dta", crossFile, "data/um/23.dta", dir);
+    // nn Validation data
+    run("1.dta", crossFile, "data/um/4.dta", dir);
+    // Data to actually blend
+    run("1.dta", crossFile, "data/um/5-1.dta", dir);
     return 0;
 }
