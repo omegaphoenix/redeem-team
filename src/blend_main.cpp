@@ -6,7 +6,8 @@
 #include <vector>
 #include "Eigen/Dense"
 
-#define N_QUIZ 1374949
+#define N_QUIZ 2749898
+// N_QUIZ: 1374949 (Actual number, but no way to separate quiz from test)
 // N_QUAL: 2749898
 #define QUIZ_SQUARE 3.84358
 
