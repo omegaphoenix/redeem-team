@@ -3,6 +3,8 @@
 # Based on CS 155 sample code
 ###############################################################################
 
+from math import sqrt
+import sys
 import numpy as np
 import tensorflow as tf
 import keras
@@ -10,11 +12,12 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Flatten, Dropout
 
 N_MODELS = 0
-N_NEURONS = 20
+N_NEURONS = 70
 N_PROBE = 1374739
+N_23 = 3929436
 BATCH_SIZE = N_PROBE
 N_QUAL = 2749898
-N_EPOCHS = 50
+N_EPOCHS = None # Gets overwritten
 EPOCH_LIST = range(1, 100, 10)
 MEAN = 3.6095161972728063 # 3.6007
 STD = 1.0813423177560841
@@ -46,8 +49,7 @@ X_train, y_train, X_test, y_test = [], [], [], []
 
 with open('nn-blend/trainX.dta') as data:
     for i, line in enumerate(data):
-        if i % N_PROBE == 0:
-            N_MODELS += 1
+        if i % N_23 == 0:
             X_train.append([])
         X_train[-1].append(normal(float(line)))
     X_train = np.asarray(X_train).transpose()
@@ -61,14 +63,15 @@ with open('nn-blend/testX.dta') as data:
     for i, line in enumerate(data):
         if i % N_PROBE == 0:
             N_MODELS += 1
-            X_train.append([])
-        X_train[-1].append(normal(float(line)))
-    X_train = np.asarray(X_train).transpose()
+            X_test.append([])
+        X_test[-1].append(normal(float(line)))
+    X_test = np.asarray(X_test).transpose()
+print "{} models".format(N_MODELS)
 
 with open('data/um/4.dta') as data:
     for line in data:
-        y_train.append(normal(float(line.split()[3])))
-    y_train = np.asarray(y_train)
+        y_test.append(normal(float(line.split()[3])))
+    y_test = np.asarray(y_test)
 
 X_out = []
 with open('nn-blend/outX.dta') as data:
@@ -107,18 +110,35 @@ def run():
 
     ## Printing the accuracy of our model, according to the loss function specified in model.compile above
     score = model.evaluate(X_test, y_test, verbose=0)
-    print('Test score:', score[0])
-    print('Test accuracy:', score[1])
+    rmse = sqrt(score[0])
+    print('Test score (prmse):', rmse)
 
     predictions = model.predict(X_out)
     # import pdb; pdb.set_trace()
 
     print('Printing output for N_EPOCHS = {}'.format(N_EPOCHS))
-    with open('nn-blend/blend_{}epochs.out'.format(N_EPOCHS), 'w') as f:
+    out_file = 'nn-blend/blend_{}epochs_{}neurons.out'.format(N_EPOCHS, N_NEURONS)
+    with open(out_file, 'w') as f:
         for p in predictions:
             f.write('{}\n'.format(unnormalize(p[0])))
 
+    predictions = model.predict(X_test)
+    print('Printing 4.dta for N_EPOCHS = {}'.format(N_EPOCHS))
+    test_file = 'nn-blend/blend_{}epochs_{}neurons-4.dta'.format(N_EPOCHS, N_NEURONS)
+    with open(test_file, 'w') as f:
+        for p in predictions:
+            f.write('{}\n'.format(unnormalize(p[0])))
+
+    return rmse, out_file
+
 if __name__ == '__main__':
+    sys.stderr.write('{} models\n'.format(N_MODELS))
+    blends = []
     for i in EPOCH_LIST:
         N_EPOCHS = i
-        run()
+        blends.append(run())
+
+    blends = sorted(blends, key=lambda model: model[0])
+    for blend in blends:
+        sys.stderr.write('{1}: {0}\n'.format(*blend))
+    sys.stderr.write('\n')
