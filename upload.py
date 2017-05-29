@@ -2,8 +2,10 @@ import argparse
 from bs4 import BeautifulSoup
 import re
 import requests
+import os
 import sys
 
+NOISE = True
 URL = 'http://cs156.caltech.edu/scoreboard'
 
 def run(fname):
@@ -31,6 +33,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     for f in args.files:
+        if NOISE:
+            print('Adding noise to {}'.format(f))
+            if not os.path.isfile('./bin/noise'):
+                print('Need to build ./bin/noise! Exiting...')
+                sys.exit()
+            os.system('./bin/noise {}'.format(f))
+            f += '_noisy.txt'
+
         print ('Uploading {}'.format(f))
         rmse = run(f)
         print ('{} rmse: {}'.format(f, rmse))
