@@ -391,9 +391,13 @@ void TimeSVDPP::train(std::string saveFile) {
             }
         }
     }
-    debugPrint("Outputting...\n");
+    // Remove /data/um/
+    string tFile(testFile.begin() + 8, testFile.end());
+
     clock_t time1 = clock();
-    string outFile = "out/timesvdpp/" + getBasename() + ".out";
+    string outFile = "out/timesvdpp/" + tFile + "_" + getBasename() + ".out";
+    debugPrint(("Outputting... " + outFile +  "\n").c_str());
+
     FILE *fp = fopen(testFile.c_str(),"r");
     ofstream fout(outFile.c_str());
     while (fscanf(fp,"%d %d %d %d",&user, &item, &date, &rating) != EOF) {

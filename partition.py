@@ -11,11 +11,12 @@ def partition(dir_name, part):
     """Create a data partition.
 
     dir_name - name of subdirectory within data/
-    part - integer number of part
+    part - list of integer parts
     """
     data_file = 'data/{}/all.dta'.format(dir_name)
     part_file = 'data/{}/all.idx'.format(dir_name)
-    output_file = 'data/{}/{}{}{}.dta'.format(dir_name, *part)
+    output_file = ('data/{}/' + (len(part) * '{}') +
+                   '.dta').format(dir_name, *part)
 
     with open(data_file) as data, open(part_file) as parts, \
          open(output_file, 'w') as output:
@@ -26,4 +27,4 @@ def partition(dir_name, part):
 
 if __name__ == '__main__':
     for dir_name in ['mu', 'um']:
-        partition(dir_name, [1, 2, 3])
+        partition(dir_name, [2, 3])

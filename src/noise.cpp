@@ -10,9 +10,11 @@ int main(int argc, char **argv) {
     std::ios_base::sync_with_stdio(false);
 
     // Get filenames and check that they aren't the same
-    std::string inFname = "out/tsvdpp_fac1000_epoch_80_predRMSE_0.87726"; // leave off the .txt
+    std::string inFname = "nn-blend/blend.out"; // leave off the .txt
+    if (argc > 1) {
+        inFname = std::string(argv[1]);
+    }
     std::string outFname = inFname + "_noisy.txt";
-    inFname = inFname + ".txt";
 
     // Open files
     FILE* in = fopen(inFname.c_str(), "r");
