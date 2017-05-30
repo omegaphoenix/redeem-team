@@ -68,6 +68,10 @@ int main(int argc, char **argv) {
     svd->printOutput("out/svd_plus.dta");
     clock_t time8 = clock();
 
+    std::cout << "Test RMSE" << std::endl;
+    float error = svd->validate("4.dta", "model/svd_plus/svd_plus.save");
+    std::cout << "RMSE on 4.dta is: " << std::sqrt(error) << std::endl;
+
     double ms1 = diffclock(time1, time0);
     std::cout << "Initializing took " << ms1 << " ms" << std::endl;
     double ms2 = diffclock(time2, time1);

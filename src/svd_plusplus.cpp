@@ -8,6 +8,7 @@
 #include <algorithm> // For shuffling
 #include <stdlib.h> // For abs()
 #include <math.h> // For sqrt(), isnan()
+#include <assert.h>
 
 #define DEBUG true
 
@@ -200,11 +201,13 @@ void SVDPlus::update(int user, int movie, float rating,
                 float y_jk = this->Y[movie_idx * this->K + k];
                 float dy = (this->lambda * y_jk) 
                     - (this->V[movie * this->K + k] * N * e_ui);
+
                 this->Y[movie_idx * this->K + k] -= this->eta * dy;
 
             }
 
             // Updating w
+            /*
             float w_ij = this->W[movie * N_MOVIES + movie_idx];
             float rating_j = (float) this->values[j];
             float dw = (this->lambda * w_ij)
@@ -216,6 +219,7 @@ void SVDPlus::update(int user, int movie, float rating,
             float dc = (this->lambda * this->C[movie * N_MOVIES + movie_idx])
                 - (N * e_ui);
             this->C[movie * N_MOVIES + movie_idx] -= this->eta * dc;
+            */
         }
     }
 
@@ -236,16 +240,17 @@ void SVDPlus::update(int user, int movie, float rating,
         // Set v_i = v_i - (ETA * dv)
         this->V[movie * this->K + i] -= this->eta * dv;
     }
-
+    /*
     this->user_bias[user] += this->eta * (e_ui - 
         (this->lambda * this->user_bias[user]));
     this->movie_bias[movie] += this->eta * (e_ui - 
         (this->lambda * this->movie_bias[movie]));
+    */
 }
 
 void SVDPlus::getPlusVariables(int user, int movie, float N, 
     float* sum_y, float &sum_w, float &sum_c) {
-    for (int j = rowIndex[user - 1]; j < rowIndex[user]; j++) {
+    for (int j = rowIndex[user - 1]; j < (rowIndex[user - 1] + 10); j++) {
         int movie_j = (int) this->columns[j];
         float rating = (float) this->values[j];
 
@@ -255,6 +260,7 @@ void SVDPlus::getPlusVariables(int user, int movie, float N,
             sum_y[k] += y_jk * N;
         }
 
+        /*
         // Get |R|^(-1/2) * (rating - b_uj) * w_ij
         // and add it to "nearest neighbors" sum.
         float b_uj = getBias(user, movie_j);
@@ -263,6 +269,7 @@ void SVDPlus::getPlusVariables(int user, int movie, float N,
         // Get |N|^(-1/2) * c_ij
         // and add it to "implicit_neighbors" sum
         sum_c += N * this->C[movie * N_MOVIES + movie_j];
+        */
     }
 }
 
@@ -284,7 +291,10 @@ float SVDPlus::predictRating(int user, int movie, float* sum_y,
     }
 
     // Finally, calculate the huge hecking thing.
-    double result = b_ui + QP + QY + sum_w + sum_c;
+    assert(sum_w == 0.0);
+    assert(sum_c == 0.0);
+    double result = b_ui + QP + QY;
+    // + sum_w + sum_c;
     return result;
 }
 
