@@ -309,11 +309,10 @@ float SVDPlus::computeAllError() {
 
     // For all data points,
     for (int i = 0; i < this->numRatings; i++) {
-
         // Get user, movie, rating
-        int user = this->ratings[i * DATA_POINT_SIZE + USER_IDX];
-        int movie = this->ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
-        float rating = (float) this->ratings[i * DATA_POINT_SIZE + RATING_IDX];
+        int user = ratings[i * DATA_POINT_SIZE + USER_IDX];
+        int movie = ratings[i * DATA_POINT_SIZE + MOVIE_IDX];
+        float rating = (float) (this->ratings[i * DATA_POINT_SIZE + RATING_IDX]);
 
         // Check if the user has changed.
         if (user != curr_user || curr_user == -1) {
